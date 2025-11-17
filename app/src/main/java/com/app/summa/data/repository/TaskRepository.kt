@@ -9,6 +9,8 @@ import javax.inject.Inject
 interface TaskRepository {
     fun getActiveTasks(): Flow<List<Task>>
     fun getTasksByDate(date: LocalDate): Flow<List<Task>>
+    // PENAMBAHAN: Fungsi interface untuk rentang tanggal
+    fun getTasksForDateRange(startDate: LocalDate, endDate: LocalDate): Flow<List<Task>>
     suspend fun insertTask(task: Task): Long
     suspend fun updateTask(task: Task)
     suspend fun deleteTask(task: Task)
@@ -27,6 +29,11 @@ class TaskRepositoryImpl @Inject constructor(
         return taskDao.getTasksByDate(date.toString())
     }
 
+    // PENAMBAHAN: Implementasi fungsi untuk rentang tanggal
+    override fun getTasksForDateRange(startDate: LocalDate, endDate: LocalDate): Flow<List<Task>> {
+        return taskDao.getTasksForDateRange(startDate.toString(), endDate.toString())
+    }
+
     override suspend fun insertTask(task: Task): Long {
         return taskDao.insertTask(task)
     }
@@ -39,7 +46,6 @@ class TaskRepositoryImpl @Inject constructor(
         taskDao.deleteTask(task)
     }
 
-    // IMPLEMENTASI: Logika untuk menyelesaikan task
     override suspend fun completeTask(taskId: Long) {
         taskDao.completeTask(taskId, System.currentTimeMillis())
     }

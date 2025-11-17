@@ -18,10 +18,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.app.summa.ui.screens.*
+// PENAMBAHAN: Import untuk encoding URL
+import java.net.URLEncoder
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Dashboard : Screen("dashboard", "Dasbor", Icons.Default.Home)
-    object Planner : Screen("planner", "Planner", Icons.Default.CalendarToday)
+    // PERBAIKAN: Rute Planner diubah untuk menerima argumen
+    object Planner : Screen("planner?noteTitle={noteTitle}&noteContent={noteContent}", "Planner", Icons.Default.CalendarToday)
     object Habits : Screen("habits", "Habits", Icons.Default.CheckCircle)
     object Money : Screen("money", "Money", Icons.Default.AccountBalanceWallet)
     // PERUBAHAN: Ganti nama Notes menjadi Knowledge
@@ -85,13 +88,18 @@ fun BottomNavigationBar(navController: NavHostController) {
         tonalElevation = 8.dp
     ) {
         finalItems.forEach { screen ->
+            // PERBAIKAN: Cek rute "planner" menggunakan startsWith
+            val isSelected = currentRoute?.startsWith(screen.route.substringBefore("?")) ?: false
+
             NavigationBarItem(
                 icon = { Icon(screen.icon, contentDescription = screen.title) },
                 label = { Text(screen.title) },
-                selected = currentRoute == screen.route,
+                selected = isSelected,
                 onClick = {
-                    if (currentRoute != screen.route) {
-                        navController.navigate(screen.route) {
+                    if (!isSelected) {
+                        // PERBAIKAN: Gunakan rute asli (dengan argumen) saat navigasi
+                        val route = if (screen == Screen.Planner) "planner" else screen.route
+                        navController.navigate(route) {
                             popUpTo(Screen.Dashboard.route) { saveState = true }
                             launchSingleTop = true
                             restoreState = true
@@ -122,7 +130,7 @@ fun NavigationGraph(
         composable(Screen.Dashboard.route) {
             LaunchedEffect(Unit) { onFabVisibilityChange(true) }
             DashboardScreen(
-                onNavigateToPlanner = { navController.navigate(Screen.Planner.route) },
+                onNavigateToPlanner = { navController.navigate("planner") }, // Navigasi ke planner bersih
                 onNavigateToMoney = { navController.navigate(Screen.Money.route) },
                 // PERUBAHAN: Navigasi ke Knowledge
                 onNavigateToNotes = { navController.navigate(Screen.Knowledge.route) },
@@ -130,7 +138,20 @@ fun NavigationGraph(
                 onNavigateToHabitDetail = { /* TODO: Navigasi ke detail habit */ }
             )
         }
-        composable(Screen.Planner.route) {
+        composable(
+            route = Screen.Planner.route,
+            // PERBAIKAN: Definisikan argumen opsional untuk planner
+            arguments = listOf(
+                navArgument("noteTitle") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("noteContent") {
+                    type = NavType.StringType
+                    nullable = true
+                }
+            )
+        ) {
             LaunchedEffect(Unit) { onFabVisibilityChange(true) }
             PlannerScreen()
         }
@@ -169,9 +190,12 @@ fun NavigationGraph(
             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
             KnowledgeDetailScreen(
                 onBack = { navController.popBackStack() },
+                // PERBAIKAN: Navigasi dengan argumen yang di-encode
                 onConvertToTask = { title, content ->
+                    val encodedTitle = URLEncoder.encode(title, "UTF-8")
+                    val encodedContent = URLEncoder.encode(content, "UTF-8")
                     navController.popBackStack()
-                    navController.navigate(Screen.Planner.route)
+                    navController.navigate("planner?noteTitle=$encodedTitle&noteContent=$encodedContent")
                 }
             )
         }

@@ -40,16 +40,17 @@ class IdentityRepositoryImpl @Inject constructor(
 
     override suspend fun addVoteToIdentity(identityId: Long, points: Int) {
         withContext(Dispatchers.IO) {
-            // TODO: Seharusnya ada getIdentityById di DAO
-            // Untuk saat ini, kita akan melewati logika pengambilan
-            // dan langsung mengupdate (ini perlu diperbaiki nanti)
-
-            // Logika placeholder:
-            // val identity = identityDao.getIdentityById(identityId)
-            // if (identity != null) {
-            //    val newProgress = identity.progress + points
-            //    identityDao.updateIdentity(identity.copy(progress = newProgress))
-            // }
+            // PERBAIKAN: Mengambil data identitas yang ada
+            val identity = identityDao.getIdentityById(identityId)
+            if (identity != null) {
+                // PERBAIKAN: Menghitung progres baru
+                val newProgress = identity.progress + points
+                // PERBAIKAN: Menyimpan identitas yang telah diperbarui
+                identityDao.updateIdentity(identity.copy(progress = newProgress))
+            }
+            // TODO: Implementasikan penyimpanan 'note' sebagai Jurnal Mikro
+            // Ini mungkin memerlukan injeksi KnowledgeRepository jika Anda ingin
+            // menyimpannya sebagai KnowledgeNote baru.
         }
     }
 }

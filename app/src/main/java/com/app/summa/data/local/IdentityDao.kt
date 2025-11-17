@@ -13,6 +13,10 @@ interface IdentityDao {
     @Query("SELECT * FROM identities ORDER BY progress DESC")
     fun getAllIdentities(): Flow<List<Identity>>
 
+    // PENAMBAHAN: Query untuk mengambil satu identitas berdasarkan ID
+    @Query("SELECT * FROM identities WHERE id = :id")
+    suspend fun getIdentityById(id: Long): Identity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertIdentity(identity: Identity): Long
 

@@ -12,11 +12,13 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE scheduledDate = :date ORDER BY scheduledTime")
     fun getTasksByDate(date: String): Flow<List<Task>>
 
-    // PENAMBAHAN: Query untuk mengambil satu task
+    // PENAMBAHAN: Query untuk mengambil task dalam rentang tanggal
+    @Query("SELECT * FROM tasks WHERE scheduledDate BETWEEN :startDate AND :endDate ORDER BY scheduledDate, scheduledTime")
+    fun getTasksForDateRange(startDate: String, endDate: String): Flow<List<Task>>
+
     @Query("SELECT * FROM tasks WHERE id = :taskId")
     suspend fun getTaskById(taskId: Long): Task?
 
-    // PENAMBAHAN: Query untuk menyelesaikan task
     @Query("UPDATE tasks SET isCompleted = 1, completedAt = :completedAt WHERE id = :taskId")
     suspend fun completeTask(taskId: Long, completedAt: Long)
 

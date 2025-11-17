@@ -84,7 +84,7 @@ fun DashboardScreen(
             ) {
                 item { Spacer(Modifier.height(8.dp)) }
 
-                // Daily Summary Card
+                // Daily Summary Card (Selalu tampil)
                 item {
                     SummaCard {
                         Row(
@@ -116,64 +116,66 @@ fun DashboardScreen(
                 }
 
                 // Next Action Card
-                item {
-                    Text(
-                        text = "Hal Berikutnya",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                item {
-                    val nextTask = uiState.nextTask
-                    SummaCard(
-                        onClick = {
-                            if (nextTask != null) {
-                                // TODO: Navigasi ke Focus Mode
-                            } else {
-                                onNavigateToPlanner()
-                            }
-                        }
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                if (nextTask != null) Icons.Default.PlayArrow else Icons.Default.Add,
-                                contentDescription = null,
-                                tint = DeepTeal,
-                                modifier = Modifier.size(40.dp)
-                            )
-                            Spacer(Modifier.width(16.dp))
-                            Column(modifier = Modifier.weight(1f)) {
+                // PERBAIKAN: Tampil hanya di mode Normal atau Fokus
+                if (uiState.currentMode == "Normal" || uiState.currentMode == "Fokus") {
+                    item {
+                        Text(
+                            text = "Hal Berikutnya",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    item {
+                        val nextTask = uiState.nextTask
+                        SummaCard(
+                            onClick = {
                                 if (nextTask != null) {
-                                    Text(
-                                        text = nextTask.scheduledTime ?: "Sepanjang hari",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                    )
-                                    Text(
-                                        text = nextTask.title,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
+                                    // TODO: Navigasi ke Focus Mode
                                 } else {
-                                    Text(
-                                        text = "Tidak ada tugas berikutnya",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        text = "Ketuk untuk menambah",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                    )
+                                    onNavigateToPlanner()
                                 }
                             }
-                            if (nextTask != null) {
-                                Button(onClick = { /* TODO: Navigasi ke Focus Mode */ }) {
-                                    Text("Mulai Fokus")
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    if (nextTask != null) Icons.Default.PlayArrow else Icons.Default.Add,
+                                    contentDescription = null,
+                                    tint = DeepTeal,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                                Spacer(Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    if (nextTask != null) {
+                                        Text(
+                                            text = nextTask.scheduledTime ?: "Sepanjang hari",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        )
+                                        Text(
+                                            text = nextTask.title,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    } else {
+                                        Text(
+                                            text = "Tidak ada tugas berikutnya",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            text = "Ketuk untuk menambah",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        )
+                                    }
+                                }
+                                if (nextTask != null) {
+                                    Button(onClick = { /* TODO: Navigasi ke Focus Mode */ }) {
+                                        Text("Mulai Fokus")
+                                    }
                                 }
                             }
                         }
@@ -181,63 +183,67 @@ fun DashboardScreen(
                 }
 
                 // Quick Habits
-                item {
-                    Text(
-                        text = "Kebiasaan Hari Ini",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                // PERBAIKAN: Tampil hanya di mode Normal atau Pagi
+                if (uiState.currentMode == "Normal" || uiState.currentMode == "Pagi") {
+                    item {
+                        Text(
+                            text = "Kebiasaan Hari Ini",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    item {
+                        HabitQuickList(
+                            habits = uiState.todayHabits,
+                            onHabitClick = { onNavigateToHabitDetail(it) }
+                        )
+                    }
                 }
 
-                item {
-                    HabitQuickList(
-                        habits = uiState.todayHabits,
-                        onHabitClick = { onNavigateToHabitDetail(it) }
-                    )
-                }
-
-                // Quick Widgets
-                item {
-                    Text(
-                        text = "Ringkasan Modul",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Money Widget
-                        SummaCard(
-                            modifier = Modifier.weight(1f),
-                            onClick = { onNavigateToMoney() }
+                // Quick Widgets (Money & Notes)
+                // PERBAIKAN: Tampil hanya di mode Normal
+                if (uiState.currentMode == "Normal") {
+                    item {
+                        Text(
+                            text = "Ringkasan Modul",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(Icons.Default.AccountBalanceWallet, contentDescription = null)
-                            Spacer(Modifier.height(8.dp))
-                            Text("Keuangan", style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                text = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(uiState.totalNetWorth),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
+                            // Money Widget
+                            SummaCard(
+                                modifier = Modifier.weight(1f),
+                                onClick = { onNavigateToMoney() }
+                            ) {
+                                Icon(Icons.Default.AccountBalanceWallet, contentDescription = null)
+                                Spacer(Modifier.height(8.dp))
+                                Text("Keuangan", style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    text = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(uiState.totalNetWorth),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
 
-                        // Notes Widget
-                        SummaCard(
-                            modifier = Modifier.weight(1f),
-                            onClick = { onNavigateToNotes() }
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = null)
-                            Spacer(Modifier.height(8.dp))
-                            Text("Catatan", style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                "Lihat semua ide",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
+                            // Notes Widget
+                            SummaCard(
+                                modifier = Modifier.weight(1f),
+                                onClick = { onNavigateToNotes() }
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = null)
+                                Spacer(Modifier.height(8.dp))
+                                Text("Catatan", style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    "Lihat semua ide",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
                         }
                     }
                 }

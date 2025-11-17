@@ -38,10 +38,18 @@ class ReflectionViewModel @Inject constructor(
     val uiState: StateFlow<ReflectionUiState> = _uiState.asStateFlow()
 
     init {
-        loadReviewData()
+        // PERBAIKAN: Dengarkan perubahan identitas secara reaktif
+        viewModelScope.launch {
+            identityRepository.getAllIdentities().collect { identities ->
+                _uiState.update { it.copy(identities = identities) }
+            }
+        }
+        // Muat data ringkasan satu kali
+        loadSummaryData()
     }
 
-    private fun loadReviewData() {
+    // PERBAIKAN: Mengganti nama fungsi agar lebih jelas
+    private fun loadSummaryData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
@@ -58,13 +66,9 @@ class ReflectionViewModel @Inject constructor(
             }
             val completedTasks = todayTasks.filter { it.isCompleted }
 
-            // 3. Ambil semua identitas
-            val identities = identityRepository.getAllIdentities().first()
-
             _uiState.update {
                 it.copy(
                     summary = DailySummary(completedHabits, completedTasks),
-                    identities = identities,
                     isLoading = false
                 )
             }
@@ -75,7 +79,8 @@ class ReflectionViewModel @Inject constructor(
         viewModelScope.launch {
             // TODO: Simpan 'note' sebagai Jurnal Mikro
             identityRepository.addVoteToIdentity(identity.id, points)
-            // TODO: Update progress di 'identities' list
+            // PERBAIKAN: Tidak perlu memuat ulang data,
+            // 'getAllIdentities()' akan otomatis memicu pembaruan UI.
         }
     }
 

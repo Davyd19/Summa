@@ -2,12 +2,15 @@ package com.app.summa.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-// PENAMBAHAN: import items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-// PENAMBAHAN: import KeyboardOptions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -17,43 +20,39 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-// PENAMBAHAN: import text input
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-// PENAMBAHAN: import ViewModel
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-// PERBAIKAN: Hapus data class palsu, import data class asli
 import com.app.summa.data.model.Task
 import com.app.summa.ui.components.*
 import com.app.summa.ui.theme.*
-// PENAMBAHAN: import ViewModel
+import com.app.summa.ui.viewmodel.PlannerUiState
 import com.app.summa.ui.viewmodel.PlannerViewModel
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-
-// PERBAIKAN: Hapus data class 'ScheduledTask'
-// Kita akan menggunakan data class 'Task' langsung dari database
+import java.time.format.TextStyle
+import java.time.temporal.TemporalAdjusters
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlannerScreen(
-    // PENAMBAHAN: Injeksi ViewModel
     viewModel: PlannerViewModel = hiltViewModel()
 ) {
-    // PENAMBAHAN: Ambil state dari ViewModel
     val uiState by viewModel.uiState.collectAsState()
 
     var viewMode by remember { mutableStateOf("day") } // day, week, month
     var showFocusMode by remember { mutableStateOf(false) }
     var selectedTask by remember { mutableStateOf<Task?>(null) }
-    // PENAMBAHAN: State untuk dialog
     var showAddTaskDialog by remember { mutableStateOf(false) }
 
-    // PERBAIKAN: Kelompokkan task berdasarkan jam
-    val tasksByHour = remember(uiState.tasks) {
-        uiState.tasks.groupBy {
+    val tasksByHour = remember(uiState.tasksForDay) {
+        uiState.tasksForDay.groupBy {
             try {
                 LocalTime.parse(it.scheduledTime ?: "00:00").hour
             } catch (e: Exception) {
@@ -62,11 +61,16 @@ fun PlannerScreen(
         }
     }
 
+    LaunchedEffect(uiState.initialTaskTitle) {
+        if (uiState.initialTaskTitle != null) {
+            showAddTaskDialog = true
+        }
+    }
+
     if (showFocusMode && selectedTask != null) {
         FocusModeScreen(
             task = selectedTask!!,
             onComplete = {
-                // Panggil ViewModel untuk menyelesaikan task
                 viewModel.completeTask(selectedTask!!.id)
                 showFocusMode = false
                 selectedTask = null
@@ -88,7 +92,6 @@ fun PlannerScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                // Gunakan selectedDate dari ViewModel
                                 uiState.selectedDate.format(DateTimeFormatter.ofPattern("dd MMMM yyyy")),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
@@ -99,7 +102,6 @@ fun PlannerScreen(
                         IconButton(onClick = { /* TODO: Calendar picker */ }) {
                             Icon(Icons.Default.CalendarToday, contentDescription = "Select Date")
                         }
-                        // PERBAIKAN: Tampilkan dialog
                         IconButton(onClick = { showAddTaskDialog = true }) {
                             Icon(Icons.Default.Add, contentDescription = "Add Task")
                         }
@@ -112,7 +114,6 @@ fun PlannerScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                // View Mode Selector (Tidak berubah)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -136,65 +137,389 @@ fun PlannerScreen(
                     )
                 }
 
-                // Timeline View
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(0.dp)
-                ) {
-                    items(24) { hour ->
-                        TimelineHour(
-                            hour = hour,
-                            // PERBAIKAN: Ambil task dari map
-                            tasks = tasksByHour[hour] ?: emptyList(),
+                if (uiState.isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    when (viewMode) {
+                        "day" -> DailyTimelineView(
+                            tasksByHour = tasksByHour,
+                            onTaskClick = { task ->
+                                selectedTask = task
+                                showFocusMode = true
+                            }
+                        )
+                        // PERBAIKAN: Memanggil implementasi grid mingguan baru
+                        "week" -> WeeklyCalendarView(
+                            viewModel = viewModel,
+                            uiState = uiState,
+                            onTaskClick = { task ->
+                                selectedTask = task
+                                showFocusMode = true
+                            }
+                        )
+                        "month" -> MonthlyCalendarView(
+                            viewModel = viewModel,
+                            uiState = uiState,
                             onTaskClick = { task ->
                                 selectedTask = task
                                 showFocusMode = true
                             }
                         )
                     }
-                    item { Spacer(Modifier.height(16.dp)) }
                 }
             }
         }
     }
 
-    // PENAMBAHAN: Dialog untuk menambah task
     if (showAddTaskDialog) {
         AddTaskDialog(
-            onDismiss = { showAddTaskDialog = false },
-            onAddTask = { title, time, isCommitment, twoMinAction ->
+            initialTitle = uiState.initialTaskTitle ?: "",
+            initialDescription = uiState.initialTaskContent ?: "",
+            onDismiss = {
+                showAddTaskDialog = false
+                viewModel.clearInitialTask()
+            },
+            onAddTask = { title, time, isCommitment, twoMinAction, description ->
                 viewModel.addTask(
                     title = title,
+                    description = description,
                     scheduledTime = time,
                     isCommitment = isCommitment,
                     twoMinuteAction = twoMinAction
                 )
                 showAddTaskDialog = false
+                viewModel.clearInitialTask()
             }
         )
     }
 }
 
 @Composable
+fun DailyTimelineView(
+    tasksByHour: Map<Int, List<Task>>,
+    onTaskClick: (Task) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        items(24) { hour ->
+            TimelineHour(
+                hour = hour,
+                tasks = tasksByHour[hour] ?: emptyList(),
+                onTaskClick = onTaskClick
+            )
+        }
+        item { Spacer(Modifier.height(16.dp)) }
+    }
+}
+
+// --- FUNGSI BARU UNTUK TAMPILAN MINGGUAN ---
+
+@Composable
+fun WeeklyCalendarView(
+    viewModel: PlannerViewModel,
+    uiState: PlannerUiState,
+    onTaskClick: (Task) -> Unit
+) {
+    // 1. Dapatkan 7 hari dalam seminggu (Senin - Minggu)
+    val selectedDate = uiState.selectedDate
+    val firstDayOfWeek = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    val weekDays = remember(firstDayOfWeek) {
+        (0..6).map { firstDayOfWeek.plusDays(it.toLong()) }
+    }
+
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .padding(horizontal = 16.dp)) {
+
+        // 2. Render baris pemilih 7 hari
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround // Beri jarak merata
+        ) {
+            weekDays.forEach { date ->
+                WeeklyDayCell(
+                    date = date,
+                    isSelected = date.isEqual(selectedDate),
+                    isToday = date.isEqual(LocalDate.now()),
+                    onClick = { viewModel.selectDate(date) } // Klik untuk mengubah tanggal
+                )
+            }
+        }
+
+        // 3. Render daftar tugas untuk hari yang dipilih
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            // Tampilkan header untuk hari yang dipilih
+            text = "Tugas pada ${uiState.selectedDate.format(DateTimeFormatter.ofPattern("EEEE, dd MMMM"))}",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Tampilkan daftar tugas (hanya untuk tasksForDay)
+        if (uiState.tasksForDay.isEmpty()) {
+            Text(
+                text = "Tidak ada tugas untuk tanggal ini.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(uiState.tasksForDay) { task ->
+                    TaskBlock(task = task, onClick = { onTaskClick(task) })
+                }
+            }
+        }
+    }
+}
+
+// Composable baru untuk sel hari di tampilan mingguan
+@Composable
+fun WeeklyDayCell(
+    date: LocalDate,
+    isSelected: Boolean,
+    isToday: Boolean,
+    onClick: () -> Unit
+) {
+    // Dapatkan nama hari (Sen, Sel) dan tanggal (18, 19)
+    val dayName = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("id"))
+    val dayNumber = date.dayOfMonth.toString()
+
+    // Tentukan warna berdasarkan status
+    val backgroundColor = when {
+        isSelected -> MaterialTheme.colorScheme.primary
+        isToday -> MaterialTheme.colorScheme.surfaceVariant
+        else -> Color.Transparent // Tidak ada background jika tidak dipilih/hari ini
+    }
+    val contentColor = when {
+        isSelected -> MaterialTheme.colorScheme.onPrimary
+        isToday -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+
+    Surface(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        color = backgroundColor
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = dayName,
+                fontSize = 12.sp,
+                color = contentColor.copy(alpha = 0.7f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = dayNumber,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = contentColor
+            )
+        }
+    }
+}
+
+
+// --- FUNGSI TAMPILAN BULANAN (TIDAK BERUBAH) ---
+
+@Composable
+fun MonthlyCalendarView(
+    viewModel: PlannerViewModel,
+    uiState: PlannerUiState,
+    onTaskClick: (Task) -> Unit
+) {
+    val tasksByDate = remember(uiState.tasksForMonth) {
+        uiState.tasksForMonth.groupBy {
+            try {
+                LocalDate.parse(it.scheduledDate)
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    val firstDayOfMonth = uiState.selectedDate.with(TemporalAdjusters.firstDayOfMonth())
+    val firstDayOfWeekValue = firstDayOfMonth.dayOfWeek.value
+    val paddingDays = (firstDayOfWeekValue - DayOfWeek.MONDAY.value + 7) % 7
+    val daysInMonth = firstDayOfMonth.lengthOfMonth()
+
+    val dayHeaders = remember {
+        DayOfWeek.entries.map {
+            it.getDisplayName(TextStyle.SHORT, Locale("id"))
+        }
+    }
+
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .padding(horizontal = 16.dp)) {
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(7),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(dayHeaders) { header ->
+                CalendarHeaderCell(header = header)
+            }
+
+            items(paddingDays) {
+                Box(modifier = Modifier
+                    .aspectRatio(1f)
+                    .padding(2.dp))
+            }
+
+            items(daysInMonth) { dayIndex ->
+                val dayOfMonth = dayIndex + 1
+                val currentDate = firstDayOfMonth.plusDays(dayIndex.toLong())
+
+                val tasksOnThisDay = tasksByDate[currentDate] ?: emptyList()
+                val isToday = currentDate.isEqual(LocalDate.now())
+                val isSelected = currentDate.isEqual(uiState.selectedDate)
+
+                CalendarDayCell(
+                    day = dayOfMonth,
+                    tasks = tasksOnThisDay,
+                    isToday = isToday,
+                    isSelected = isSelected,
+                    onClick = {
+                        viewModel.selectDate(currentDate)
+                    }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Tugas pada ${uiState.selectedDate.format(DateTimeFormatter.ofPattern("dd MMMM"))}",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (uiState.tasksForDay.isEmpty()) {
+            Text(
+                text = "Tidak ada tugas untuk tanggal ini.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(uiState.tasksForDay) { task ->
+                    TaskBlock(task = task, onClick = { onTaskClick(task) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CalendarHeaderCell(header: String) {
+    Box(
+        modifier = Modifier
+            .aspectRatio(1.5f)
+            .padding(vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = header,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+    }
+}
+
+@Composable
+fun CalendarDayCell(
+    day: Int,
+    tasks: List<Task>,
+    isToday: Boolean,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor = when {
+        isSelected -> MaterialTheme.colorScheme.primaryContainer
+        isToday -> MaterialTheme.colorScheme.surfaceVariant
+        else -> MaterialTheme.colorScheme.surface
+    }
+
+    val borderColor = if (isSelected) MaterialTheme.colorScheme.primary
+    else Color.Transparent
+
+    Surface(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .padding(2.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick),
+        color = backgroundColor
+    ) {
+        Column(
+            modifier = Modifier.padding(4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = day.toString(),
+                fontSize = 14.sp,
+                fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally)
+            ) {
+                tasks.take(4).forEach { task ->
+                    TaskIndicator(isCommitment = task.isCommitment)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TaskIndicator(isCommitment: Boolean) {
+    Box(
+        modifier = Modifier
+            .size(6.dp)
+            .clip(CircleShape)
+            .background(
+                if (isCommitment) DeepTeal
+                else MaterialTheme.colorScheme.secondary
+            )
+    )
+}
+
+// --- FUNGSI YANG ADA (TIDAK BERUBAH) ---
+
+@Composable
 fun TimelineHour(
     hour: Int,
-    // PERBAIKAN: Gunakan 'Task'
     tasks: List<Task>,
     onTaskClick: (Task) -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            // PERBAIKAN: Gunakan minHeight agar bisa membesar jika task banyak
             .defaultMinSize(minHeight = 80.dp)
     ) {
-        // Hour label
         Box(
             modifier = Modifier
                 .width(60.dp)
-                // PERBAIKAN: Sesuaikan tinggi dengan konten
                 .wrapContentHeight(),
             contentAlignment = Alignment.TopStart
         ) {
@@ -205,7 +530,6 @@ fun TimelineHour(
             )
         }
 
-        // Timeline content
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -218,7 +542,6 @@ fun TimelineHour(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (tasks.isEmpty()) {
-                    // Beri ruang kosong agar border tetap terlihat
                     Spacer(modifier = Modifier.height(72.dp))
                 } else {
                     tasks.forEach { task ->
@@ -235,11 +558,9 @@ fun TimelineHour(
 
 @Composable
 fun TaskBlock(
-    // PERBAIKAN: Gunakan 'Task'
     task: Task,
     onClick: () -> Unit
 ) {
-    // Tentukan tampilan berdasarkan Blok Komitmen vs Aspirasi
     val isCommitment = task.isCommitment
     val backgroundColor = if (isCommitment) DeepTeal.copy(alpha = 0.9f)
     else MaterialTheme.colorScheme.surfaceVariant
@@ -265,9 +586,6 @@ fun TaskBlock(
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // TODO: Tambahkan logika untuk streak (jika task ini adalah bagian dari habit)
-            // if (task.hasStreak) { ... }
-
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     task.title,
@@ -275,7 +593,6 @@ fun TaskBlock(
                     fontWeight = if (isCommitment) FontWeight.Bold else FontWeight.Normal,
                     color = textColor
                 )
-                // Tampilkan waktu
                 Text(
                     task.scheduledTime ?: "Sepanjang hari",
                     style = MaterialTheme.typography.bodySmall,
@@ -283,7 +600,6 @@ fun TaskBlock(
                 )
             }
 
-            // Tampilkan status selesai
             if (task.isCompleted) {
                 Icon(
                     Icons.Default.CheckCircle,
@@ -296,14 +612,16 @@ fun TaskBlock(
     }
 }
 
-// PENAMBAHAN: Dialog untuk "Aturan 2 Menit"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTaskDialog(
+    initialTitle: String = "",
+    initialDescription: String = "",
     onDismiss: () -> Unit,
-    onAddTask: (title: String, time: String, isCommitment: Boolean, twoMinAction: String) -> Unit
+    onAddTask: (title: String, time: String, isCommitment: Boolean, twoMinAction: String, description: String) -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf(initialTitle) }
+    var description by remember { mutableStateOf(initialDescription) }
     var twoMinAction by remember { mutableStateOf("") }
     var time by remember { mutableStateOf(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))) }
     var isCommitment by remember { mutableStateOf(true) }
@@ -319,7 +637,13 @@ fun AddTaskDialog(
                     label = { Text("Nama Tugas") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                // IMPLEMENTASI: Aturan 2 Menit
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Deskripsi (Opsional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3
+                )
                 OutlinedTextField(
                     value = twoMinAction,
                     onValueChange = { twoMinAction = it },
@@ -346,7 +670,7 @@ fun AddTaskDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    onAddTask(title, time, isCommitment, twoMinAction)
+                    onAddTask(title, time, isCommitment, twoMinAction, description)
                 }
             ) {
                 Text("Tambah")
@@ -360,28 +684,23 @@ fun AddTaskDialog(
     )
 }
 
-
-// PERBAIKAN: FocusModeScreen sekarang menerima 'Task'
 @Composable
 fun FocusModeScreen(
-    task: Task, // Menggunakan data class asli
+    task: Task,
     onComplete: () -> Unit,
     onCancel: () -> Unit
 ) {
-    // TODO: Ganti durasi dengan data dari task jika ada
-    var timeRemaining by remember { mutableStateOf(60 * 25) } // Default 25 menit
-    var paperclipsLeft by remember { mutableStateOf(10) } // Default 10 klip
+    var timeRemaining by remember { mutableStateOf(60 * 25) }
+    var paperclipsLeft by remember { mutableStateOf(10) }
     var paperclipsMoved by remember { mutableStateOf(0) }
     var isRunning by remember { mutableStateOf(false) }
 
-    // Timer logic
     LaunchedEffect(isRunning, timeRemaining) {
         if (isRunning && timeRemaining > 0) {
             kotlinx.coroutines.delay(1000)
             timeRemaining--
         } else if (timeRemaining == 0) {
             isRunning = false
-            // TODO: Tambahkan notifikasi/suara
         }
     }
 
@@ -396,7 +715,6 @@ fun FocusModeScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header with back button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -410,7 +728,6 @@ fun FocusModeScreen(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
-                // Tombol Selesai Cepat
                 TextButton(onClick = onComplete) {
                     Text("Selesai")
                 }
@@ -418,7 +735,6 @@ fun FocusModeScreen(
 
             Spacer(Modifier.height(32.dp))
 
-            // Timer
             Text(
                 text = String.format(
                     "%02d:%02d",
@@ -429,7 +745,6 @@ fun FocusModeScreen(
                 fontWeight = FontWeight.Bold,
                 color = DeepTeal
             )
-            // Tombol Play/Pause
             IconButton(onClick = { isRunning = !isRunning }) {
                 Icon(
                     if (isRunning) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
@@ -442,7 +757,6 @@ fun FocusModeScreen(
 
             Spacer(Modifier.height(48.dp))
 
-            // Paperclip Jars
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -462,7 +776,6 @@ fun FocusModeScreen(
 
             Spacer(Modifier.weight(1f))
 
-            // Tampilkan Langkah 2 Menit!
             if (task.twoMinuteAction.isNotBlank()) {
                 Text(
                     "Langkah 2 Menit:",
@@ -485,17 +798,15 @@ fun FocusModeScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // Main Action Button
             Button(
                 onClick = {
                     if (paperclipsLeft > 0) {
                         paperclipsLeft--
                         paperclipsMoved++
                         if (!isRunning) isRunning = true
-                        // TODO: Play sound effect here
                     }
                     if (paperclipsLeft == 0) {
-                        onComplete() // Selesai otomatis jika klip habis
+                        onComplete()
                     }
                 },
                 modifier = Modifier
@@ -505,7 +816,7 @@ fun FocusModeScreen(
                     containerColor = GoldAccent
                 ),
                 shape = RoundedCornerShape(16.dp),
-                enabled = paperclipsLeft > 0 // Nonaktifkan jika klip habis
+                enabled = paperclipsLeft > 0
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -525,7 +836,6 @@ fun FocusModeScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // Tombol Selesai jika klip masih ada
             if (paperclipsLeft > 0 && paperclipsMoved > 0) {
                 Button(
                     onClick = onComplete,
@@ -553,10 +863,8 @@ fun PaperclipJar(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.width(140.dp)
     ) {
-        // Jar illustration
         Box(
             modifier = Modifier
-                // PERBAIKAN: Ukuran lebih besar
                 .width(140.dp)
                 .height(180.dp)
                 .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 32.dp, bottomEnd = 32.dp))
@@ -581,7 +889,6 @@ fun PaperclipJar(
                     style = MaterialTheme.typography.displayMedium,
                     modifier = Modifier.padding(8.dp)
                 )
-                // Ilustrasi tumpukan klip
                 if (isFull) {
                     repeat(minOf(3, count / 5)) {
                         Text(
