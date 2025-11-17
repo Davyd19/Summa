@@ -39,7 +39,8 @@ class TaskRepositoryImpl @Inject constructor(
         taskDao.deleteTask(task)
     }
 
+    // IMPLEMENTASI: Logika untuk menyelesaikan task
     override suspend fun completeTask(taskId: Long) {
-        // TODO: Implement task completion logic
+        taskDao.completeTask(taskId, System.currentTimeMillis())
     }
 }

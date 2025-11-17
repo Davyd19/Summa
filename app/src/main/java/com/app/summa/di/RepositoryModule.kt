@@ -38,9 +38,17 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideNoteRepository(
-        noteDao: NoteDao
-    ): NoteRepository {
-        return NoteRepositoryImpl(noteDao)
+    fun provideKnowledgeRepository(
+        dao: KnowledgeDao
+    ): KnowledgeRepository {
+        return KnowledgeRepositoryImpl(dao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideIdentityRepository(
+        identityDao: IdentityDao
+    ): IdentityRepository {
+        return IdentityRepositoryImpl(identityDao)
     }
 }

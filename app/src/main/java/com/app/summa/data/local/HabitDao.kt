@@ -25,8 +25,16 @@ interface HabitDao {
     @Query("SELECT * FROM habit_logs WHERE habitId = :habitId ORDER BY date DESC")
     fun getHabitLogs(habitId: Long): Flow<List<HabitLog>>
 
+    // PENAMBAHAN: Kita butuh flow untuk log harian agar UI update otomatis
+    @Query("SELECT * FROM habit_logs WHERE date = :date")
+    fun getLogsForDate(date: String): Flow<List<HabitLog>>
+
     @Query("SELECT * FROM habit_logs WHERE habitId = :habitId AND date = :date")
     suspend fun getHabitLogByDate(habitId: Long, date: String): HabitLog?
+
+    // PENAMBAHAN: Query untuk mengambil semua log untuk perhitungan streak
+    @Query("SELECT * FROM habit_logs WHERE habitId = :habitId ORDER BY date DESC")
+    suspend fun getAllLogsForHabit(habitId: Long): List<HabitLog>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHabitLog(log: HabitLog)

@@ -12,10 +12,12 @@ import com.app.summa.data.model.*
         Task::class,
         Account::class,
         Transaction::class,
-        Note::class,
+        // PERUBAHAN: Ganti Note::class
+        KnowledgeNote::class,
         Identity::class
     ],
-    version = 7,
+    // PERUBAHAN: Naikkan versi database ke 8
+    version = 9,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -23,6 +25,7 @@ abstract class SummaDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
     abstract fun taskDao(): TaskDao
     abstract fun accountDao(): AccountDao
-    abstract fun noteDao(): NoteDao
+    // PERUBAHAN: Ganti noteDao()
+    abstract fun knowledgeDao(): KnowledgeDao
     abstract fun identityDao(): IdentityDao
 }

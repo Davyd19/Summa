@@ -65,11 +65,12 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
 
     // Compose
-    implementation(platform("androidx.compose:compose-bom:2024.01.00"))
+    implementation(platform(libs.androidx.compose.bom))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    // PENAMBAHAN: Ini adalah baris yang hilang untuk memperbaiki error ikon
     implementation("androidx.compose.material:material-icons-extended")
 
     // Navigation
@@ -91,7 +92,7 @@ dependencies {
     // Accompanist
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 
-    // PERBAIKAN: Menambahkan library WorkManager yang hilang
+    // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
     // Testing

@@ -2,17 +2,21 @@ package com.app.summa.navigation
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+// PERUBAHAN: Ikon baru
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.app.summa.ui.screens.*
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
@@ -20,7 +24,17 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Planner : Screen("planner", "Planner", Icons.Default.CalendarToday)
     object Habits : Screen("habits", "Habits", Icons.Default.CheckCircle)
     object Money : Screen("money", "Money", Icons.Default.AccountBalanceWallet)
+    // PERUBAHAN: Ganti nama Notes menjadi Knowledge
+    object Knowledge : Screen("knowledge", "Pustaka", Icons.Default.Book)
+    object Reflections : Screen("reflections", "Refleksi", Icons.Default.RateReview)
 }
+
+// PERUBAHAN: Ganti nama NoteDetailRoute
+object KnowledgeDetailRoute {
+    const val route = "knowledge_detail/{noteId}"
+    fun createRoute(noteId: Long) = "knowledge_detail/$noteId"
+}
+
 
 @Composable
 fun SummaApp() {
@@ -32,9 +46,12 @@ fun SummaApp() {
         floatingActionButton = {
             if (showFab) {
                 ExtendedFloatingActionButton(
-                    onClick = { /* Quick Add */ },
+                    onClick = {
+                        // FAB sekarang membuat Catatan "Inbox" baru
+                        navController.navigate(KnowledgeDetailRoute.createRoute(0L))
+                    },
                     icon = { Icon(Icons.Default.Add, contentDescription = "Add") },
-                    text = { Text("Quick Add") },
+                    text = { Text("Catat Cepat") }, // Ganti nama FAB
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             }
@@ -51,11 +68,13 @@ fun SummaApp() {
 
 @Composable
 fun BottomNavigationBar(navController: NavHostController) {
-    val items = listOf(
+    val finalItems = listOf(
         Screen.Dashboard,
         Screen.Planner,
         Screen.Habits,
-        Screen.Money
+        // PERUBAHAN: Ganti Notes menjadi Knowledge
+        Screen.Knowledge,
+        Screen.Reflections
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -65,7 +84,7 @@ fun BottomNavigationBar(navController: NavHostController) {
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp
     ) {
-        items.forEach { screen ->
+        finalItems.forEach { screen ->
             NavigationBarItem(
                 icon = { Icon(screen.icon, contentDescription = screen.title) },
                 label = { Text(screen.title) },
@@ -102,19 +121,59 @@ fun NavigationGraph(
     ) {
         composable(Screen.Dashboard.route) {
             LaunchedEffect(Unit) { onFabVisibilityChange(true) }
-            DashboardScreen()
+            DashboardScreen(
+                onNavigateToPlanner = { navController.navigate(Screen.Planner.route) },
+                onNavigateToMoney = { navController.navigate(Screen.Money.route) },
+                // PERUBAHAN: Navigasi ke Knowledge
+                onNavigateToNotes = { navController.navigate(Screen.Knowledge.route) },
+                onNavigateToReflections = { navController.navigate(Screen.Reflections.route) },
+                onNavigateToHabitDetail = { /* TODO: Navigasi ke detail habit */ }
+            )
         }
         composable(Screen.Planner.route) {
             LaunchedEffect(Unit) { onFabVisibilityChange(true) }
             PlannerScreen()
         }
         composable(Screen.Habits.route) {
-            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            LaunchedEffect(Unit) { onFabVisibilityChange(true) }
             HabitsScreen()
         }
         composable(Screen.Money.route) {
-            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            LaunchedEffect(Unit) { onFabVisibilityChange(true) }
             MoneyScreen()
+        }
+        // PERUBAHAN: Rute untuk layar daftar catatan
+        composable(Screen.Knowledge.route) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(true) }
+            KnowledgeBaseScreen(
+                onNoteClick = { noteId ->
+                    navController.navigate(KnowledgeDetailRoute.createRoute(noteId))
+                },
+                onAddNoteClick = {
+                    navController.navigate(KnowledgeDetailRoute.createRoute(0L))
+                }
+            )
+        }
+        composable(Screen.Reflections.route) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            ReflectionScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        // PERUBAHAN: Rute untuk layar detail catatan
+        composable(
+            route = KnowledgeDetailRoute.route,
+            // PERBAIKAN: Argumen harus Long, bukan String
+            arguments = listOf(navArgument("noteId") { type = NavType.LongType })
+        ) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            KnowledgeDetailScreen(
+                onBack = { navController.popBackStack() },
+                onConvertToTask = { title, content ->
+                    navController.popBackStack()
+                    navController.navigate(Screen.Planner.route)
+                }
+            )
         }
     }
 }

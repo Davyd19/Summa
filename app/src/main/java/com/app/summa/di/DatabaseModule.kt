@@ -44,8 +44,8 @@ object DatabaseModule {
     }
 
     @Provides
-    fun provideNoteDao(database: SummaDatabase): NoteDao {
-        return database.noteDao()
+    fun provideKnowledgeDao(database: SummaDatabase): KnowledgeDao {
+        return database.knowledgeDao()
     }
 
     @Provides

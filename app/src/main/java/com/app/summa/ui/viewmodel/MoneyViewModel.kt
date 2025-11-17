@@ -4,10 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.summa.data.model.Account
 import com.app.summa.data.model.Transaction
+import com.app.summa.data.model.TransactionType
 import com.app.summa.data.repository.AccountRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
 data class MoneyUiState(
@@ -28,23 +30,29 @@ class MoneyViewModel @Inject constructor(
     val uiState: StateFlow<MoneyUiState> = _uiState.asStateFlow()
 
     init {
-        loadAccounts()
+        loadMoneyData()
     }
 
-    private fun loadAccounts() {
+    // PERBAIKAN: Gabungkan semua flow yang dibutuhkan
+    private fun loadMoneyData() {
         viewModelScope.launch {
             combine(
                 accountRepository.getAllAccounts(),
-                accountRepository.getTotalNetWorth()
-            ) { accounts, netWorth ->
+                accountRepository.getTotalNetWorth(),
+                accountRepository.getRecentTransactions()
+            ) { accounts, netWorth, transactions ->
                 MoneyUiState(
                     accounts = accounts,
                     totalNetWorth = netWorth ?: 0.0,
+                    recentTransactions = transactions,
                     isLoading = false
                 )
-            }.collect { newState ->
-                _uiState.value = newState
+            }.catch { e ->
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
+                .collect { newState ->
+                    _uiState.value = newState
+                }
         }
     }
 
@@ -52,14 +60,17 @@ class MoneyViewModel @Inject constructor(
         name: String,
         type: com.app.summa.data.model.AccountType,
         balance: Double,
-        isInvestment: Boolean = false
+        isInvestment: Boolean = false,
+        color: String
     ) {
         viewModelScope.launch {
             val newAccount = Account(
                 name = name,
                 type = type,
                 balance = balance,
-                isInvestment = isInvestment
+                isInvestment = isInvestment,
+                color = color,
+                updatedAt = System.currentTimeMillis()
             )
             accountRepository.insertAccount(newAccount)
         }
@@ -71,20 +82,24 @@ class MoneyViewModel @Inject constructor(
         }
     }
 
-    fun transferMoney(fromAccountId: Long, toAccountId: Long, amount: Double) {
+    fun transferMoney(fromAccount: Account, toAccount: Account, amount: Double) {
         viewModelScope.launch {
-            accountRepository.transferBetweenAccounts(fromAccountId, toAccountId, amount)
+            val success = accountRepository.transferBetweenAccounts(fromAccount.id, toAccount.id, amount)
 
-            // Check if transfer is to investment account
-            val toAccount = _uiState.value.accounts.find { it.id == toAccountId }
-            if (toAccount?.isInvestment == true) {
-                _uiState.value = _uiState.value.copy(showRewardAnimation = true)
+            if (success) {
+                // IMPLEMENTASI: Cek Ganjaran Langsung
+                if (toAccount.isInvestment) {
+                    _uiState.update { it.copy(showRewardAnimation = true) }
+                }
+            } else {
+                // TODO: Tampilkan error (misal: "Saldo tidak cukup")
+                _uiState.update { it.copy(error = "Transfer gagal. Periksa saldo Anda.") }
             }
         }
     }
 
     fun dismissRewardAnimation() {
-        _uiState.value = _uiState.value.copy(showRewardAnimation = false)
+        _uiState.update { it.copy(showRewardAnimation = false) }
     }
 
     fun addTransaction(
@@ -95,15 +110,30 @@ class MoneyViewModel @Inject constructor(
         note: String = ""
     ) {
         viewModelScope.launch {
+            // Pastikan amount positif/negatif sesuai tipe
+            val finalAmount = when(type) {
+                TransactionType.INCOME -> amount
+                TransactionType.EXPENSE -> -amount
+                TransactionType.TRANSFER -> 0.0 // Transfer harus pakai transferMoney
+            }
+
+            if (type == TransactionType.TRANSFER) return@launch // Paksa gunakan fungsi transfer
+
             val transaction = Transaction(
                 accountId = accountId,
                 type = type,
-                amount = amount,
+                amount = finalAmount,
                 category = category,
                 note = note,
-                date = java.time.LocalDate.now().toString()
+                date = LocalDate.now().toString(),
+                timestamp = System.currentTimeMillis()
             )
             accountRepository.insertTransaction(transaction)
         }
+    }
+
+    // Helper untuk membersihkan error
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
     }
 }

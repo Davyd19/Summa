@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,43 +17,34 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.app.summa.data.model.HabitLog
 import com.app.summa.ui.components.*
 import com.app.summa.ui.theme.*
+import com.app.summa.ui.viewmodel.HabitViewModel
+// PENAMBAHAN: Import model UI dari file baru
+import com.app.summa.ui.model.HabitItem
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 
-data class HabitItem(
-    val id: Long,
-    val name: String,
-    val icon: String,
-    val currentCount: Int,
-    val targetCount: Int,
-    val totalSum: Int,
-    val currentStreak: Int,
-    val perfectStreak: Int
-)
+// PERBAIKAN: Definisi 'data class HabitItem' sudah dipindahkan ke file terpisah
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HabitsScreen() {
-    var selectedHabit by remember { mutableStateOf<HabitItem?>(null) }
+fun HabitsScreen(
+    viewModel: HabitViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
 
-    val habits = remember {
-        mutableStateListOf(
-            HabitItem(1, "Latihan Fisik", "💪", 3, 3, 450, 45, 7),
-            HabitItem(2, "Membaca Quran", "📖", 1, 3, 285, 30, 5),
-            HabitItem(3, "Menulis Jurnal", "✍️", 1, 1, 120, 20, 10),
-            HabitItem(4, "Meditasi", "🧘", 0, 3, 90, 15, 3)
-        )
-    }
-
-    if (selectedHabit != null) {
+    if (uiState.selectedHabit != null) {
         HabitDetailScreen(
-            habit = selectedHabit!!,
-            onBack = { selectedHabit = null }
+            habit = uiState.selectedHabit!!,
+            onBack = { viewModel.onBackFromDetail() },
+            logs = uiState.habitLogs
         )
     } else {
         Scaffold(
@@ -79,39 +72,101 @@ fun HabitsScreen() {
                 )
             }
         ) { paddingValues ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                item { Spacer(Modifier.height(8.dp)) }
-
-                items(habits) { habit ->
-                    HabitListItem(
-                        habit = habit,
-                        onClick = { selectedHabit = habit },
-                        onIncrement = {
-                            val index = habits.indexOf(habit)
-                            habits[index] = habit.copy(
-                                currentCount = (habit.currentCount + 1).coerceAtMost(habit.targetCount + 3)
-                            )
-                        },
-                        onDecrement = {
-                            val index = habits.indexOf(habit)
-                            habits[index] = habit.copy(
-                                currentCount = (habit.currentCount - 1).coerceAtLeast(0)
-                            )
-                        }
-                    )
+            if (uiState.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item { Spacer(Modifier.height(8.dp)) }
 
-                item { Spacer(Modifier.height(16.dp)) }
+                    items(uiState.habits) { habit ->
+                        HabitListItem(
+                            habit = habit,
+                            onClick = { viewModel.selectHabit(habit) },
+                            onIncrement = { viewModel.incrementHabit(habit) },
+                            onDecrement = { viewModel.decrementHabit(habit) }
+                        )
+                    }
+
+                    item { Spacer(Modifier.height(16.dp)) }
+                }
             }
         }
     }
+
+    if (showAddDialog) {
+        AddHabitDialog(
+            onDismiss = { showAddDialog = false },
+            onAdd = { name, icon, target ->
+                viewModel.addHabit(name, icon, target)
+                showAddDialog = false
+            }
+        )
+    }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddHabitDialog(
+    onDismiss: () -> Unit,
+    onAdd: (name: String, icon: String, target: Int) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var icon by remember { mutableStateOf("🎯") }
+    var target by remember { mutableStateOf("1") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Tambah Kebiasaan Baru") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Nama Kebiasaan") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = icon,
+                    onValueChange = { icon = it },
+                    label = { Text("Ikon (Emoji)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = target,
+                    onValueChange = { target = it },
+                    label = { Text("Target Hitungan Harian") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onAdd(name, icon, target.toIntOrNull() ?: 1)
+                }
+            ) {
+                Text("Tambah")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Batal")
+            }
+        }
+    )
+}
+
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -121,15 +176,14 @@ fun HabitListItem(
     onIncrement: () -> Unit,
     onDecrement: () -> Unit
 ) {
-    val isComplete = habit.currentCount >= habit.targetCount
-    val isOverAchieved = habit.currentCount > habit.targetCount
+    val isComplete = habit.targetCount > 0 && habit.currentCount >= habit.targetCount
+    val isOverAchieved = habit.targetCount > 0 && habit.currentCount > habit.targetCount
 
     SummaCard(onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -151,7 +205,6 @@ fun HabitListItem(
 
             Spacer(Modifier.width(16.dp))
 
-            // Name and Streak
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = habit.name,
@@ -175,7 +228,6 @@ fun HabitListItem(
                 }
             }
 
-            // Counter
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -197,13 +249,13 @@ fun HabitListItem(
                 AnimatedContent(
                     targetState = habit.currentCount,
                     transitionSpec = {
-                        slideInVertically { -it } + fadeIn() with
-                                slideOutVertically { it } + fadeOut()
+                        (slideInVertically { height -> height } + fadeIn()).togetherWith(
+                            slideOutVertically { height -> -height } + fadeOut())
                     },
                     label = "count_animation"
                 ) { count ->
                     Text(
-                        text = "$count / ${habit.targetCount}",
+                        text = if (habit.targetCount > 1) "$count / ${habit.targetCount}" else "$count",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = when {
@@ -234,7 +286,8 @@ fun HabitListItem(
 @Composable
 fun HabitDetailScreen(
     habit: HabitItem,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    logs: List<HabitLog>
 ) {
     Scaffold(
         topBar = {
@@ -242,7 +295,7 @@ fun HabitDetailScreen(
                 title = { Text(habit.name) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -265,7 +318,6 @@ fun HabitDetailScreen(
         ) {
             item { Spacer(Modifier.height(8.dp)) }
 
-            // Total Sum
             item {
                 SummaCard {
                     Column(
@@ -292,14 +344,16 @@ fun HabitDetailScreen(
                 }
             }
 
-            // Streaks
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     SummaCard(modifier = Modifier.weight(1f)) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Text("🔥", style = MaterialTheme.typography.displaySmall)
                             Spacer(Modifier.height(8.dp))
                             Text(
@@ -316,7 +370,10 @@ fun HabitDetailScreen(
                     }
 
                     SummaCard(modifier = Modifier.weight(1f)) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Text("👑", style = MaterialTheme.typography.displaySmall)
                             Spacer(Modifier.height(8.dp))
                             Text(
@@ -335,7 +392,6 @@ fun HabitDetailScreen(
                 }
             }
 
-            // Heatmap
             item {
                 Text(
                     "Kalender Heatmap",
@@ -344,8 +400,9 @@ fun HabitDetailScreen(
                 )
             }
 
+            // PERBAIKAN: Mengganti VStack dengan Column
             item {
-                HabitHeatmap(habitId = habit.id)
+                HabitHeatmap(logs = logs, targetCount = habit.targetCount)
             }
 
             item { Spacer(Modifier.height(16.dp)) }
@@ -354,13 +411,32 @@ fun HabitDetailScreen(
 }
 
 @Composable
-fun HabitHeatmap(habitId: Long) {
+fun HabitHeatmap(
+    logs: List<HabitLog>,
+    targetCount: Int
+) {
     val today = LocalDate.now()
-    val weeks = 8
-    val data = remember {
-        (0 until weeks * 7).map { dayOffset ->
+    val weeks = 12
+    val daysToShow = weeks * 7
+
+    val logsMap = remember(logs) {
+        logs.associateBy { LocalDate.parse(it.date) }
+    }
+
+    val data = remember(logsMap) {
+        (0 until daysToShow).map { dayOffset ->
             val date = today.minusDays(dayOffset.toLong())
-            val value = (0..4).random()
+            val log = logsMap[date]
+            val count = log?.count ?: 0
+
+            val value = when {
+                count <= 0 -> 0 // Tidak ada log
+                targetCount > 0 && count < targetCount -> 1 // Parsial
+                targetCount > 0 && count == targetCount -> 2 // Sempurna
+                targetCount > 0 && count > targetCount -> 3 // Over-achievement
+                targetCount == 0 && count > 0 -> 2 // Selesai (untuk habit checklist)
+                else -> 0
+            }
             date to value
         }.reversed()
     }
@@ -370,13 +446,12 @@ fun HabitHeatmap(habitId: Long) {
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Month labels
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                for (weekOffset in 0 until weeks step 2) {
-                    val date = today.minusWeeks(weekOffset.toLong())
+                (0..2).map { i ->
+                    val date = today.minusWeeks((weeks - 1 - i * (weeks / 3)).toLong())
                     Text(
                         text = date.month.getDisplayName(TextStyle.SHORT, Locale("id")),
                         style = MaterialTheme.typography.labelSmall,
@@ -385,26 +460,30 @@ fun HabitHeatmap(habitId: Long) {
                 }
             }
 
-            // Heatmap grid
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                data.chunked(7).forEach { week ->
+                (0..6).forEach { dayOfWeek ->
                     Column(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        week.forEach { (_, value) ->
-                            HeatmapCell(value = value)
+                        (0 until weeks).forEach { week ->
+                            val index = (week * 7) + dayOfWeek
+                            if (index < data.size) {
+                                val (_, value) = data[index]
+                                HeatmapCell(value = value)
+                            } else {
+                                Box(Modifier.size(14.dp)) // Placeholder
+                            }
                         }
                     }
                 }
             }
 
-            // Legend
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -412,13 +491,14 @@ fun HabitHeatmap(habitId: Long) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
+                Spacer(Modifier.width(4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     HeatmapCell(value = 0)
                     HeatmapCell(value = 1)
                     HeatmapCell(value = 2)
                     HeatmapCell(value = 3)
-                    HeatmapCell(value = 4)
                 }
+                Spacer(Modifier.width(4.dp))
                 Text(
                     "Lebih banyak",
                     style = MaterialTheme.typography.labelSmall,
@@ -431,22 +511,22 @@ fun HabitHeatmap(habitId: Long) {
 
 @Composable
 fun HeatmapCell(value: Int) {
+    val cellSize = 14.dp
     val color = when (value) {
-        0 -> MaterialTheme.colorScheme.surfaceVariant
-        1 -> DeepTeal.copy(alpha = 0.3f)
-        2 -> DeepTeal.copy(alpha = 0.5f)
-        3 -> DeepTeal.copy(alpha = 0.8f)
-        else -> GoldAccent
+        0 -> MaterialTheme.colorScheme.surfaceVariant // Gagal
+        1 -> DeepTeal.copy(alpha = 0.3f) // Parsial
+        2 -> DeepTeal.copy(alpha = 0.8f) // Sempurna
+        else -> GoldAccent // Over-achievement (value == 3)
     }
 
     Box(
         modifier = Modifier
-            .size(12.dp)
+            .size(cellSize)
             .clip(MaterialTheme.shapes.extraSmall)
             .background(color)
             .border(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
                 shape = MaterialTheme.shapes.extraSmall
             )
     )

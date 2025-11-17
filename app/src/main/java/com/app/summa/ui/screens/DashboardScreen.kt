@@ -3,6 +3,7 @@ package com.app.summa.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -10,24 +11,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.ui.components.*
+import com.app.summa.ui.model.HabitItem
 import com.app.summa.ui.theme.*
-import java.time.LocalTime
+import com.app.summa.ui.viewmodel.DashboardViewModel
+import java.text.NumberFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen() {
-    var selectedMode by remember { mutableStateOf("Normal") }
+fun DashboardScreen(
+    viewModel: DashboardViewModel = hiltViewModel(),
+    onNavigateToPlanner: () -> Unit = {},
+    onNavigateToHabitDetail: (HabitItem) -> Unit = {},
+    onNavigateToMoney: () -> Unit = {},
+    onNavigateToNotes: () -> Unit = {},
+    // PENAMBAHAN: Parameter navigasi baru
+    onNavigateToReflections: () -> Unit = {}
+) {
+    val uiState by viewModel.uiState.collectAsState()
     var showModeDialog by remember { mutableStateOf(false) }
-
-    val greeting = remember {
-        when (LocalTime.now().hour) {
-            in 5..11 -> "Selamat Pagi"
-            in 12..14 -> "Selamat Siang"
-            in 15..18 -> "Selamat Sore"
-            else -> "Selamat Malam"
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -35,7 +39,7 @@ fun DashboardScreen() {
                 title = {
                     Column {
                         Text(
-                            text = "$greeting, Davyd!",
+                            text = "${uiState.greeting}, Davyd!",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -47,13 +51,17 @@ fun DashboardScreen() {
                     }
                 },
                 actions = {
+                    // PENAMBAHAN: Tombol untuk Tinjauan Harian
+                    IconButton(onClick = onNavigateToReflections) {
+                        Icon(Icons.Default.RateReview, contentDescription = "Tinjauan Harian")
+                    }
                     FilledTonalButton(
                         onClick = { showModeDialog = true },
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
-                        Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Mode")
+                        Text(uiState.currentMode)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -62,155 +70,189 @@ fun DashboardScreen() {
             )
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item { Spacer(Modifier.height(8.dp)) }
+        if (uiState.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item { Spacer(Modifier.height(8.dp)) }
 
-            // Daily Summary Card
-            item {
-                SummaCard {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Progres Hari Ini",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = "Hitungan Summa: +12 poin",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                // Daily Summary Card
+                item {
+                    SummaCard {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Progres Hari Ini",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "Hitungan Summa: ${uiState.summaPoints} poin",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
+                            ProgressCircle(
+                                progress = uiState.todayProgress,
+                                size = 80.dp,
+                                strokeWidth = 8.dp,
+                                progressColor = GoldAccent
                             )
                         }
-                        ProgressCircle(
-                            progress = 0.7f,
-                            size = 80.dp,
-                            strokeWidth = 8.dp
-                        )
                     }
                 }
-            }
 
-            // Next Action Card
-            item {
-                Text(
-                    text = "Hal Berikutnya",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
+                // Next Action Card
+                item {
+                    Text(
+                        text = "Hal Berikutnya",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
 
-            item {
-                SummaCard(
-                    onClick = { /* Start Focus Mode */ }
-                ) {
+                item {
+                    val nextTask = uiState.nextTask
+                    SummaCard(
+                        onClick = {
+                            if (nextTask != null) {
+                                // TODO: Navigasi ke Focus Mode
+                            } else {
+                                onNavigateToPlanner()
+                            }
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                if (nextTask != null) Icons.Default.PlayArrow else Icons.Default.Add,
+                                contentDescription = null,
+                                tint = DeepTeal,
+                                modifier = Modifier.size(40.dp)
+                            )
+                            Spacer(Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                if (nextTask != null) {
+                                    Text(
+                                        text = nextTask.scheduledTime ?: "Sepanjang hari",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                    )
+                                    Text(
+                                        text = nextTask.title,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                } else {
+                                    Text(
+                                        text = "Tidak ada tugas berikutnya",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = "Ketuk untuk menambah",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                    )
+                                }
+                            }
+                            if (nextTask != null) {
+                                Button(onClick = { /* TODO: Navigasi ke Focus Mode */ }) {
+                                    Text("Mulai Fokus")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Quick Habits
+                item {
+                    Text(
+                        text = "Kebiasaan Hari Ini",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                item {
+                    HabitQuickList(
+                        habits = uiState.todayHabits,
+                        onHabitClick = { onNavigateToHabitDetail(it) }
+                    )
+                }
+
+                // Quick Widgets
+                item {
+                    Text(
+                        text = "Ringkasan Modul",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            tint = DeepTeal,
-                            modifier = Modifier.size(40.dp)
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
+                        // Money Widget
+                        SummaCard(
+                            modifier = Modifier.weight(1f),
+                            onClick = { onNavigateToMoney() }
+                        ) {
+                            Icon(Icons.Default.AccountBalanceWallet, contentDescription = null)
+                            Spacer(Modifier.height(8.dp))
+                            Text("Keuangan", style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                text = "14:00",
+                                text = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(uiState.totalNetWorth),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
+                        }
+
+                        // Notes Widget
+                        SummaCard(
+                            modifier = Modifier.weight(1f),
+                            onClick = { onNavigateToNotes() }
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = null)
+                            Spacer(Modifier.height(8.dp))
+                            Text("Catatan", style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                text = "Laporan Proyek",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
+                                "Lihat semua ide",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                         }
-                        Button(onClick = { /* Focus */ }) {
-                            Text("Mulai Fokus")
-                        }
                     }
                 }
+
+                item { Spacer(Modifier.height(16.dp)) }
             }
-
-            // Quick Habits
-            item {
-                Text(
-                    text = "Kebiasaan Hari Ini",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            item {
-                HabitQuickList()
-            }
-
-            // Quick Widgets
-            item {
-                Text(
-                    text = "Widget Cepat",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    SummaCard(
-                        modifier = Modifier.weight(1f),
-                        onClick = { /* Budget */ }
-                    ) {
-                        Icon(Icons.Default.AccountBalance, contentDescription = null)
-                        Spacer(Modifier.height(8.dp))
-                        Text("Budget", style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            "Jajan: Aman",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = SuccessGreen
-                        )
-                    }
-
-                    SummaCard(
-                        modifier = Modifier.weight(1f),
-                        onClick = { /* Journal */ }
-                    ) {
-                        Icon(Icons.Default.Edit, contentDescription = null)
-                        Spacer(Modifier.height(8.dp))
-                        Text("Jurnal", style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            "Catat ide?",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-            }
-
-            item { Spacer(Modifier.height(16.dp)) }
         }
     }
 
     if (showModeDialog) {
         ModeSelectionDialog(
-            currentMode = selectedMode,
+            currentMode = uiState.currentMode,
             onDismiss = { showModeDialog = false },
             onModeSelected = {
-                selectedMode = it
+                viewModel.setMode(it)
                 showModeDialog = false
             }
         )
@@ -218,62 +260,60 @@ fun DashboardScreen() {
 }
 
 @Composable
-fun HabitQuickList() {
+fun HabitQuickList(
+    habits: List<HabitItem>,
+    onHabitClick: (HabitItem) -> Unit
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        HabitQuickItem("Latihan Fisik", "Hal Pertama", 1, 3)
-        HabitQuickItem("Membaca Quran", "Pagi Hari", 0, 3, isBudgelift = true)
-        HabitQuickItem("Belajar", "Baca 1 Bab", 2, 3, progress = 0.7f)
+        habits.take(3).forEach { habit ->
+            HabitQuickItem(
+                habit = habit,
+                onClick = { onHabitClick(habit) }
+            )
+        }
     }
 }
 
 @Composable
 fun HabitQuickItem(
-    name: String,
-    subtitle: String,
-    current: Int,
-    target: Int,
-    progress: Float = current.toFloat() / target,
-    isBudgelift: Boolean = false
+    habit: HabitItem,
+    onClick: () -> Unit
 ) {
-    SummaCard {
+    val isComplete = habit.targetCount > 0 && habit.currentCount >= habit.targetCount
+    val isOverAchieved = habit.targetCount > 0 && habit.currentCount > habit.targetCount
+
+    SummaCard(onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                Icons.Default.FitnessCenter,
+                Icons.Filled.FitnessCenter, // Placeholder
                 contentDescription = null,
                 modifier = Modifier.size(32.dp),
-                tint = if (progress >= 1f) SuccessGreen else MaterialTheme.colorScheme.primary
+                tint = if (isComplete) SuccessGreen else MaterialTheme.colorScheme.primary
             )
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Text(habit.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 Text(
-                    subtitle,
+                    "🔥 ${habit.currentStreak} hari",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
 
-            if (isBudgelift) {
-                Chip(
-                    text = "Budgelift",
-                    color = WarningOrange
-                )
-            } else {
-                Text(
-                    text = "$current / $target",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = when {
-                        progress >= 1.3f -> GoldAccent
-                        progress >= 1f -> SuccessGreen
-                        progress >= 0.7f -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    }
-                )
-            }
+            Text(
+                text = if (habit.targetCount > 1) "${habit.currentCount} / ${habit.targetCount}" else "${habit.currentCount}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = when {
+                    isOverAchieved -> GoldAccent
+                    isComplete -> SuccessGreen
+                    habit.currentCount > 0 -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                }
+            )
         }
     }
 }
