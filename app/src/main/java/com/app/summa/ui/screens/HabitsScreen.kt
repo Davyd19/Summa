@@ -3,7 +3,6 @@ package com.app.summa.ui.screens
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,7 +14,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.app.summa.ui.components.*
@@ -201,7 +199,8 @@ fun HabitListItem(
                     transitionSpec = {
                         slideInVertically { -it } + fadeIn() with
                                 slideOutVertically { it } + fadeOut()
-                    }
+                    },
+                    label = "count_animation"
                 ) { count ->
                     Text(
                         text = "$count / ${habit.targetCount}",
@@ -356,7 +355,6 @@ fun HabitDetailScreen(
 
 @Composable
 fun HabitHeatmap(habitId: Long) {
-    // Generate dummy data for last 8 weeks
     val today = LocalDate.now()
     val weeks = 8
     val data = remember {
@@ -396,7 +394,7 @@ fun HabitHeatmap(habitId: Long) {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        week.forEach { (date, value) ->
+                        week.forEach { (_, value) ->
                             HeatmapCell(value = value)
                         }
                     }
@@ -438,7 +436,7 @@ fun HeatmapCell(value: Int) {
         1 -> DeepTeal.copy(alpha = 0.3f)
         2 -> DeepTeal.copy(alpha = 0.5f)
         3 -> DeepTeal.copy(alpha = 0.8f)
-        else -> GoldAccent // Over-achievement
+        else -> GoldAccent
     }
 
     Box(

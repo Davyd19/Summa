@@ -2,6 +2,7 @@ package com.app.summa.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import com.app.summa.data.model.*
 
 @Database(
@@ -14,9 +15,10 @@ import com.app.summa.data.model.*
         Note::class,
         Identity::class
     ],
-    version = 1,
+    version = 6,
     exportSchema = false
 )
+@TypeConverters(Converters::class)
 abstract class SummaDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
     abstract fun taskDao(): TaskDao

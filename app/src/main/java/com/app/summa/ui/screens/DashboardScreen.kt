@@ -1,6 +1,5 @@
 package com.app.summa.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -14,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import com.app.summa.ui.components.*
 import com.app.summa.ui.theme.*
 import java.time.LocalTime
-import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,11 +20,13 @@ fun DashboardScreen() {
     var selectedMode by remember { mutableStateOf("Normal") }
     var showModeDialog by remember { mutableStateOf(false) }
 
-    val greeting = when (LocalTime.now().hour) {
-        in 5..11 -> "Selamat Pagi"
-        in 12..14 -> "Selamat Siang"
-        in 15..18 -> "Selamat Sore"
-        else -> "Selamat Malam"
+    val greeting = remember {
+        when (LocalTime.now().hour) {
+            in 5..11 -> "Selamat Pagi"
+            in 12..14 -> "Selamat Siang"
+            in 15..18 -> "Selamat Sore"
+            else -> "Selamat Malam"
+        }
     }
 
     Scaffold(
@@ -220,9 +220,9 @@ fun DashboardScreen() {
 @Composable
 fun HabitQuickList() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        HabitQuickItem("Latihan Fisik", "Hal Ateuo", 1, 3)
-        HabitQuickItem("Latihan Fisik", "Menuasra Quran", 0, 3, isBudgelift = true)
-        HabitQuickItem("Membaca Quran", "Bihad 1 Halal", 2, 3, progress = 0.7f)
+        HabitQuickItem("Latihan Fisik", "Hal Pertama", 1, 3)
+        HabitQuickItem("Membaca Quran", "Pagi Hari", 0, 3, isBudgelift = true)
+        HabitQuickItem("Belajar", "Baca 1 Bab", 2, 3, progress = 0.7f)
     }
 }
 

@@ -1,5 +1,6 @@
 package com.app.summa.data.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.time.LocalDate
@@ -14,7 +15,8 @@ data class Habit(
     val totalSum: Int = 0,
     val currentStreak: Int = 0,
     val perfectStreak: Int = 0,
-    val createdAt: Long = System.currentTimeMillis()
+    @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
+    val createdAt: Long? = null
 )
 
 @Entity(tableName = "habit_logs")
@@ -24,7 +26,8 @@ data class HabitLog(
     val habitId: Long,
     val date: String, // Format: yyyy-MM-dd
     val count: Int,
-    val timestamp: Long = System.currentTimeMillis()
+    @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
+    val timestamp: Long? = null
 )
 
 // File: data/model/Task.kt
@@ -40,7 +43,8 @@ data class Task(
     val scheduledTime: String?, // HH:mm
     val isCompleted: Boolean = false,
     val completedAt: Long? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
+    val createdAt: Long? = null
 )
 
 // File: data/model/Account.kt
@@ -54,7 +58,8 @@ data class Account(
     val icon: String = "💰",
     val color: String = "#4CAF50",
     val isInvestment: Boolean = false,
-    val updatedAt: Long = System.currentTimeMillis()
+    @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
+    val updatedAt: Long? = null
 )
 
 enum class AccountType {
@@ -63,6 +68,7 @@ enum class AccountType {
 
 @Entity(tableName = "transactions")
 data class Transaction(
+    // PERBAIKAN: Menambahkan @PrimaryKey yang hilang
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val accountId: Long,
@@ -71,7 +77,8 @@ data class Transaction(
     val category: String = "",
     val note: String = "",
     val date: String, // yyyy-MM-dd
-    val timestamp: Long = System.currentTimeMillis()
+    @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
+    val timestamp: Long? = null
 )
 
 enum class TransactionType {
@@ -81,24 +88,29 @@ enum class TransactionType {
 // File: data/model/Note.kt
 @Entity(tableName = "notes")
 data class Note(
+    // PERBAIKAN: Menambahkan @PrimaryKey yang hilang
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val title: String = "",
     val content: String,
     val tags: String = "", // Comma-separated
     val isArchived: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
+    val createdAt: Long? = null,
+    @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
+    val updatedAt: Long? = null
 )
 
 // File: data/model/Identity.kt
 @Entity(tableName = "identities")
 data class Identity(
+    // PERBAIKAN: Menambahkan @PrimaryKey yang hilang
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val name: String,
     val description: String = "",
     val progress: Int = 0,
     val relatedHabitIds: String = "", // Comma-separated IDs
-    val createdAt: Long = System.currentTimeMillis()
+    @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
+    val createdAt: Long? = null
 )
