@@ -1,7 +1,6 @@
 package com.app.summa.data.repository
 
 import com.app.summa.data.local.NoteDao
-import com.app.summa.data.model.Note
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 

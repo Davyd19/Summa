@@ -1,6 +1,5 @@
 package com.app.summa.ui.screens
 
-import android.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.app.summa.ui.components.*
 import com.app.summa.ui.theme.*
 import java.time.LocalTime
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -279,7 +279,7 @@ fun HabitQuickItem(
 }
 
 @Composable
-fun Chip(text: String, color: Color) {
+fun Chip(text: String, color: androidx.compose.ui.graphics.Color) {
     Surface(
         shape = MaterialTheme.shapes.small,
         color = color.copy(alpha = 0.2f)
