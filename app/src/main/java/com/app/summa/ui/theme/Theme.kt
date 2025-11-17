@@ -45,9 +45,15 @@ fun SummaTheme(
 
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            // PERBAIKKAN: Menggunakan pengecekan 'is Activity' agar lebih aman
+            // Kode (view.context as Activity) bisa menyebabkan crash jika
+            // context-nya bukan Activity (misalnya saat loading awal).
+            val context = view.context
+            if (context is Activity) {
+                val window = context.window
+                window.statusBarColor = colorScheme.background.toArgb()
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            }
         }
     }
 

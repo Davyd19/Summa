@@ -15,7 +15,7 @@ import com.app.summa.data.model.*
         Note::class,
         Identity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
