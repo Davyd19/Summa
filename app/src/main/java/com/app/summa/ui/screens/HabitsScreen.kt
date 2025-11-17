@@ -115,6 +115,7 @@ fun HabitsScreen() {
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun HabitListItem(
     habit: HabitItem,
