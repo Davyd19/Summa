@@ -1,0 +1,65 @@
+<resources>
+    <string name="app_name">Summa</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_greeting_morning">Selamat Pagi</string>
+    <string name="dashboard_greeting_afternoon">Selamat Siang</string>
+    <string name="dashboard_greeting_evening">Selamat Sore</string>
+    <string name="dashboard_greeting_night">Selamat Malam</string>
+    <string name="dashboard_today_target">Target Ringkasan Hari Ini</string>
+    <string name="dashboard_summa_points">Hitungan Summa: +%d poin</string>
+
+    <!-- Navigation -->
+    <string name="nav_dashboard">Dasbor</string>
+    <string name="nav_planner">Planner</string>
+    <string name="nav_habits">Habits</string>
+    <string name="nav_money">Money</string>
+    <string name="nav_quick_add">Quick Add</string>
+
+    <!-- Habits -->
+    <string name="habits_title">Kebiasaan</string>
+    <string name="habits_subtitle">Konsistensi adalah kunci</string>
+    <string name="habits_total_sum">HITUNGAN SUMMA</string>
+    <string name="habits_streak_consistency">Streak Konsistensi</string>
+    <string name="habits_streak_perfect">Streak Sempurna</string>
+    <string name="habits_heatmap_title">Kalender Heatmap</string>
+
+    <!-- Planner -->
+    <string name="planner_title">Planner</string>
+    <string name="planner_view_day">Harian</string>
+    <string name="planner_view_week">Mingguan</string>
+    <string name="planner_view_month">Bulanan</string>
+
+    <!-- Money -->
+    <string name="money_title">Keuangan</string>
+    <string name="money_subtitle">Kelola aset Anda</string>
+    <string name="money_net_worth">Total Kekayaan Bersih</string>
+    <string name="money_accounts">Akun Anda</string>
+    <string name="money_transactions">Transaksi Terakhir</string>
+    <string name="money_action_income">Masuk</string>
+    <string name="money_action_expense">Keluar</string>
+    <string name="money_action_transfer">Transfer</string>
+    <string name="money_reward_title">Aset Masa Depan Bertambah!</string>
+    <string name="money_reward_message">Selamat! Anda telah menambah investasi untuk masa depan yang lebih baik.</string>
+
+    <!-- Focus Mode -->
+    <string name="focus_move_clip">PINDAHKAN 1 KLIP</string>
+    <string name="focus_remaining">Tersisa</string>
+    <string name="focus_completed">Selesai</string>
+    <string name="focus_progress_hint">Pindahkan klip untuk menandai progres</string>
+
+    <!-- Common -->
+    <string name="action_add">Tambah</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Hapus</string>
+    <string name="action_save">Simpan</string>
+    <string name="action_cancel">Batal</string>
+    <string name="action_close">Tutup</string>
+    <string name="action_done">Selesai</string>
+    <string name="action_start">Mulai</string>
+
+    <!-- Errors -->
+    <string name="error_generic">Terjadi kesalahan. Silakan coba lagi.</string>
+    <string name="error_network">Tidak dapat terhubung ke internet</string>
+    <string name="error_empty_field">Field tidak boleh kosong</string>
+</resources>
