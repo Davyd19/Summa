@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale // PERBAIKAN: Import scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -523,10 +524,11 @@ fun CleanRewardAnimation(onDismiss: () -> Unit) {
                         label = "scale"
                     )
 
+                    // PERBAIKAN: Gunakan Modifier.scale() bukan graphicsLayer
                     Text(
                         "💎",
                         style = MaterialTheme.typography.displayLarge,
-                        modifier = Modifier.graphicsLayer(scaleX = scale, scaleY = scale)
+                        modifier = Modifier.scale(scale)
                     )
 
                     Spacer(Modifier.height(16.dp))
@@ -552,7 +554,7 @@ fun CleanRewardAnimation(onDismiss: () -> Unit) {
     }
 }
 
-// Dialogs remain the same from previous MoneyScreen
+// Dialogs tetap sama seperti sebelumnya
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddAccountDialog(

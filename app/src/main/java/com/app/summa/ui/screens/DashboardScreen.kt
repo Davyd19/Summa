@@ -1,7 +1,7 @@
 package com.app.summa.ui.screens
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,15 +14,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.app.summa.ui.components.*
 import com.app.summa.ui.model.HabitItem
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.DashboardViewModel
@@ -43,61 +43,36 @@ fun DashboardScreen(
     var showModeDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Background gradient untuk depth
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(280.dp)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
+        // Subtle animated gradient background
+        AnimatedGradientBackground()
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 100.dp, top = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            contentPadding = PaddingValues(bottom = 100.dp, top = 0.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Hero Header dengan animated greeting
+            // Modern Header with animated greeting
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                ) {
-                    Text(
-                        text = "${uiState.greeting} 👋",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "Apa yang ingin kamu capai hari ini?",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                }
+                ModernHeader(
+                    greeting = uiState.greeting,
+                    currentMode = uiState.currentMode,
+                    onModeClick = { showModeDialog = true }
+                )
             }
 
-            // Summa Points Hero Card dengan animasi
+            // Hero Points Card with smooth animations
             item {
-                SummaPointsHeroCard(
+                ModernPointsCard(
                     progress = uiState.todayProgress,
                     points = uiState.summaPoints,
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
 
-            // Next Action - Prominent CTA
+            // Next Action - Prominent and action-oriented
             if (uiState.currentMode != "Fokus") {
                 item {
-                    NextActionCard(
+                    ModernNextActionCard(
                         task = uiState.nextTask,
                         onStartFocus = { /* TODO */ },
                         onAddTask = onNavigateToPlanner,
@@ -106,32 +81,19 @@ fun DashboardScreen(
                 }
             }
 
-            // Quick Habits dengan horizontal scroll
+            // Today's Habits with modern cards
             if (uiState.currentMode != "Fokus") {
                 item {
-                    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "Kebiasaan Hari Ini",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                "${uiState.todayHabits.count { it.currentCount >= it.targetCount }}/${uiState.todayHabits.size}",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = SuccessGreen
-                            )
-                        }
-                    }
+                    ModernSectionHeader(
+                        title = "Kebiasaan Hari Ini",
+                        trailing = "${uiState.todayHabits.count { it.currentCount >= it.targetCount }}/${uiState.todayHabits.size}",
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
                 }
 
                 item {
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(horizontal = 20.dp)
                     ) {
                         items(uiState.todayHabits.size) { index ->
@@ -144,19 +106,17 @@ fun DashboardScreen(
                 }
             }
 
-            // Quick Access Grid
+            // Quick Access with modern icons
             if (uiState.currentMode == "Normal") {
                 item {
-                    Text(
-                        "Akses Cepat",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
+                    ModernSectionHeader(
+                        title = "Akses Cepat",
                         modifier = Modifier.padding(horizontal = 20.dp)
                     )
                 }
 
                 item {
-                    QuickAccessGrid(
+                    ModernQuickAccessGrid(
                         totalNetWorth = uiState.totalNetWorth,
                         onMoneyClick = onNavigateToMoney,
                         onNotesClick = onNavigateToNotes,
@@ -165,24 +125,9 @@ fun DashboardScreen(
                     )
                 }
             }
-        }
 
-        // Floating Mode Selector
-        FloatingActionButton(
-            onClick = { showModeDialog = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(20.dp),
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.Tune, contentDescription = "Mode")
-                Text(uiState.currentMode, fontWeight = FontWeight.SemiBold)
-            }
+            // Bottom spacing
+            item { Spacer(Modifier.height(24.dp)) }
         }
     }
 
@@ -199,7 +144,106 @@ fun DashboardScreen(
 }
 
 @Composable
-fun SummaPointsHeroCard(
+fun AnimatedGradientBackground() {
+    val infiniteTransition = rememberInfiniteTransition(label = "bg")
+    val offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(20000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offset"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(400.dp)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f * (1 - offset * 0.5f)),
+                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f * offset),
+                        Color.Transparent
+                    )
+                )
+            )
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ModernHeader(
+    greeting: String,
+    currentMode: String,
+    onModeClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 24.dp)
+    ) {
+        // Greeting with fade-in animation
+        var visible by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) { visible = true }
+
+        androidx.compose.animation.AnimatedVisibility(
+            visible = visible,
+            enter = androidx.compose.animation.fadeIn(tween(600)) +
+                    androidx.compose.animation.slideInVertically(tween(600)) { -20 }
+        ) {
+            Column {
+                Text(
+                    text = "$greeting 👋",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Mari kita mulai hari yang produktif",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+
+                    // Mode badge
+                    Surface(
+                        onClick = onModeClick,
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        tonalElevation = 0.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Tune,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                currentMode,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ModernPointsCard(
     progress: Float,
     points: Int,
     modifier: Modifier = Modifier
@@ -209,133 +253,170 @@ fun SummaPointsHeroCard(
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
-        )
+        ),
+        label = "progress"
+    )
+
+    val animatedPoints by animateIntAsState(
+        targetValue = points,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessVeryLow
+        ),
+        label = "points"
     )
 
     Card(
-        modifier = modifier
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 8.dp,
+            pressedElevation = 4.dp
+        )
     ) {
         Box {
-            // Decorative background circles
+            // Decorative circles with subtle animation
+            val scale by rememberInfiniteTransition(label = "circle").animateFloat(
+                initialValue = 1f,
+                targetValue = 1.1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(3000, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "scale"
+            )
+
             Box(
                 modifier = Modifier
-                    .size(150.dp)
-                    .offset(x = 200.dp, y = (-30).dp)
+                    .size(180.dp)
+                    .offset(x = 220.dp, y = (-40).dp)
+                    .scale(scale)
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.1f))
-            )
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .offset(x = (-20).dp, y = 120.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.08f))
             )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp)
+                    .padding(28.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             "Summa Points",
                             style = MaterialTheme.typography.labelLarge,
                             color = Color.White.copy(alpha = 0.9f)
                         )
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(12.dp))
                         Text(
-                            points.toString(),
-                            style = MaterialTheme.typography.displayLarge,
+                            animatedPoints.toString(),
+                            style = MaterialTheme.typography.displayMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                     }
 
-                    // Circular Progress
-                    Box(contentAlignment = Alignment.Center) {
+                    // Modern circular progress
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.size(88.dp)
+                    ) {
                         CircularProgressIndicator(
                             progress = { animatedProgress },
-                            modifier = Modifier.size(72.dp),
+                            modifier = Modifier.fillMaxSize(),
                             color = GoldAccent,
-                            strokeWidth = 6.dp,
-                            trackColor = Color.White.copy(alpha = 0.2f)
+                            strokeWidth = 8.dp,
+                            trackColor = Color.White.copy(alpha = 0.2f),
+                            strokeCap = StrokeCap.Round
                         )
-                        Text(
-                            "${(animatedProgress * 100).toInt()}%",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "${(animatedProgress * 100).toInt()}%",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
                     }
                 }
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(24.dp))
 
-                // Progress bar
-                LinearProgressIndicator(
-                    progress = { animatedProgress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = GoldAccent,
-                    trackColor = Color.White.copy(alpha = 0.2f)
-                )
+                // Modern progress bar
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LinearProgressIndicator(
+                        progress = { animatedProgress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(5.dp)),
+                        color = GoldAccent,
+                        trackColor = Color.White.copy(alpha = 0.2f),
+                        strokeCap = StrokeCap.Round
+                    )
 
-                Spacer(Modifier.height(12.dp))
-
-                Text(
-                    "Target harian tercapai ${(animatedProgress * 100).toInt()}%",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.9f)
-                )
+                    Text(
+                        "Target harian tercapai ${(animatedProgress * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun NextActionCard(
+fun ModernNextActionCard(
     task: com.app.summa.data.model.Task?,
     onStartFocus: () -> Unit,
     onAddTask: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .shadow(4.dp, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
+        onClick = if (task != null) onStartFocus else onAddTask,
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = if (task != null) MaterialTheme.colorScheme.secondaryContainer
+            containerColor = if (task != null)
+                MaterialTheme.colorScheme.secondaryContainer
             else MaterialTheme.colorScheme.surfaceVariant
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Animated icon
+            val scale by rememberInfiniteTransition(label = "icon").animateFloat(
+                initialValue = 1f,
+                targetValue = 1.1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1000),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "scale"
+            )
+
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(60.dp)
+                    .scale(if (task != null) scale else 1f)
                     .clip(CircleShape)
                     .background(
-                        if (task != null) MaterialTheme.colorScheme.secondary
+                        if (task != null)
+                            MaterialTheme.colorScheme.secondary
                         else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                     ),
                 contentAlignment = Alignment.Center
@@ -343,12 +424,11 @@ fun NextActionCard(
                 Icon(
                     if (task != null) Icons.Default.PlayArrow else Icons.Default.Add,
                     contentDescription = null,
-                    tint = if (task != null) Color.White else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(28.dp)
+                    tint = if (task != null) Color.White
+                    else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(30.dp)
                 )
             }
-
-            Spacer(Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -356,12 +436,14 @@ fun NextActionCard(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
+                Spacer(Modifier.height(4.dp))
                 Text(
                     task?.title ?: "Tambah tugas pertama",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
                 if (task?.scheduledTime != null) {
+                    Spacer(Modifier.height(2.dp))
                     Text(
                         task.scheduledTime,
                         style = MaterialTheme.typography.bodySmall,
@@ -370,11 +452,11 @@ fun NextActionCard(
                 }
             }
 
-            if (task != null) {
-                IconButton(onClick = onStartFocus) {
-                    Icon(Icons.Default.ArrowForward, contentDescription = "Mulai")
-                }
-            }
+            Icon(
+                Icons.Default.ArrowForward,
+                contentDescription = "Mulai",
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            )
         }
     }
 }
@@ -392,36 +474,61 @@ fun ModernHabitCard(
     Card(
         onClick = onClick,
         modifier = Modifier
-            .width(140.dp)
-            .height(160.dp)
-            .shadow(4.dp, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
+            .width(160.dp)
+            .animateContentSize(),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = if (isComplete) SuccessGreen.copy(alpha = 0.15f)
+            containerColor = if (isComplete)
+                SuccessGreen.copy(alpha = 0.12f)
             else MaterialTheme.colorScheme.surface
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Start
+            ) {
                 Text(
                     habit.icon,
                     style = MaterialTheme.typography.headlineMedium
                 )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    habit.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2
-                )
+                if (habit.currentStreak > 0) {
+                    Surface(
+                        shape = CircleShape,
+                        color = StreakOrange.copy(alpha = 0.15f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("🔥", style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                "${habit.currentStreak}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = StreakOrange
+                            )
+                        }
+                    }
+                }
             }
 
-            Column {
+            Text(
+                habit.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -430,32 +537,31 @@ fun ModernHabitCard(
                     Text(
                         if (habit.targetCount > 1) "${habit.currentCount}/${habit.targetCount}"
                         else "${habit.currentCount}",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (isComplete) SuccessGreen else MaterialTheme.colorScheme.primary
+                        color = if (isComplete) SuccessGreen
+                        else MaterialTheme.colorScheme.primary
                     )
-                    if (habit.currentStreak > 0) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("🔥", style = MaterialTheme.typography.bodySmall)
-                            Text(
-                                "${habit.currentStreak}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                    if (isComplete) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = "Selesai",
+                            tint = SuccessGreen,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
-
-                Spacer(Modifier.height(8.dp))
 
                 LinearProgressIndicator(
                     progress = { progressPercentage },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp)),
-                    color = if (isComplete) SuccessGreen else MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = if (isComplete) SuccessGreen
+                    else MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    strokeCap = StrokeCap.Round
                 )
             }
         }
@@ -463,7 +569,34 @@ fun ModernHabitCard(
 }
 
 @Composable
-fun QuickAccessGrid(
+fun ModernSectionHeader(
+    title: String,
+    trailing: String? = null,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        if (trailing != null) {
+            Text(
+                trailing,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = SuccessGreen
+            )
+        }
+    }
+}
+
+@Composable
+fun ModernQuickAccessGrid(
     totalNetWorth: Double,
     onMoneyClick: () -> Unit,
     onNotesClick: () -> Unit,
@@ -480,28 +613,28 @@ fun QuickAccessGrid(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            QuickAccessCard(
+            ModernQuickAccessCard(
                 icon = Icons.Default.AccountBalanceWallet,
                 title = "Keuangan",
                 subtitle = formatter.format(totalNetWorth),
-                color = BlueAccent,
+                gradient = listOf(BlueAccent, BlueAccent.copy(alpha = 0.7f)),
                 onClick = onMoneyClick,
                 modifier = Modifier.weight(1f)
             )
-            QuickAccessCard(
+            ModernQuickAccessCard(
                 icon = Icons.Default.Book,
                 title = "Pustaka",
                 subtitle = "Catat ide",
-                color = PurpleAccent,
+                gradient = listOf(PurpleAccent, PurpleAccent.copy(alpha = 0.7f)),
                 onClick = onNotesClick,
                 modifier = Modifier.weight(1f)
             )
         }
-        QuickAccessCard(
+        ModernQuickAccessCard(
             icon = Icons.Default.RateReview,
             title = "Tinjauan Harian",
             subtitle = "Refleksi & evaluasi",
-            color = PinkAccent,
+            gradient = listOf(PinkAccent, PinkAccent.copy(alpha = 0.7f)),
             onClick = onReflectionClick,
             modifier = Modifier.fillMaxWidth()
         )
@@ -509,57 +642,63 @@ fun QuickAccessGrid(
 }
 
 @Composable
-fun QuickAccessCard(
+fun ModernQuickAccessCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
-    color: Color,
+    gradient: List<Color>,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier
-            .height(100.dp)
-            .shadow(4.dp, RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.height(110.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.1f)
-        )
+            containerColor = gradient[0].copy(alpha = 0.1f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(56.dp)
                     .clip(CircleShape)
-                    .background(color.copy(alpha = 0.2f)),
+                    .background(Brush.linearGradient(gradient)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     icon,
                     contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(24.dp)
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp)
                 )
             }
-            Spacer(Modifier.width(12.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
+                Spacer(Modifier.height(4.dp))
                 Text(
                     subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    maxLines = 1
                 )
             }
+            Icon(
+                Icons.Default.ArrowForward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            )
         }
     }
 }
@@ -572,7 +711,13 @@ fun ModernModeDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Mode Kontekstual", fontWeight = FontWeight.Bold) },
+        title = {
+            Text(
+                "Mode Kontekstual",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 listOf(
@@ -580,7 +725,7 @@ fun ModernModeDialog(
                     Triple("Fokus", "Hanya tugas penting", Icons.Default.TipsAndUpdates),
                     Triple("Pagi", "Rutinitas pagi", Icons.Default.WbSunny)
                 ).forEach { (mode, desc, icon) ->
-                    ModeOptionCard(
+                    ModernModeOptionCard(
                         title = mode,
                         description = desc,
                         icon = icon,
@@ -594,12 +739,13 @@ fun ModernModeDialog(
             TextButton(onClick = onDismiss) {
                 Text("Tutup")
             }
-        }
+        },
+        shape = MaterialTheme.shapes.large
     )
 }
 
 @Composable
-fun ModeOptionCard(
+fun ModernModeOptionCard(
     title: String,
     description: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -609,9 +755,10 @@ fun ModeOptionCard(
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer
+            containerColor = if (selected)
+                MaterialTheme.colorScheme.primaryContainer
             else MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
@@ -619,26 +766,29 @@ fun ModeOptionCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Icon(
                 icon,
                 contentDescription = null,
                 tint = if (selected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
             )
-            Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     title,
                     fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleMedium,
                     color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
                     else MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (selected)
+                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             }
@@ -646,7 +796,8 @@ fun ModeOptionCard(
                 Icon(
                     Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
