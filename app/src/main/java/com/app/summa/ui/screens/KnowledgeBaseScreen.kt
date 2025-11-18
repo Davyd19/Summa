@@ -1,6 +1,9 @@
 package com.app.summa.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +18,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -39,7 +44,13 @@ fun KnowledgeBaseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Pengetahuan", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        "Pustaka",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
@@ -55,12 +66,14 @@ fun KnowledgeBaseScreen(
         }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
-            TabRow(selectedTabIndex = pagerState.currentPage) {
+            // PERBAIKAN: Menggunakan PrimaryTabRow untuk style modern
+            PrimaryTabRow(selectedTabIndex = pagerState.currentPage) {
                 tabTitles.forEachIndexed { index, title ->
                     Tab(
                         selected = pagerState.currentPage == index,
                         onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                        text = { Text(title) }
+                        text = { Text(title, fontWeight = if (pagerState.currentPage == index) FontWeight.Bold else FontWeight.Normal) },
+                        modifier = Modifier.padding(vertical = 12.dp)
                     )
                 }
             }
@@ -92,49 +105,73 @@ fun NoteList(
     emptyText: String
 ) {
     if (notes.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-            Text(emptyText)
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp), contentAlignment = Alignment.Center) {
+            Text(emptyText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     } else {
+        // PERBAIKAN: Menggunakan Column ber-border, bukan Card per item
         LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp) // Padding bawah untuk FAB
+                .fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(1.dp) // Beri jarak 1dp untuk divider
         ) {
-            items(notes) { note ->
-                NoteItem(
-                    note = note,
-                    onClick = { onNoteClick(note.id) }
-                )
+            item {
+                // Kelompokkan dalam satu list visual
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.large)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant,
+                            MaterialTheme.shapes.large
+                        )
+                ) {
+                    notes.forEachIndexed { index, note ->
+                        NoteListItem(
+                            note = note,
+                            onClick = { onNoteClick(note.id) }
+                        )
+                        if (index < notes.lastIndex) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        }
+                    }
+                }
             }
         }
     }
 }
 
+// PERBAIKAN: Mengganti NoteItem dengan ListItem
 @Composable
-fun NoteItem(
+fun NoteListItem(
     note: KnowledgeNote,
     onClick: () -> Unit
 ) {
-    SummaCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Column {
-            if (note.title.isNotBlank()) {
-                Text(
-                    text = note.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(8.dp))
-            }
+    ListItem(
+        headlineContent = {
+            Text(
+                text = if (note.title.isNotBlank()) note.title else "Tanpa Judul",
+                fontWeight = if (note.title.isNotBlank()) FontWeight.SemiBold else FontWeight.Normal,
+                style = if (note.title.isNotBlank()) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge,
+                // Beri warna abu-abu jika tanpa judul
+                color = if (note.title.isNotBlank()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        supportingContent = {
             Text(
                 text = note.content,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                maxLines = 5,
+                maxLines = 3, // Tampilkan lebih banyak
                 overflow = TextOverflow.Ellipsis
             )
-        }
-    }
+        },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = Modifier.clickable(onClick = onClick)
+    )
 }

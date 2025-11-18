@@ -2,20 +2,24 @@ package com.app.summa.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary Colors
-val DeepTeal = Color(0xFF00796B)
-val DeepTealLight = Color(0xFF26A69A)
-val DeepTealDark = Color(0xFF004D40)
+// Primary Colors (Sesuai Visi: Hijau Kebiruan/Teal)
+val DeepTeal = Color(0xFF00796B) // Warna utama yang kuat
+val DeepTealLight = Color(0xFF26A69A) // Varian yang lebih cerah
+val DeepTealContainer = Color(0xFFE0F2F1) // Latar belakang "Hero" (sangat muda)
 
-// Accent Colors
+// Accent & Reward Colors (Sesuai Visi: Emas/Kuning Cerah)
 val GoldAccent = Color(0xFFFFB300)
-val AmberReward = Color(0xFFFFC107)
+val GoldContainer = Color(0xFFFFF8E1) // Latar belakang "Reward" (sangat muda)
 
-// Background Colors
-val OffWhite = Color(0xFFF5F5F5)
-val LightGray = Color(0xFFEEEEEE)
-val DeepCharcoal = Color(0xFF1C1C1E)
-val NavyBlue = Color(0xFF0A1929)
+// Neutral Colors (Sesuai Visi: Abu-abu Hangat)
+val OffWhite = Color(0xFFFAFAFA) // Latar belakang utama (lebih hangat dari putih)
+val WarmGray = Color(0xFF757575) // Teks pendukung
+val LightGrayBorder = Color(0xFFEEEEEE) // Border untuk card
+val DeepCharcoal = Color(0xFF212121) // Teks utama
+
+// Dark Mode Neutrals
+val DarkBackground = Color(0xFF121212)
+val DarkSurface = Color(0xFF1E1E1E) // Latar belakang card di dark mode
 
 // Semantic Colors
 val SuccessGreen = Color(0xFF4CAF50)

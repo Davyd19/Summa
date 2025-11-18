@@ -12,27 +12,41 @@ import androidx.core.view.WindowCompat
 
 
 private val DarkColorScheme = darkColorScheme(
-    primary = DeepTeal,
-    secondary = GoldAccent,
-    tertiary = AmberReward,
-    background = DeepCharcoal,
-    surface = Color(0xFF2C2C2E),
-    onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onBackground = Color.White,
-    onSurface = Color.White
+    primary = DeepTealLight, // Teal cerah untuk Dark Mode
+    onPrimary = DeepCharcoal,
+    primaryContainer = DeepTeal.copy(alpha = 0.2f),
+    onPrimaryContainer = Color.White,
+    secondary = GoldAccent, // Emas tetap cerah
+    onSecondary = DeepCharcoal,
+    secondaryContainer = GoldAccent.copy(alpha = 0.2f),
+    onSecondaryContainer = GoldAccent,
+    background = DarkBackground,
+    onBackground = OffWhite.copy(alpha = 0.9f),
+    surface = DarkSurface, // Card di dark mode
+    onSurface = OffWhite.copy(alpha = 0.9f),
+    surfaceVariant = Color(0xFF424242), // Latar belakang netral (cth: heatmap)
+    onSurfaceVariant = WarmGray,
+    outline = Color(0xFF5E5E5E), // Border
+    outlineVariant = Color(0xFF333333) // Divider
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = DeepTeal,
-    secondary = GoldAccent,
-    tertiary = AmberReward,
-    background = OffWhite,
-    surface = Color.White,
     onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onBackground = Color(0xFF1C1C1E),
-    onSurface = Color(0xFF1C1C1E)
+    primaryContainer = DeepTealContainer, // Latar belakang Hero (Teal sangat muda)
+    onPrimaryContainer = DeepTeal,
+    secondary = GoldAccent,
+    onSecondary = DeepCharcoal,
+    secondaryContainer = GoldContainer, // Latar belakang Aksi (Emas sangat muda)
+    onSecondaryContainer = Color(0xFFB38600),
+    background = OffWhite, // Latar belakang utama (bukan putih murni)
+    onBackground = DeepCharcoal,
+    surface = Color.White, // Latar belakang Card
+    onSurface = DeepCharcoal,
+    surfaceVariant = LightGrayBorder, // Latar belakang netral (cth: heatmap)
+    onSurfaceVariant = WarmGray, // Teks abu-abu
+    outline = DeepTeal.copy(alpha = 0.5f), // Border aktif (cth: sel kalender)
+    outlineVariant = LightGrayBorder // Border card / Divider
 )
 
 @Composable
@@ -45,14 +59,14 @@ fun SummaTheme(
 
     if (!view.isInEditMode) {
         SideEffect {
-            // PERBAIKKAN: Menggunakan pengecekan 'is Activity' agar lebih aman
-            // Kode (view.context as Activity) bisa menyebabkan crash jika
-            // context-nya bukan Activity (misalnya saat loading awal).
             val context = view.context
             if (context is Activity) {
                 val window = context.window
                 window.statusBarColor = colorScheme.background.toArgb()
                 WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+                // PERBAIKAN: Mengatur warna navigation bar
+                window.navigationBarColor = colorScheme.background.toArgb()
+                WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
             }
         }
     }

@@ -3,6 +3,7 @@ package com.app.summa.ui.screens
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -11,10 +12,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-// PENAMBAHAN: Import yang hilang (AutoMirrored)
-// PERBAIKAN BUG: Ikon-ikon ini tidak ada di paket 'automirrored'. Dihapus.
-// import androidx.compose.material.icons.automirrored.filled.ArrowDownward
-// import androidx.compose.material.icons.automirrored.filled.ArrowUpward
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,7 +21,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-// PENAMBAHAN: Import yang hilang (toColorInt)
 import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -65,27 +61,20 @@ fun MoneyScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            "Keuangan",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "Kelola aset Anda",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
+                    Text(
+                        "Keuangan",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 },
                 actions = {
                     IconButton(onClick = { showAddAccountDialog = true }) {
                         Icon(Icons.Default.AddCard, contentDescription = "Tambah Akun")
                     }
-                    IconButton(onClick = { /* Settings */ }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "More")
-                    }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         }
     ) { paddingValues ->
@@ -97,28 +86,29 @@ fun MoneyScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(paddingValues),
+                contentPadding = PaddingValues(vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                item { Spacer(Modifier.height(8.dp)) }
-
                 item {
-                    NetWorthCard(totalNetWorth = uiState.totalNetWorth)
+                    NetWorthCard(
+                        totalNetWorth = uiState.totalNetWorth,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
                 }
 
                 item {
                     Text(
                         "Akun Anda",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
 
                 item {
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(vertical = 8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp)
                     ) {
                         items(uiState.accounts) { account ->
                             AccountCardItem(account = account)
@@ -127,19 +117,22 @@ fun MoneyScreen(
                 }
 
                 item {
+                    // PERBAIKAN: Tombol aksi dibuat lebih modern
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         ActionButton(
-                            icon = Icons.Default.Add,
+                            icon = Icons.Default.ArrowDownward,
                             label = "Masuk",
                             color = SuccessGreen,
                             modifier = Modifier.weight(1f),
                             onClick = { showAddTransactionDialog = true } // TODO: bedakan tipe
                         )
                         ActionButton(
-                            icon = Icons.Default.Remove,
+                            icon = Icons.Default.ArrowUpward,
                             label = "Keluar",
                             color = ErrorRed,
                             modifier = Modifier.weight(1f),
@@ -148,7 +141,7 @@ fun MoneyScreen(
                         ActionButton(
                             icon = Icons.Default.SwapHoriz,
                             label = "Transfer",
-                            color = DeepTeal,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f),
                             onClick = { showTransferDialog = true }
                         )
@@ -158,22 +151,38 @@ fun MoneyScreen(
                 item {
                     Text(
                         "Transaksi Terakhir",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
 
-                items(uiState.recentTransactions) { transaction ->
-                    TransactionItem(
-                        transaction = transaction
-                    )
+                // PERBAIKAN: Gunakan Column ber-border, bukan Card per item
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .clip(MaterialTheme.shapes.large)
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant,
+                                MaterialTheme.shapes.large
+                            )
+                    ) {
+                        uiState.recentTransactions.forEachIndexed { index, transaction ->
+                            TransactionListItem(transaction = transaction)
+                            if (index < uiState.recentTransactions.lastIndex) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            }
+                        }
+                    }
                 }
-
-                item { Spacer(Modifier.height(16.dp)) }
             }
         }
     }
 
+    // (Dialog-dialog tidak berubah, jadi saya biarkan sama)
     if (showTransferDialog) {
         TransferDialog(
             accounts = uiState.accounts,
@@ -217,7 +226,7 @@ fun MoneyScreen(
     }
 }
 
-// Helper untuk mengubah string warna hex (#RRGGBB) menjadi Color
+// (Helper parseColor & getGradient tidak berubah)
 fun parseColor(colorString: String): Color {
     return try {
         Color(colorString.toColorInt())
@@ -225,8 +234,6 @@ fun parseColor(colorString: String): Color {
         DeepTeal // Fallback color
     }
 }
-
-// Helper untuk membuat gradient
 fun getGradientForAccount(account: Account): List<Color> {
     val baseColor = parseColor(account.color)
     return listOf(
@@ -235,28 +242,32 @@ fun getGradientForAccount(account: Account): List<Color> {
     )
 }
 
-
+// PERBAIKAN: Desain ulang NetWorthCard
 @Composable
-fun NetWorthCard(totalNetWorth: Double) {
+fun NetWorthCard(totalNetWorth: Double, modifier: Modifier = Modifier) {
     val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
+    // Menggunakan SummaCard sebagai dasar
+    SummaCard(
+        modifier = modifier.fillMaxWidth(),
+        // PERBAIKAN: Gradient yang lebih "branded" (Teal ke Emas)
+        backgroundColor = MaterialTheme.colorScheme.primary,
+        borderColor = Color.Transparent
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
                     Brush.horizontalGradient(
-                        colors = listOf(DeepTeal, DeepTealLight)
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            // Aksen Emas di sudut
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+                        )
                     )
                 )
-                .padding(24.dp)
         ) {
-            Column {
+            Column(modifier = Modifier.padding(20.dp)) {
                 Text(
                     "Total Kekayaan Bersih",
                     style = MaterialTheme.typography.titleMedium,
@@ -265,7 +276,7 @@ fun NetWorthCard(totalNetWorth: Double) {
                 Spacer(Modifier.height(8.dp))
                 Text(
                     formatter.format(totalNetWorth),
-                    style = MaterialTheme.typography.displaySmall,
+                    style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
@@ -279,7 +290,7 @@ fun NetWorthCard(totalNetWorth: Double) {
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "+5.2% dari bulan lalu",
+                        "+5.2% bulan lalu", // Contoh
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.8f)
                     )
@@ -289,6 +300,7 @@ fun NetWorthCard(totalNetWorth: Double) {
     }
 }
 
+// PERBAIKAN: Desain ulang AccountCardItem
 @Composable
 fun AccountCardItem(
     account: Account
@@ -296,13 +308,13 @@ fun AccountCardItem(
     val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
     val gradient = remember(account.color) { getGradientForAccount(account) }
 
-    Card(
+    // Menggunakan SummaCard sebagai dasar
+    SummaCard(
         modifier = Modifier
             .width(280.dp)
             .height(160.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        )
+        borderColor = Color.Transparent, // Hapus border
+        padding = 0.dp // Hapus padding default
     ) {
         Box(
             modifier = Modifier
@@ -336,18 +348,16 @@ fun AccountCardItem(
                             color = Color.White.copy(alpha = 0.8f)
                         )
                     }
-                    Text(
-                        account.icon,
-                        style = MaterialTheme.typography.headlineMedium
+                    // PERBAIKAN: Ikon "chip" kartu
+                    Icon(
+                        Icons.Default.Memory,
+                        contentDescription = "Chip",
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(32.dp)
                     )
                 }
 
                 Column {
-                    Text(
-                        "Saldo",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
                     Text(
                         formatter.format(account.balance),
                         style = MaterialTheme.typography.headlineSmall,
@@ -360,6 +370,7 @@ fun AccountCardItem(
     }
 }
 
+// PERBAIKAN: Desain ulang Tombol Aksi
 @Composable
 fun ActionButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -368,74 +379,75 @@ fun ActionButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    Button(
+    // Menggunakan FilledTonalButton untuk tampilan yang lebih lembut
+    FilledTonalButton(
         onClick = onClick,
-        modifier = modifier.height(56.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = color
+        modifier = modifier.height(48.dp),
+        colors = ButtonDefaults.filledTonalButtonColors(
+            containerColor = color.copy(alpha = 0.1f),
+            contentColor = color
         )
     ) {
-        Icon(icon, contentDescription = null)
+        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
-        Text(label)
+        Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
     }
 }
 
+// PERBAIKAN: Mengganti TransactionItem dengan ListItem
 @Composable
-fun TransactionItem(
+fun TransactionListItem(
     transaction: Transaction
 ) {
     val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
     val isExpense = transaction.type == TransactionType.EXPENSE
+    val color = if (isExpense) ErrorRed else SuccessGreen
 
-    SummaCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    ListItem(
+        headlineContent = {
+            Text(
+                transaction.note.ifBlank { transaction.category },
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+        },
+        supportingContent = {
+            Text(
+                "${transaction.date} • ${transaction.category}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        leadingContent = {
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(
-                        if (isExpense) ErrorRed.copy(alpha = 0.2f)
-                        else SuccessGreen.copy(alpha = 0.2f)
-                    ),
+                    .background(color.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    // PERBAIKAN BUG: Menggunakan Icons.Default karena ikon ini tidak ada di 'automirrored'
                     if (isExpense) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
                     contentDescription = null,
-                    tint = if (isExpense) ErrorRed else SuccessGreen
+                    tint = color,
+                    modifier = Modifier.size(20.dp)
                 )
             }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    transaction.note.ifBlank { transaction.category },
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    "${transaction.date} • ${transaction.category}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
-
+        },
+        trailingContent = {
             Text(
                 formatter.format(transaction.amount),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isExpense) ErrorRed else SuccessGreen
+                color = color
             )
-        }
-    }
+        },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+    )
 }
 
+
+// (Dialog-dialog tidak berubah)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddAccountDialog(
@@ -466,7 +478,6 @@ fun AddAccountDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
-                // TODO: Ganti ini dengan Dropdown/Radio button
                 OutlinedTextField(
                     value = type.name,
                     onValueChange = { type = AccountType.valueOf(it.uppercase()) },
@@ -524,7 +535,6 @@ fun AddTransactionDialog(
         title = { Text(if (type == TransactionType.EXPENSE) "Tambah Pengeluaran" else "Tambah Pemasukan") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // Tipe Transaksi
                 Row(Modifier.fillMaxWidth()) {
                     FilterChip(
                         selected = type == TransactionType.EXPENSE,
@@ -538,7 +548,6 @@ fun AddTransactionDialog(
                         label = { Text("Masuk") }
                     )
                 }
-                // TODO: Ganti ini dengan dropdown
                 OutlinedTextField(
                     value = selectedAccount?.name ?: "Pilih Akun",
                     onValueChange = { },
@@ -605,7 +614,6 @@ fun TransferDialog(
         title = { Text("Transfer Dana") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // From Account
                 ExposedDropdownMenuBox(
                     expanded = expandedFrom,
                     onExpandedChange = { expandedFrom = !expandedFrom }
@@ -635,8 +643,6 @@ fun TransferDialog(
                         }
                     }
                 }
-
-                // To Account
                 ExposedDropdownMenuBox(
                     expanded = expandedTo,
                     onExpandedChange = { expandedTo = !expandedTo }
@@ -666,8 +672,6 @@ fun TransferDialog(
                         }
                     }
                 }
-
-                // Amount
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
@@ -696,6 +700,7 @@ fun TransferDialog(
     )
 }
 
+// PERBAIKAN: Desain ulang Animasi Reward
 @Composable
 fun InvestmentRewardAnimation(onDismiss: () -> Unit) {
     var visible by remember { mutableStateOf(true) }
@@ -713,21 +718,16 @@ fun InvestmentRewardAnimation(onDismiss: () -> Unit) {
             enter = scaleIn() + fadeIn(),
             exit = scaleOut() + fadeOut()
         ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(32.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+            SummaCard(
+                modifier = Modifier.fillMaxWidth(),
+                padding = 32.dp,
+                backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                borderColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Animated coin
                     val infiniteTransition = rememberInfiniteTransition(label = "reward_transition")
                     val scale by infiniteTransition.animateFloat(
                         initialValue = 1f,
@@ -740,26 +740,26 @@ fun InvestmentRewardAnimation(onDismiss: () -> Unit) {
                     )
 
                     Text(
-                        "👑", // Emoji Mahkota
-                        style = MaterialTheme.typography.displayLarge,
+                        "👑",
+                        style = MaterialTheme.typography.displayMedium,
                         modifier = Modifier.scale(scale)
                     )
 
                     Spacer(Modifier.height(16.dp))
 
                     Text(
-                        "Aset Masa Depan Bertambah!",
+                        "Masa Depan Lebih Cerah!",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = GoldAccent
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
 
                     Spacer(Modifier.height(8.dp))
 
                     Text(
-                        "Selamat! Anda telah menambah investasi untuk masa depan yang lebih baik.",
+                        "Investasi Anda bertambah. Selamat atas langkah cerdas ini!",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }

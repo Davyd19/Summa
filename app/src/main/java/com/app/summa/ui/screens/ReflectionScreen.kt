@@ -19,6 +19,8 @@ import com.app.summa.ui.components.SummaCard
 import com.app.summa.ui.theme.GoldAccent
 import com.app.summa.ui.viewmodel.ReflectionUiState
 import com.app.summa.ui.viewmodel.ReflectionViewModel
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,17 +33,27 @@ fun ReflectionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Tinjauan Harian", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        "Tinjauan Harian",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
                 },
                 actions = {
-                    Button(onClick = { onBack() }) {
+                    // PERBAIKAN: Tombol "Selesai" dibuat lebih menonjol
+                    Button(onClick = { onBack() }, modifier = Modifier.padding(end = 8.dp)) {
                         Text("Selesai")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         }
     ) { paddingValues ->
@@ -53,41 +65,52 @@ fun ReflectionScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp)
+                    .padding(paddingValues),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // --- LANGKAH 1: RINGKASAN OTOMATIS ---
                 item {
                     Text(
                         "Langkah 1: Ringkasan Hari Ini",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleLarge
                     )
                 }
                 item {
-                    SummaCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                "Tugas Selesai:",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            uiState.summary?.completedTasks?.forEach { task ->
-                                Text("✅ ${task.title}")
-                            } ?: Text("Tidak ada tugas selesai hari ini.")
+                    // PERBAIKAN: Gunakan SummaCard baru
+                    SummaCard(padding = 20.dp) {
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            // Bagian Tugas
+                            Column {
+                                Text(
+                                    "Tugas Selesai:",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                if (uiState.summary?.completedTasks?.isEmpty() != false) {
+                                    Text("Tidak ada tugas selesai hari ini.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                uiState.summary?.completedTasks?.forEach { task ->
+                                    Text("✅ ${task.title}", style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
 
-                            Spacer(Modifier.height(16.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                            Text(
-                                "Kebiasaan Selesai:",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            uiState.summary?.completedHabits?.forEach { habit ->
-                                Text("✅ ${habit.name}")
-                            } ?: Text("Tidak ada kebiasaan selesai hari ini.")
+                            // Bagian Kebiasaan
+                            Column {
+                                Text(
+                                    "Kebiasaan Selesai:",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                if (uiState.summary?.completedHabits?.isEmpty() != false) {
+                                    Text("Tidak ada kebiasaan selesai hari ini.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                uiState.summary?.completedHabits?.forEach { habit ->
+                                    Text("✅ ${habit.name}", style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
                         }
                     }
                 }
@@ -95,9 +118,8 @@ fun ReflectionScreen(
                 // --- LANGKAH 2: PEMBERIAN SUARA IDENTITAS ---
                 item {
                     Text(
-                        "Langkah 2: Beri Suara Identitas Anda",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        "Langkah 2: Beri Suara Identitas",
+                        style = MaterialTheme.typography.titleLarge
                     )
                 }
                 items(uiState.identities) { identity ->
@@ -114,18 +136,23 @@ fun ReflectionScreen(
                 item {
                     Text(
                         "Langkah 3: Jurnal Umum",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleLarge
                     )
                 }
                 item {
+                    // PERBAIKAN: TextField dibuat lebih modern
                     OutlinedTextField(
                         value = uiState.reflectionText,
                         onValueChange = { viewModel.saveReflection(it) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .defaultMinSize(minHeight = 150.dp),
-                        label = { Text("Apa yang Anda pelajari/syukuri hari ini?") }
+                        label = { Text("Apa yang Anda pelajari/syukuri hari ini?") },
+                        shape = MaterialTheme.shapes.large,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary
+                        )
                     )
                 }
             }
@@ -133,6 +160,7 @@ fun ReflectionScreen(
     }
 }
 
+// PERBAIKAN: Desain ulang IdentityVoteCard
 @Composable
 fun IdentityVoteCard(
     identity: Identity,
@@ -140,27 +168,47 @@ fun IdentityVoteCard(
 ) {
     var showNoteField by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf("") }
+    // Asumsi progres adalah 0-1000 untuk lebih granular
+    val progress = (identity.progress % 1000) / 1000f
+    val level = (identity.progress / 1000) + 1
 
-    SummaCard(modifier = Modifier.fillMaxWidth()) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    SummaCard(modifier = Modifier.fillMaxWidth(), padding = 20.dp) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(identity.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    LinearProgressIndicator(progress = identity.progress / 100f ) // Asumsi progres 0-100
+                    Text(identity.name, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "Level $level",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 Spacer(Modifier.width(16.dp))
+                // PERBAIKAN: Tombol "Vote" menggunakan warna Aksen
                 Button(
                     onClick = { showNoteField = !showNoteField },
-                    colors = ButtonDefaults.buttonColors(containerColor = GoldAccent)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    )
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Beri Suara")
+                    Icon(Icons.Default.Add, contentDescription = "Beri Suara", modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
                     Text("Beri Suara")
                 }
             }
+
+            // PERBAIKAN: Progress bar lebih tebal dan informatif
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
+                color = MaterialTheme.colorScheme.secondary,
+                trackColor = MaterialTheme.colorScheme.secondaryContainer
+            )
 
             // Fitur Jurnal Mikro
             if (showNoteField) {
@@ -169,6 +217,7 @@ fun IdentityVoteCard(
                     onValueChange = { note = it },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("Catatan singkat untuk ${identity.name} (Opsional)") },
+                    shape = MaterialTheme.shapes.large,
                     trailingIcon = {
                         IconButton(onClick = {
                             onVote(note)

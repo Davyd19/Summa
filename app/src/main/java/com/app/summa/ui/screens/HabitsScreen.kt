@@ -24,13 +24,10 @@ import com.app.summa.data.model.HabitLog
 import com.app.summa.ui.components.*
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.HabitViewModel
-// PENAMBAHAN: Import model UI dari file baru
 import com.app.summa.ui.model.HabitItem
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
-
-// PERBAIKAN: Definisi 'data class HabitItem' sudah dipindahkan ke file terpisah
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,62 +37,58 @@ fun HabitsScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
 
-    if (uiState.selectedHabit != null) {
-        HabitDetailScreen(
-            habit = uiState.selectedHabit!!,
-            onBack = { viewModel.onBackFromDetail() },
-            logs = uiState.habitLogs
-        )
-    } else {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Column {
+    // PERBAIKAN: Gunakan Crossfade untuk transisi antar layar
+    Crossfade(targetState = uiState.selectedHabit, label = "HabitScreen") { selectedHabit ->
+        if (selectedHabit != null) {
+            HabitDetailScreen(
+                habit = selectedHabit,
+                onBack = { viewModel.onBackFromDetail() },
+                logs = uiState.habitLogs
+            )
+        } else {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = {
                             Text(
                                 "Kebiasaan",
-                                style = MaterialTheme.typography.titleLarge,
+                                // PERBAIKAN: Menggunakan tipografi headline
+                                style = MaterialTheme.typography.headlineLarge,
                                 fontWeight = FontWeight.Bold
                             )
-                            Text(
-                                "Konsistensi adalah kunci",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        },
+                        actions = {
+                            IconButton(onClick = { showAddDialog = true }) {
+                                Icon(Icons.Default.Add, contentDescription = "Add Habit")
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.background // Transparan
+                        )
+                    )
+                }
+            ) { paddingValues ->
+                if (uiState.isLoading) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(uiState.habits) { habit ->
+                            HabitListItem(
+                                habit = habit,
+                                onClick = { viewModel.selectHabit(habit) },
+                                onIncrement = { viewModel.incrementHabit(habit) },
+                                onDecrement = { viewModel.decrementHabit(habit) }
                             )
                         }
-                    },
-                    actions = {
-                        IconButton(onClick = { showAddDialog = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Add Habit")
-                        }
                     }
-                )
-            }
-        ) { paddingValues ->
-            if (uiState.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item { Spacer(Modifier.height(8.dp)) }
-
-                    items(uiState.habits) { habit ->
-                        HabitListItem(
-                            habit = habit,
-                            onClick = { viewModel.selectHabit(habit) },
-                            onIncrement = { viewModel.incrementHabit(habit) },
-                            onDecrement = { viewModel.decrementHabit(habit) }
-                        )
-                    }
-
-                    item { Spacer(Modifier.height(16.dp)) }
                 }
             }
         }
@@ -112,6 +105,7 @@ fun HabitsScreen(
     }
 }
 
+// (AddHabitDialog tidak berubah, jadi saya biarkan sama)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddHabitDialog(
@@ -119,7 +113,7 @@ fun AddHabitDialog(
     onAdd: (name: String, icon: String, target: Int) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
-    var icon by remember { mutableStateOf("🎯") }
+    var icon by remember { mutableStateOf("🎯") } // Emoji default
     var target by remember { mutableStateOf("1") }
 
     AlertDialog(
@@ -167,7 +161,7 @@ fun AddHabitDialog(
     )
 }
 
-
+// --- DESAIN ULANG BESAR PADA HABIT LIST ITEM ---
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun HabitListItem(
@@ -178,110 +172,116 @@ fun HabitListItem(
 ) {
     val isComplete = habit.targetCount > 0 && habit.currentCount >= habit.targetCount
     val isOverAchieved = habit.targetCount > 0 && habit.currentCount > habit.targetCount
+    val progress = (habit.currentCount.toFloat() / habit.targetCount.toFloat()).coerceAtMost(1f)
 
     SummaCard(onClick = onClick) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(
-                        when {
-                            isOverAchieved -> GoldAccent.copy(alpha = 0.2f)
-                            isComplete -> SuccessGreen.copy(alpha = 0.2f)
-                            else -> MaterialTheme.colorScheme.primaryContainer
-                        }
-                    ),
-                contentAlignment = Alignment.Center
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = habit.icon,
-                    style = MaterialTheme.typography.titleLarge
-                )
-            }
-
-            Spacer(Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = habit.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Kiri: Ikon
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        // PERBAIKAN: Background ikon lebih lembut
+                        .background(
+                            when {
+                                isOverAchieved -> MaterialTheme.colorScheme.secondaryContainer
+                                isComplete -> MaterialTheme.colorScheme.primaryContainer
+                                else -> MaterialTheme.colorScheme.surfaceVariant
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        text = "🔥 ${habit.currentStreak}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = WarningOrange
+                        text = habit.icon,
+                        style = MaterialTheme.typography.titleLarge
                     )
-                    if (habit.perfectStreak > 0) {
-                        Spacer(Modifier.width(8.dp))
+                }
+
+                Spacer(Modifier.width(16.dp))
+
+                // Tengah: Judul dan Streak
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = habit.name,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "👑 ${habit.perfectStreak}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = GoldAccent
+                            text = "🔥 ${habit.currentStreak}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = WarningOrange
                         )
+                        if (habit.perfectStreak > 0) {
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "👑 ${habit.perfectStreak}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = GoldAccent
+                            )
+                        }
+                    }
+                }
+
+                // Kanan: Kontrol +/-
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // PERBAIKAN: Tombol lebih kecil dan tonal
+                    FilledTonalIconButton(
+                        onClick = onDecrement,
+                        enabled = habit.currentCount > 0
+                    ) {
+                        Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                    }
+
+                    AnimatedContent(
+                        targetState = habit.currentCount,
+                        transitionSpec = {
+                            (slideInVertically { height -> height } + fadeIn()).togetherWith(
+                                slideOutVertically { height -> -height } + fadeOut())
+                        },
+                        label = "count_animation"
+                    ) { count ->
+                        Text(
+                            text = "$count",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = when {
+                                isOverAchieved -> GoldAccent
+                                isComplete -> SuccessGreen
+                                else -> MaterialTheme.colorScheme.onSurface
+                            },
+                            modifier = Modifier.widthIn(min = 28.dp)
+                        )
+                    }
+
+                    // PERBAIKAN: Tombol lebih kecil dan tonal
+                    FilledTonalIconButton(onClick = onIncrement) {
+                        Icon(Icons.Default.Add, contentDescription = "Increase")
                     }
                 }
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                IconButton(
-                    onClick = onDecrement,
-                    enabled = habit.currentCount > 0
-                ) {
-                    Icon(
-                        Icons.Default.Remove,
-                        contentDescription = "Decrease",
-                        tint = if (habit.currentCount > 0)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                    )
-                }
-
-                AnimatedContent(
-                    targetState = habit.currentCount,
-                    transitionSpec = {
-                        (slideInVertically { height -> height } + fadeIn()).togetherWith(
-                            slideOutVertically { height -> -height } + fadeOut())
-                    },
-                    label = "count_animation"
-                ) { count ->
-                    Text(
-                        text = if (habit.targetCount > 1) "$count / ${habit.targetCount}" else "$count",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = when {
-                            isOverAchieved -> GoldAccent
-                            isComplete -> SuccessGreen
-                            else -> MaterialTheme.colorScheme.onSurface
-                        }
-                    )
-                }
-
-                IconButton(onClick = onIncrement) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Increase",
-                        tint = when {
-                            isOverAchieved -> GoldAccent
-                            isComplete -> SuccessGreen
-                            else -> MaterialTheme.colorScheme.primary
-                        }
-                    )
-                }
+            // PERBAIKAN: Progress bar di bawah
+            if (habit.targetCount > 0) {
+                Spacer(Modifier.height(12.dp))
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = if (isOverAchieved) GoldAccent else if (isComplete) SuccessGreen else MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
             }
         }
     }
 }
 
+// PERBAIKAN: Desain ulang Halaman Detail Habit
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HabitDetailScreen(
@@ -292,7 +292,7 @@ fun HabitDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(habit.name) },
+                title = { Text(habit.name, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -305,51 +305,59 @@ fun HabitDetailScreen(
                     IconButton(onClick = { /* Delete */ }) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(paddingValues),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            item { Spacer(Modifier.height(8.dp)) }
-
+            // "Summa Points" Card
             item {
-                SummaCard {
+                SummaCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                    padding = 20.dp
+                ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "HITUNGAN SUMMA",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
                             text = "${habit.totalSum}",
-                            style = MaterialTheme.typography.displayLarge,
+                            style = MaterialTheme.typography.displayMedium,
                             fontWeight = FontWeight.Bold,
-                            color = DeepTeal
+                            color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "Total sepanjang masa",
+                            text = "Total poin sepanjang masa",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }
             }
 
+            // Streak Cards
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    SummaCard(modifier = Modifier.weight(1f)) {
+                    SummaCard(modifier = Modifier.weight(1f), padding = 20.dp) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.fillMaxWidth()
@@ -362,14 +370,20 @@ fun HabitDetailScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                "Streak Konsistensi",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                "Konsistensi",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
 
-                    SummaCard(modifier = Modifier.weight(1f)) {
+                    SummaCard(
+                        modifier = Modifier.weight(1f),
+                        padding = 20.dp,
+                        // Kartu "Sempurna" mendapat perlakuan aksen
+                        backgroundColor = if (habit.perfectStreak > 0) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
+                        borderColor = if (habit.perfectStreak > 0) MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant
+                    ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.fillMaxWidth()
@@ -380,36 +394,33 @@ fun HabitDetailScreen(
                                 "${habit.perfectStreak}",
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = GoldAccent
+                                color = if (habit.perfectStreak > 0) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                "Streak Sempurna",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                "Sempurna",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (habit.perfectStreak > 0) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
             }
 
+            // Heatmap
             item {
                 Text(
-                    "Kalender Heatmap",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    "Kalender Progres",
+                    style = MaterialTheme.typography.titleLarge
                 )
             }
-
-            // PERBAIKAN: Mengganti VStack dengan Column
             item {
                 HabitHeatmap(logs = logs, targetCount = habit.targetCount)
             }
-
-            item { Spacer(Modifier.height(16.dp)) }
         }
     }
 }
 
+// PERBAIKAN: Desain ulang Heatmap
 @Composable
 fun HabitHeatmap(
     logs: List<HabitLog>,
@@ -441,32 +452,40 @@ fun HabitHeatmap(
         }.reversed()
     }
 
-    SummaCard {
+    // Menggunakan SummaCard baru (border tipis)
+    SummaCard(padding = 20.dp) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp) // Beri jarak lebih
         ) {
+            // Header (Nama Bulan)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                (0..2).map { i ->
-                    val date = today.minusWeeks((weeks - 1 - i * (weeks / 3)).toLong())
+                // Tampilkan 3 nama bulan (Awal, Tengah, Akhir)
+                val monthHeaders = listOf(weeks - 1, weeks / 2, 0).map {
+                    today.minusWeeks(it.toLong()).month.getDisplayName(TextStyle.SHORT, Locale("id"))
+                }.distinct()
+
+                monthHeaders.forEach { monthName ->
                     Text(
-                        text = date.month.getDisplayName(TextStyle.SHORT, Locale("id")),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        text = monthName,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
+            // Grid Heatmap
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // Render 7 kolom (Sen-Min)
                 (0..6).forEach { dayOfWeek ->
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(5.dp) // Jarak antar sel
                     ) {
                         (0 until weeks).forEach { week ->
                             val index = (week * 7) + dayOfWeek
@@ -474,36 +493,11 @@ fun HabitHeatmap(
                                 val (_, value) = data[index]
                                 HeatmapCell(value = value)
                             } else {
-                                Box(Modifier.size(14.dp)) // Placeholder
+                                Box(Modifier.size(16.dp)) // Placeholder
                             }
                         }
                     }
                 }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Lebih sedikit",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-                Spacer(Modifier.width(4.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    HeatmapCell(value = 0)
-                    HeatmapCell(value = 1)
-                    HeatmapCell(value = 2)
-                    HeatmapCell(value = 3)
-                }
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    "Lebih banyak",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
             }
         }
     }
@@ -511,23 +505,18 @@ fun HabitHeatmap(
 
 @Composable
 fun HeatmapCell(value: Int) {
-    val cellSize = 14.dp
+    val cellSize = 16.dp // Ukuran sel sedikit lebih besar
     val color = when (value) {
-        0 -> MaterialTheme.colorScheme.surfaceVariant // Gagal
-        1 -> DeepTeal.copy(alpha = 0.3f) // Parsial
-        2 -> DeepTeal.copy(alpha = 0.8f) // Sempurna
-        else -> GoldAccent // Over-achievement (value == 3)
+        0 -> MaterialTheme.colorScheme.surfaceVariant // Gagal/Kosong
+        1 -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) // Parsial
+        2 -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) // Sempurna
+        else -> MaterialTheme.colorScheme.secondary // Over-achievement (value == 3)
     }
 
     Box(
         modifier = Modifier
             .size(cellSize)
-            .clip(MaterialTheme.shapes.extraSmall)
+            .clip(MaterialTheme.shapes.extraSmall) // Rounded corner 4dp
             .background(color)
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
-                shape = MaterialTheme.shapes.extraSmall
-            )
     )
 }
