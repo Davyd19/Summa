@@ -1,17 +1,18 @@
 package com.app.summa.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -21,10 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.Task
 import com.app.summa.ui.components.*
@@ -45,21 +44,10 @@ fun PlannerScreen(
     viewModel: PlannerViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
-    var viewMode by remember { mutableStateOf("day") } // day, week, month
+    var viewMode by remember { mutableStateOf("day") }
     var showFocusMode by remember { mutableStateOf(false) }
     var selectedTask by remember { mutableStateOf<Task?>(null) }
     var showAddTaskDialog by remember { mutableStateOf(false) }
-
-    val tasksByHour = remember(uiState.tasksForDay) {
-        uiState.tasksForDay.groupBy {
-            try {
-                LocalTime.parse(it.scheduledTime ?: "00:00").hour
-            } catch (e: Exception) {
-                0 // Fallback jika format waktu salah
-            }
-        }
-    }
 
     LaunchedEffect(uiState.initialTaskTitle) {
         if (uiState.initialTaskTitle != null) {
@@ -88,24 +76,27 @@ fun PlannerScreen(
                         Column {
                             Text(
                                 "Planner",
-                                style = MaterialTheme.typography.titleLarge,
+                                style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                uiState.selectedDate.format(DateTimeFormatter.ofPattern("dd MMMM yyyy")),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                uiState.selectedDate.format(DateTimeFormatter.ofPattern("EEEE, dd MMM", Locale("id"))),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
                         }
                     },
                     actions = {
-                        IconButton(onClick = { /* TODO: Calendar picker */ }) {
-                            Icon(Icons.Default.CalendarToday, contentDescription = "Select Date")
+                        IconButton(onClick = { /* TODO: Date picker */ }) {
+                            Icon(Icons.Default.Today, contentDescription = "Pilih Tanggal")
                         }
                         IconButton(onClick = { showAddTaskDialog = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Add Task")
+                            Icon(Icons.Default.Add, contentDescription = "Tambah Tugas")
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    )
                 )
             }
         ) { paddingValues ->
@@ -114,59 +105,68 @@ fun PlannerScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                Row(
+                // View Mode Selector
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    FilterChip(
-                        selected = viewMode == "day",
-                        onClick = { viewMode = "day" },
-                        label = { Text("Harian") }
-                    )
-                    FilterChip(
-                        selected = viewMode == "week",
-                        onClick = { viewMode = "week" },
-                        label = { Text("Mingguan") }
-                    )
-                    FilterChip(
-                        selected = viewMode == "month",
-                        onClick = { viewMode = "month" },
-                        label = { Text("Bulanan") }
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        listOf(
+                            "day" to "Harian",
+                            "week" to "Mingguan",
+                            "month" to "Bulanan"
+                        ).forEach { (mode, label) ->
+                            FilterChip(
+                                selected = viewMode == mode,
+                                onClick = { viewMode = mode },
+                                label = { Text(label) },
+                                modifier = Modifier.weight(1f),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+                    }
                 }
 
                 if (uiState.isLoading) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
                 } else {
                     when (viewMode) {
-                        "day" -> DailyTimelineView(
-                            tasksByHour = tasksByHour,
-                            onTaskClick = { task ->
-                                selectedTask = task
+                        "day" -> CleanDailyView(
+                            tasks = uiState.tasksForDay,
+                            onTaskClick = {
+                                selectedTask = it
                                 showFocusMode = true
                             }
                         )
-                        // PERBAIKAN: Memanggil implementasi grid mingguan baru
-                        "week" -> WeeklyCalendarView(
+                        "week" -> CleanWeeklyView(
                             viewModel = viewModel,
                             uiState = uiState,
-                            onTaskClick = { task ->
-                                selectedTask = task
+                            onTaskClick = {
+                                selectedTask = it
                                 showFocusMode = true
                             }
                         )
-                        "month" -> MonthlyCalendarView(
+                        "month" -> CleanMonthlyView(
                             viewModel = viewModel,
                             uiState = uiState,
-                            onTaskClick = { task ->
-                                selectedTask = task
+                            onTaskClick = {
+                                selectedTask = it
                                 showFocusMode = true
                             }
                         )
@@ -177,7 +177,7 @@ fun PlannerScreen(
     }
 
     if (showAddTaskDialog) {
-        AddTaskDialog(
+        CleanAddTaskDialog(
             initialTitle = uiState.initialTaskTitle ?: "",
             initialDescription = uiState.initialTaskContent ?: "",
             onDismiss = {
@@ -200,144 +200,298 @@ fun PlannerScreen(
 }
 
 @Composable
-fun DailyTimelineView(
-    tasksByHour: Map<Int, List<Task>>,
+fun CleanDailyView(
+    tasks: List<Task>,
     onTaskClick: (Task) -> Unit
 ) {
+    val tasksByHour = remember(tasks) {
+        tasks.groupBy {
+            try {
+                LocalTime.parse(it.scheduledTime ?: "00:00").hour
+            } catch (e: Exception) {
+                0
+            }
+        }
+    }
+
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(0.dp)
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(1.dp)
     ) {
         items(24) { hour ->
-            TimelineHour(
+            CleanTimeSlot(
                 hour = hour,
                 tasks = tasksByHour[hour] ?: emptyList(),
                 onTaskClick = onTaskClick
             )
         }
-        item { Spacer(Modifier.height(16.dp)) }
     }
 }
 
-// --- FUNGSI BARU UNTUK TAMPILAN MINGGUAN ---
+@Composable
+fun CleanTimeSlot(
+    hour: Int,
+    tasks: List<Task>,
+    onTaskClick: (Task) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+    ) {
+        // Time Label
+        Box(
+            modifier = Modifier
+                .width(56.dp)
+                .padding(top = 4.dp),
+            contentAlignment = Alignment.TopStart
+        ) {
+            Text(
+                text = String.format("%02d:00", hour),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        // Task Area
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                    RoundedCornerShape(8.dp)
+                )
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            tasks.forEach { task ->
+                CleanTaskCard(
+                    task = task,
+                    onClick = { onTaskClick(task) }
+                )
+            }
+        }
+    }
+}
 
 @Composable
-fun WeeklyCalendarView(
+fun CleanTaskCard(
+    task: Task,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (task.isCommitment)
+                DeepTeal.copy(alpha = 0.1f)
+            else MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            if (task.isCommitment) DeepTeal.copy(alpha = 0.3f)
+            else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Status Indicator
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (task.isCompleted) SuccessGreen
+                        else if (task.isCommitment) DeepTeal
+                        else MaterialTheme.colorScheme.outline
+                    )
+            )
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    task.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                if (task.scheduledTime != null) {
+                    Text(
+                        task.scheduledTime,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
+
+            if (task.isCompleted) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = "Selesai",
+                    tint = SuccessGreen,
+                    modifier = Modifier.size(20.dp)
+                )
+            } else {
+                Icon(
+                    Icons.Default.ArrowForward,
+                    contentDescription = "Mulai",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CleanWeeklyView(
     viewModel: PlannerViewModel,
     uiState: PlannerUiState,
     onTaskClick: (Task) -> Unit
 ) {
-    // 1. Dapatkan 7 hari dalam seminggu (Senin - Minggu)
     val selectedDate = uiState.selectedDate
     val firstDayOfWeek = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
     val weekDays = remember(firstDayOfWeek) {
         (0..6).map { firstDayOfWeek.plusDays(it.toLong()) }
     }
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(horizontal = 16.dp)) {
-
-        // 2. Render baris pemilih 7 hari
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Week Navigation
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceAround // Beri jarak merata
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            weekDays.forEach { date ->
-                WeeklyDayCell(
-                    date = date,
-                    isSelected = date.isEqual(selectedDate),
-                    isToday = date.isEqual(LocalDate.now()),
-                    onClick = { viewModel.selectDate(date) } // Klik untuk mengubah tanggal
+            IconButton(onClick = {
+                viewModel.selectDate(firstDayOfWeek.minusWeeks(1))
+            }) {
+                Icon(Icons.Default.ChevronLeft, contentDescription = "Minggu Sebelumnya")
+            }
+
+            Text(
+                "${firstDayOfWeek.format(DateTimeFormatter.ofPattern("d MMM"))} - ${weekDays.last().format(DateTimeFormatter.ofPattern("d MMM"))}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            IconButton(onClick = {
+                viewModel.selectDate(firstDayOfWeek.plusWeeks(1))
+            }) {
+                Icon(Icons.Default.ChevronRight, contentDescription = "Minggu Berikutnya")
+            }
+        }
+
+        // Days Row
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(weekDays.size) { index ->
+                CleanDayCell(
+                    date = weekDays[index],
+                    isSelected = weekDays[index].isEqual(selectedDate),
+                    isToday = weekDays[index].isEqual(LocalDate.now()),
+                    onClick = { viewModel.selectDate(weekDays[index]) }
                 )
             }
         }
 
-        // 3. Render daftar tugas untuk hari yang dipilih
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            // Tampilkan header untuk hari yang dipilih
-            text = "Tugas pada ${uiState.selectedDate.format(DateTimeFormatter.ofPattern("EEEE, dd MMMM"))}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(Modifier.height(16.dp))
 
-        // Tampilkan daftar tugas (hanya untuk tasksForDay)
-        if (uiState.tasksForDay.isEmpty()) {
-            Text(
-                text = "Tidak ada tugas untuk tanggal ini.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // Tasks for Selected Day
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (uiState.tasksForDay.isEmpty()) {
+                item {
+                    Text(
+                        "Tidak ada tugas",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
                 items(uiState.tasksForDay) { task ->
-                    TaskBlock(task = task, onClick = { onTaskClick(task) })
+                    CleanTaskCard(task = task, onClick = { onTaskClick(task) })
                 }
             }
         }
     }
 }
 
-// Composable baru untuk sel hari di tampilan mingguan
 @Composable
-fun WeeklyDayCell(
+fun CleanDayCell(
     date: LocalDate,
     isSelected: Boolean,
     isToday: Boolean,
     onClick: () -> Unit
 ) {
-    // Dapatkan nama hari (Sen, Sel) dan tanggal (18, 19)
     val dayName = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("id"))
     val dayNumber = date.dayOfMonth.toString()
 
-    // Tentukan warna berdasarkan status
-    val backgroundColor = when {
-        isSelected -> MaterialTheme.colorScheme.primary
-        isToday -> MaterialTheme.colorScheme.surfaceVariant
-        else -> Color.Transparent // Tidak ada background jika tidak dipilih/hari ini
-    }
-    val contentColor = when {
-        isSelected -> MaterialTheme.colorScheme.onPrimary
-        isToday -> MaterialTheme.colorScheme.onSurfaceVariant
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-
-    Surface(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
-        color = backgroundColor
+    Card(
+        onClick = onClick,
+        modifier = Modifier.width(60.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = when {
+                isSelected -> MaterialTheme.colorScheme.primary
+                isToday -> MaterialTheme.colorScheme.primaryContainer
+                else -> MaterialTheme.colorScheme.surface
+            }
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            when {
+                isSelected -> MaterialTheme.colorScheme.primary
+                isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                else -> MaterialTheme.colorScheme.outlineVariant
+            }
+        )
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = dayName,
-                fontSize = 12.sp,
-                color = contentColor.copy(alpha = 0.7f)
+                dayName,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isSelected) Color.White
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
-                text = dayNumber,
-                fontSize = 16.sp,
+                dayNumber,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = contentColor
+                color = if (isSelected) Color.White
+                else MaterialTheme.colorScheme.onSurface
             )
         }
     }
 }
 
-
-// --- FUNGSI TAMPILAN BULANAN (TIDAK BERUBAH) ---
-
 @Composable
-fun MonthlyCalendarView(
+fun CleanMonthlyView(
     viewModel: PlannerViewModel,
     uiState: PlannerUiState,
     onTaskClick: (Task) -> Unit
@@ -357,68 +511,105 @@ fun MonthlyCalendarView(
     val paddingDays = (firstDayOfWeekValue - DayOfWeek.MONDAY.value + 7) % 7
     val daysInMonth = firstDayOfMonth.lengthOfMonth()
 
-    val dayHeaders = remember {
-        DayOfWeek.entries.map {
-            it.getDisplayName(TextStyle.SHORT, Locale("id"))
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Month Navigation
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = {
+                viewModel.selectDate(firstDayOfMonth.minusMonths(1))
+            }) {
+                Icon(Icons.Default.ChevronLeft, contentDescription = "Bulan Sebelumnya")
+            }
+
+            Text(
+                firstDayOfMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale("id"))),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            IconButton(onClick = {
+                viewModel.selectDate(firstDayOfMonth.plusMonths(1))
+            }) {
+                Icon(Icons.Default.ChevronRight, contentDescription = "Bulan Berikutnya")
+            }
         }
-    }
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(horizontal = 16.dp)) {
-
+        // Calendar Grid
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            items(dayHeaders) { header ->
-                CalendarHeaderCell(header = header)
+            // Day Headers
+            items(7) { index ->
+                val dayName = DayOfWeek.of(index + 1).getDisplayName(TextStyle.SHORT, Locale("id"))
+                Text(
+                    dayName,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
             }
 
+            // Empty cells
             items(paddingDays) {
-                Box(modifier = Modifier
-                    .aspectRatio(1f)
-                    .padding(2.dp))
+                Box(modifier = Modifier.aspectRatio(1f))
             }
 
+            // Date cells
             items(daysInMonth) { dayIndex ->
                 val dayOfMonth = dayIndex + 1
                 val currentDate = firstDayOfMonth.plusDays(dayIndex.toLong())
-
-                val tasksOnThisDay = tasksByDate[currentDate] ?: emptyList()
+                val tasksOnDay = tasksByDate[currentDate] ?: emptyList()
                 val isToday = currentDate.isEqual(LocalDate.now())
                 val isSelected = currentDate.isEqual(uiState.selectedDate)
 
-                CalendarDayCell(
+                CleanCalendarCell(
                     day = dayOfMonth,
-                    tasks = tasksOnThisDay,
+                    taskCount = tasksOnDay.size,
                     isToday = isToday,
                     isSelected = isSelected,
-                    onClick = {
-                        viewModel.selectDate(currentDate)
-                    }
+                    onClick = { viewModel.selectDate(currentDate) }
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Tugas pada ${uiState.selectedDate.format(DateTimeFormatter.ofPattern("dd MMMM"))}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(Modifier.height(16.dp))
 
-        if (uiState.tasksForDay.isEmpty()) {
-            Text(
-                text = "Tidak ada tugas untuk tanggal ini.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // Tasks for Selected Date
+        Text(
+            "Tugas pada ${uiState.selectedDate.format(DateTimeFormatter.ofPattern("dd MMMM", Locale("id")))}",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (uiState.tasksForDay.isEmpty()) {
+                item {
+                    Text(
+                        "Tidak ada tugas",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            } else {
                 items(uiState.tasksForDay) { task ->
-                    TaskBlock(task = task, onClick = { onTaskClick(task) })
+                    CleanTaskCard(task = task, onClick = { onTaskClick(task) })
                 }
             }
         }
@@ -426,128 +617,60 @@ fun MonthlyCalendarView(
 }
 
 @Composable
-fun CalendarHeaderCell(header: String) {
-    Box(
-        modifier = Modifier
-            .aspectRatio(1.5f)
-            .padding(vertical = 4.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = header,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-    }
-}
-
-@Composable
-fun CalendarDayCell(
+fun CleanCalendarCell(
     day: Int,
-    tasks: List<Task>,
+    taskCount: Int,
     isToday: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val backgroundColor = when {
-        isSelected -> MaterialTheme.colorScheme.primaryContainer
-        isToday -> MaterialTheme.colorScheme.surfaceVariant
-        else -> MaterialTheme.colorScheme.surface
-    }
-
-    val borderColor = if (isSelected) MaterialTheme.colorScheme.primary
-    else Color.Transparent
-
-    Surface(
-        modifier = Modifier
-            .aspectRatio(1f)
-            .padding(2.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick),
-        color = backgroundColor
+    Card(
+        onClick = onClick,
+        modifier = Modifier.aspectRatio(1f),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = when {
+                isSelected -> MaterialTheme.colorScheme.primary
+                isToday -> MaterialTheme.colorScheme.primaryContainer
+                else -> Color.Transparent
+            }
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            when {
+                isSelected -> MaterialTheme.colorScheme.primary
+                isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            }
+        )
     ) {
         Column(
-            modifier = Modifier.padding(4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = day.toString(),
-                fontSize = 14.sp,
+                day.toString(),
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
-                textAlign = TextAlign.Center
+                color = if (isSelected) Color.White
+                else MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally)
-            ) {
-                tasks.take(4).forEach { task ->
-                    TaskIndicator(isCommitment = task.isCommitment)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun TaskIndicator(isCommitment: Boolean) {
-    Box(
-        modifier = Modifier
-            .size(6.dp)
-            .clip(CircleShape)
-            .background(
-                if (isCommitment) DeepTeal
-                else MaterialTheme.colorScheme.secondary
-            )
-    )
-}
-
-// --- FUNGSI YANG ADA (TIDAK BERUBAH) ---
-
-@Composable
-fun TimelineHour(
-    hour: Int,
-    tasks: List<Task>,
-    onTaskClick: (Task) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .defaultMinSize(minHeight = 80.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .width(60.dp)
-                .wrapContentHeight(),
-            contentAlignment = Alignment.TopStart
-        ) {
-            Text(
-                text = String.format("%02d:00", hour),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                )
-                .padding(4.dp)
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (tasks.isEmpty()) {
-                    Spacer(modifier = Modifier.height(72.dp))
-                } else {
-                    tasks.forEach { task ->
-                        TaskBlock(
-                            task = task,
-                            onClick = { onTaskClick(task) }
+            if (taskCount > 0) {
+                Spacer(Modifier.height(2.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    repeat(minOf(taskCount, 3)) {
+                        Box(
+                            modifier = Modifier
+                                .size(4.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isSelected) Color.White
+                                    else DeepTeal
+                                )
                         )
                     }
                 }
@@ -556,65 +679,9 @@ fun TimelineHour(
     }
 }
 
-@Composable
-fun TaskBlock(
-    task: Task,
-    onClick: () -> Unit
-) {
-    val isCommitment = task.isCommitment
-    val backgroundColor = if (isCommitment) DeepTeal.copy(alpha = 0.9f)
-    else MaterialTheme.colorScheme.surfaceVariant
-    val textColor = if (isCommitment) Color.White
-    else MaterialTheme.colorScheme.onSurface
-    val border = if (!isCommitment)
-        androidx.compose.foundation.BorderStroke(
-            1.dp,
-            DeepTeal.copy(alpha = 0.5f)
-        )
-    else null
-
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.small,
-        color = backgroundColor,
-        border = border
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    task.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (isCommitment) FontWeight.Bold else FontWeight.Normal,
-                    color = textColor
-                )
-                Text(
-                    task.scheduledTime ?: "Sepanjang hari",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = textColor.copy(alpha = 0.8f)
-                )
-            }
-
-            if (task.isCompleted) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = "Completed",
-                    tint = SuccessGreen,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddTaskDialog(
+fun CleanAddTaskDialog(
     initialTitle: String = "",
     initialDescription: String = "",
     onDismiss: () -> Unit,
@@ -628,50 +695,58 @@ fun AddTaskDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Tambah Tugas Baru") },
+        title = { Text("Tugas Baru", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Nama Tugas") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Deskripsi (Opsional)") },
                     modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3
-                )
-                OutlinedTextField(
-                    value = twoMinAction,
-                    onValueChange = { twoMinAction = it },
-                    label = { Text("Langkah 2 Menit (Opsional)") },
-                    placeholder = { Text("Cth: Buka file & tulis 1 paragraf") },
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(12.dp)
                 )
                 OutlinedTextField(
                     value = time,
                     onValueChange = { time = it },
                     label = { Text("Waktu (HH:mm)") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = twoMinAction,
+                    onValueChange = { twoMinAction = it },
+                    label = { Text("Langkah 2 Menit (Opsional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Switch(
                         checked = isCommitment,
                         onCheckedChange = { isCommitment = it }
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(if (isCommitment) "Blok Komitmen" else "Blok Aspirasi")
+                    Column {
+                        Text(
+                            if (isCommitment) "Blok Komitmen" else "Blok Aspirasi",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            if (isCommitment) "Tugas prioritas" else "Tugas fleksibel",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
                 }
             }
         },
         confirmButton = {
             Button(
-                onClick = {
-                    onAddTask(title, time, isCommitment, twoMinAction, description)
-                }
+                onClick = { onAddTask(title, time, isCommitment, twoMinAction, description) },
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Tambah")
             }
@@ -704,223 +779,125 @@ fun FocusModeScreen(
         }
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onCancel) {
-                    Icon(Icons.Default.Close, contentDescription = "Cancel")
-                }
-                Text(
-                    task.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                TextButton(onClick = onComplete) {
-                    Text("Selesai")
-                }
+            IconButton(onClick = onCancel) {
+                Icon(Icons.Default.Close, contentDescription = "Tutup")
             }
-
-            Spacer(Modifier.height(32.dp))
-
             Text(
-                text = String.format(
-                    "%02d:%02d",
-                    timeRemaining / 60,
-                    timeRemaining % 60
-                ),
-                style = MaterialTheme.typography.displayLarge,
-                fontWeight = FontWeight.Bold,
-                color = DeepTeal
+                task.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
             )
-            IconButton(onClick = { isRunning = !isRunning }) {
-                Icon(
-                    if (isRunning) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
-                    contentDescription = if (isRunning) "Pause" else "Play",
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
+            TextButton(onClick = onComplete) {
+                Text("Selesai")
             }
+        }
 
+        Spacer(Modifier.height(48.dp))
 
-            Spacer(Modifier.height(48.dp))
+        // Timer
+        Text(
+            String.format("%02d:%02d", timeRemaining / 60, timeRemaining % 60),
+            style = MaterialTheme.typography.displayLarge,
+            fontWeight = FontWeight.Bold,
+            color = DeepTeal
+        )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                PaperclipJar(
-                    count = paperclipsLeft,
-                    label = "Tersisa",
-                    isFull = true
-                )
+        Spacer(Modifier.height(16.dp))
 
-                PaperclipJar(
-                    count = paperclipsMoved,
-                    label = "Selesai",
-                    isFull = false
-                )
-            }
+        IconButton(
+            onClick = { isRunning = !isRunning },
+            modifier = Modifier.size(64.dp)
+        ) {
+            Icon(
+                if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                contentDescription = if (isRunning) "Pause" else "Play",
+                modifier = Modifier.size(40.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
 
-            Spacer(Modifier.weight(1f))
+        Spacer(Modifier.weight(1f))
 
-            if (task.twoMinuteAction.isNotBlank()) {
-                Text(
-                    "Langkah 2 Menit:",
-                    style = MaterialTheme.typography.labelMedium
-                )
-                Text(
-                    task.twoMinuteAction,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                )
-                Spacer(Modifier.height(16.dp))
-            } else {
-                Text(
-                    "Pindahkan klip untuk menandai progres",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
+        // Paperclip Progress
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            PaperclipCounter("Tersisa", paperclipsLeft, DeepTeal)
+            PaperclipCounter("Selesai", paperclipsMoved, SuccessGreen)
+        }
 
+        Spacer(Modifier.height(32.dp))
 
-            Spacer(Modifier.height(16.dp))
-
-            Button(
-                onClick = {
-                    if (paperclipsLeft > 0) {
-                        paperclipsLeft--
-                        paperclipsMoved++
-                        if (!isRunning) isRunning = true
-                    }
-                    if (paperclipsLeft == 0) {
-                        onComplete()
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = GoldAccent
-                ),
-                shape = RoundedCornerShape(16.dp),
-                enabled = paperclipsLeft > 0
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        "📎",
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-                    Text(
-                        "PINDAHKAN 1 KLIP",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
+        // Move Button
+        Button(
+            onClick = {
+                if (paperclipsLeft > 0) {
+                    paperclipsLeft--
+                    paperclipsMoved++
+                    if (!isRunning) isRunning = true
                 }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            if (paperclipsLeft > 0 && paperclipsMoved > 0) {
-                Button(
-                    onClick = onComplete,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = SuccessGreen
-                    )
-                ) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("SELESAI LEBIH AWAL")
-                }
-            }
+                if (paperclipsLeft == 0) onComplete()
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp),
+            shape = RoundedCornerShape(16.dp),
+            enabled = paperclipsLeft > 0
+        ) {
+            Text(
+                "PINDAHKAN 1 KLIP 📎",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
 
 @Composable
-fun PaperclipJar(
-    count: Int,
-    label: String,
-    isFull: Boolean
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(140.dp)
+fun PaperclipCounter(label: String, count: Int, color: Color) {
+    Card(
+        modifier = Modifier.width(140.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = color.copy(alpha = 0.1f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.5.dp, color.copy(alpha = 0.3f))
     ) {
-        Box(
+        Column(
             modifier = Modifier
-                .width(140.dp)
-                .height(180.dp)
-                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 32.dp, bottomEnd = 32.dp))
-                .border(
-                    width = 3.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 32.dp, bottomEnd = 32.dp)
-                )
-                .background(
-                    if (isFull)
-                        DeepTeal.copy(alpha = 0.1f)
-                    else
-                        MaterialTheme.colorScheme.surface
-                ),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    "📎",
-                    style = MaterialTheme.typography.displayMedium,
-                    modifier = Modifier.padding(8.dp)
-                )
-                if (isFull) {
-                    repeat(minOf(3, count / 5)) {
-                        Text(
-                            "📎📎📎📎📎",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                } else {
-                    repeat(minOf(3, count / 5)) {
-                        Text(
-                            "📎📎📎📎📎",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = GoldAccent.copy(alpha = 0.8f)
-                        )
-                    }
-                }
-            }
+            Text(
+                "📎",
+                style = MaterialTheme.typography.headlineLarge
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                count.toString(),
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
         }
-
-        Spacer(Modifier.height(12.dp))
-
-        Text(
-            count.toString(),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = if (isFull) DeepTeal else GoldAccent
-        )
-
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
     }
 }

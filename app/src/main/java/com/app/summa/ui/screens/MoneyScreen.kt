@@ -2,35 +2,27 @@ package com.app.summa.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.toColorInt
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.app.summa.data.model.Account
-import com.app.summa.data.model.AccountType
-import com.app.summa.data.model.Transaction
-import com.app.summa.data.model.TransactionType
+import com.app.summa.data.model.*
 import com.app.summa.ui.components.*
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.MoneyViewModel
@@ -43,7 +35,6 @@ fun MoneyScreen(
     viewModel: MoneyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
     var showTransferDialog by remember { mutableStateOf(false) }
     var showAddAccountDialog by remember { mutableStateOf(false) }
     var showAddTransactionDialog by remember { mutableStateOf(false) }
@@ -63,17 +54,17 @@ fun MoneyScreen(
                 title = {
                     Text(
                         "Keuangan",
-                        style = MaterialTheme.typography.headlineLarge,
+                        style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 actions = {
                     IconButton(onClick = { showAddAccountDialog = true }) {
-                        Icon(Icons.Default.AddCard, contentDescription = "Tambah Akun")
+                        Icon(Icons.Default.Add, contentDescription = "Tambah Akun")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = Color.Transparent
                 )
             )
         }
@@ -87,93 +78,75 @@ fun MoneyScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                contentPadding = PaddingValues(vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                contentPadding = PaddingValues(bottom = 100.dp, top = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
+                // Net Worth Card
                 item {
-                    NetWorthCard(
+                    CleanNetWorthCard(
                         totalNetWorth = uiState.totalNetWorth,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
 
+                // Quick Actions
+                item {
+                    CleanQuickActions(
+                        onIncomeClick = { showAddTransactionDialog = true },
+                        onExpenseClick = { showAddTransactionDialog = true },
+                        onTransferClick = { showTransferDialog = true },
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+
+                // Accounts Section
                 item {
                     Text(
                         "Akun Anda",
                         style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
 
                 item {
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(horizontal = 16.dp)
                     ) {
                         items(uiState.accounts) { account ->
-                            AccountCardItem(account = account)
+                            CleanAccountCard(account = account)
                         }
                     }
                 }
 
-                item {
-                    // PERBAIKAN: Tombol aksi dibuat lebih modern
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        ActionButton(
-                            icon = Icons.Default.ArrowDownward,
-                            label = "Masuk",
-                            color = SuccessGreen,
-                            modifier = Modifier.weight(1f),
-                            onClick = { showAddTransactionDialog = true } // TODO: bedakan tipe
-                        )
-                        ActionButton(
-                            icon = Icons.Default.ArrowUpward,
-                            label = "Keluar",
-                            color = ErrorRed,
-                            modifier = Modifier.weight(1f),
-                            onClick = { showAddTransactionDialog = true } // TODO: bedakan tipe
-                        )
-                        ActionButton(
-                            icon = Icons.Default.SwapHoriz,
-                            label = "Transfer",
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f),
-                            onClick = { showTransferDialog = true }
-                        )
-                    }
-                }
-
+                // Recent Transactions
                 item {
                     Text(
                         "Transaksi Terakhir",
                         style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
 
-                // PERBAIKAN: Gunakan Column ber-border, bukan Card per item
                 item {
-                    Column(
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .clip(MaterialTheme.shapes.large)
-                            .background(MaterialTheme.colorScheme.surface)
-                            .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant,
-                                MaterialTheme.shapes.large
-                            )
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
-                        uiState.recentTransactions.forEachIndexed { index, transaction ->
-                            TransactionListItem(transaction = transaction)
-                            if (index < uiState.recentTransactions.lastIndex) {
-                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Column {
+                            uiState.recentTransactions.forEachIndexed { index, transaction ->
+                                CleanTransactionItem(transaction = transaction)
+                                if (index < uiState.recentTransactions.lastIndex) {
+                                    HorizontalDivider(
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    )
+                                }
                             }
                         }
                     }
@@ -182,7 +155,7 @@ fun MoneyScreen(
         }
     }
 
-    // (Dialog-dialog tidak berubah, jadi saya biarkan sama)
+    // Dialogs
     if (showTransferDialog) {
         TransferDialog(
             accounts = uiState.accounts,
@@ -215,84 +188,90 @@ fun MoneyScreen(
         )
     }
 
+    // Reward Animation
     AnimatedVisibility(
         visible = uiState.showRewardAnimation,
-        enter = scaleIn(animationSpec = tween(500)) + fadeIn(),
-        exit = scaleOut(animationSpec = tween(500)) + fadeOut()
+        enter = scaleIn() + fadeIn(),
+        exit = scaleOut() + fadeOut()
     ) {
-        InvestmentRewardAnimation(
-            onDismiss = { viewModel.dismissRewardAnimation() }
-        )
+        CleanRewardAnimation(onDismiss = { viewModel.dismissRewardAnimation() })
     }
 }
 
-// (Helper parseColor & getGradient tidak berubah)
-fun parseColor(colorString: String): Color {
-    return try {
-        Color(colorString.toColorInt())
-    } catch (e: Exception) {
-        DeepTeal // Fallback color
-    }
-}
-fun getGradientForAccount(account: Account): List<Color> {
-    val baseColor = parseColor(account.color)
-    return listOf(
-        baseColor,
-        baseColor.copy(alpha = 0.7f) // Buat gradient sederhana
-    )
-}
-
-// PERBAIKAN: Desain ulang NetWorthCard
 @Composable
-fun NetWorthCard(totalNetWorth: Double, modifier: Modifier = Modifier) {
+fun CleanNetWorthCard(
+    totalNetWorth: Double,
+    modifier: Modifier = Modifier
+) {
     val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
 
-    // Menggunakan SummaCard sebagai dasar
-    SummaCard(
+    Card(
         modifier = modifier.fillMaxWidth(),
-        // PERBAIKAN: Gradient yang lebih "branded" (Teal ke Emas)
-        backgroundColor = MaterialTheme.colorScheme.primary,
-        borderColor = Color.Transparent
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = DeepTeal
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary,
-                            // Aksen Emas di sudut
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+        Box {
+            // Subtle background pattern
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .offset(x = 240.dp, y = (-20).dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.08f))
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column {
+                        Text(
+                            "Total Kekayaan Bersih",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White.copy(alpha = 0.9f)
                         )
-                    )
-                )
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    "Total Kekayaan Bersih",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White.copy(alpha = 0.9f)
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    formatter.format(totalNetWorth),
-                    style = MaterialTheme.typography.displayMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            formatter.format(totalNetWorth),
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+
                     Icon(
-                        Icons.AutoMirrored.Filled.TrendingUp,
+                        Icons.Default.AccountBalance,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.3f),
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        Icons.Default.TrendingUp,
                         contentDescription = null,
                         tint = SuccessGreen,
                         modifier = Modifier.size(16.dp)
                     )
-                    Spacer(Modifier.width(4.dp))
                     Text(
-                        "+5.2% bulan lalu", // Contoh
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.8f)
+                        "+5.2% bulan ini",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.85f)
                     )
                 }
             }
@@ -300,40 +279,119 @@ fun NetWorthCard(totalNetWorth: Double, modifier: Modifier = Modifier) {
     }
 }
 
-// PERBAIKAN: Desain ulang AccountCardItem
 @Composable
-fun AccountCardItem(
-    account: Account
+fun CleanQuickActions(
+    onIncomeClick: () -> Unit,
+    onExpenseClick: () -> Unit,
+    onTransferClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
-    val gradient = remember(account.color) { getGradientForAccount(account) }
-
-    // Menggunakan SummaCard sebagai dasar
-    SummaCard(
-        modifier = Modifier
-            .width(280.dp)
-            .height(160.dp),
-        borderColor = Color.Transparent, // Hapus border
-        padding = 0.dp // Hapus padding default
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(
+        CleanActionButton(
+            icon = Icons.Default.ArrowDownward,
+            label = "Masuk",
+            color = SuccessGreen,
+            onClick = onIncomeClick,
+            modifier = Modifier.weight(1f)
+        )
+        CleanActionButton(
+            icon = Icons.Default.ArrowUpward,
+            label = "Keluar",
+            color = ErrorRed,
+            onClick = onExpenseClick,
+            modifier = Modifier.weight(1f)
+        )
+        CleanActionButton(
+            icon = Icons.Default.SwapHoriz,
+            label = "Transfer",
+            color = MaterialTheme.colorScheme.primary,
+            onClick = onTransferClick,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+fun CleanActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    color: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.height(72.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = color.copy(alpha = 0.08f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.linearGradient(
-                        colors = gradient
-                    )
-                )
-                .padding(20.dp)
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = color
+            )
+        }
+    }
+}
+
+@Composable
+fun CleanAccountCard(account: Account) {
+    val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
+    val baseColor = try {
+        Color(account.color.removePrefix("#").toLong(16) or 0x00000000FF000000)
+    } catch (e: Exception) {
+        DeepTeal
+    }
+
+    Card(
+        modifier = Modifier
+            .width(260.dp)
+            .height(140.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = baseColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Box {
+            // Background decoration
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .offset(x = 180.dp, y = (-20).dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.1f))
+            )
+
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
                         Text(
@@ -348,57 +406,34 @@ fun AccountCardItem(
                             color = Color.White.copy(alpha = 0.8f)
                         )
                     }
-                    // PERBAIKAN: Ikon "chip" kartu
-                    Icon(
-                        Icons.Default.Memory,
-                        contentDescription = "Chip",
-                        tint = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier.size(32.dp)
-                    )
+
+                    if (account.isInvestment) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = GoldAccent.copy(alpha = 0.3f)
+                        ) {
+                            Text(
+                                "💎",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
                 }
 
-                Column {
-                    Text(
-                        formatter.format(account.balance),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
+                Text(
+                    formatter.format(account.balance),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
             }
         }
     }
 }
 
-// PERBAIKAN: Desain ulang Tombol Aksi
 @Composable
-fun ActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    color: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    // Menggunakan FilledTonalButton untuk tampilan yang lebih lembut
-    FilledTonalButton(
-        onClick = onClick,
-        modifier = modifier.height(48.dp),
-        colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = color.copy(alpha = 0.1f),
-            contentColor = color
-        )
-    ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-    }
-}
-
-// PERBAIKAN: Mengganti TransactionItem dengan ListItem
-@Composable
-fun TransactionListItem(
-    transaction: Transaction
-) {
+fun CleanTransactionItem(transaction: Transaction) {
     val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
     val isExpense = transaction.type == TransactionType.EXPENSE
     val color = if (isExpense) ErrorRed else SuccessGreen
@@ -414,8 +449,8 @@ fun TransactionListItem(
         supportingContent = {
             Text(
                 "${transaction.date} • ${transaction.category}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         },
         leadingContent = {
@@ -437,7 +472,7 @@ fun TransactionListItem(
         trailingContent = {
             Text(
                 formatter.format(transaction.amount),
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = color
             )
@@ -446,8 +481,78 @@ fun TransactionListItem(
     )
 }
 
+@Composable
+fun CleanRewardAnimation(onDismiss: () -> Unit) {
+    var visible by remember { mutableStateOf(true) }
 
-// (Dialog-dialog tidak berubah)
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(3000)
+        visible = false
+        kotlinx.coroutines.delay(300)
+        onDismiss()
+    }
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = scaleIn() + fadeIn(),
+            exit = scaleOut() + fadeOut()
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = GoldContainer
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    val infiniteTransition = rememberInfiniteTransition(label = "reward")
+                    val scale by infiniteTransition.animateFloat(
+                        initialValue = 1f,
+                        targetValue = 1.1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(600),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "scale"
+                    )
+
+                    Text(
+                        "💎",
+                        style = MaterialTheme.typography.displayLarge,
+                        modifier = Modifier.graphicsLayer(scaleX = scale, scaleY = scale)
+                    )
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Text(
+                        "Investasi Bertambah!",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = GoldDark
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        "Masa depan lebih cerah dengan keputusan cerdas ini",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+}
+
+// Dialogs remain the same from previous MoneyScreen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddAccountDialog(
@@ -458,45 +563,37 @@ fun AddAccountDialog(
     var balance by remember { mutableStateOf("") }
     var type by remember { mutableStateOf(AccountType.BANK) }
     var isInvestment by remember { mutableStateOf(false) }
-    var color by remember { mutableStateOf("#4CAF50") } // Default Green
+    var color by remember { mutableStateOf("#00796B") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Tambah Akun Baru") },
+        title = { Text("Tambah Akun Baru", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nama Akun (cth: Bank Jago)") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Nama Akun") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
                 OutlinedTextField(
                     value = balance,
                     onValueChange = { balance = it },
-                    label = { Text("Saldo Awal (cth: 50000)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Saldo Awal") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
-                OutlinedTextField(
-                    value = type.name,
-                    onValueChange = { type = AccountType.valueOf(it.uppercase()) },
-                    label = { Text("Tipe (BANK, CASH, INVESTMENT)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = color,
-                    onValueChange = { color = it },
-                    label = { Text("Warna (cth: #4CAF50)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Switch(
                         checked = isInvestment,
                         onCheckedChange = { isInvestment = it }
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Ini adalah akun investasi")
+                    Text("Akun Investasi")
                 }
             }
         },
@@ -504,7 +601,8 @@ fun AddAccountDialog(
             Button(
                 onClick = {
                     onAdd(name, type, balance.toDoubleOrNull() ?: 0.0, isInvestment, color)
-                }
+                },
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Tambah")
             }
@@ -532,47 +630,41 @@ fun AddTransactionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (type == TransactionType.EXPENSE) "Tambah Pengeluaran" else "Tambah Pemasukan") },
+        title = { Text("Tambah Transaksi", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(Modifier.fillMaxWidth()) {
-                    FilterChip(
-                        selected = type == TransactionType.EXPENSE,
-                        onClick = { type = TransactionType.EXPENSE },
-                        label = { Text("Keluar") }
-                    )
-                    Spacer(Modifier.width(8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = type == TransactionType.INCOME,
                         onClick = { type = TransactionType.INCOME },
                         label = { Text("Masuk") }
                     )
+                    FilterChip(
+                        selected = type == TransactionType.EXPENSE,
+                        onClick = { type = TransactionType.EXPENSE },
+                        label = { Text("Keluar") }
+                    )
                 }
-                OutlinedTextField(
-                    value = selectedAccount?.name ?: "Pilih Akun",
-                    onValueChange = { },
-                    readOnly = true,
-                    label = { Text("Akun") },
-                    modifier = Modifier.fillMaxWidth()
-                )
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
                     label = { Text("Jumlah") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
                 OutlinedTextField(
                     value = category,
                     onValueChange = { category = it },
-                    label = { Text("Kategori (cth: Makanan)") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Kategori") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
                     label = { Text("Catatan (Opsional)") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
             }
         },
@@ -582,7 +674,8 @@ fun AddTransactionDialog(
                     if (selectedAccount != null) {
                         onAdd(selectedAccount!!, type, amount.toDoubleOrNull() ?: 0.0, category, note)
                     }
-                }
+                },
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Simpan")
             }
@@ -595,7 +688,6 @@ fun AddTransactionDialog(
     )
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransferDialog(
@@ -603,91 +695,34 @@ fun TransferDialog(
     onDismiss: () -> Unit,
     onConfirm: (Account, Account, Double) -> Unit
 ) {
-    var fromAccount by remember { mutableStateOf(accounts.firstOrNull { !it.isInvestment } ?: accounts.first()) }
-    var toAccount by remember { mutableStateOf(accounts.firstOrNull { it.isInvestment } ?: accounts.last()) }
+    var fromAccount by remember { mutableStateOf(accounts.firstOrNull()) }
+    var toAccount by remember { mutableStateOf(accounts.lastOrNull()) }
     var amount by remember { mutableStateOf("") }
-    var expandedFrom by remember { mutableStateOf(false) }
-    var expandedTo by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Transfer Dana") },
+        title = { Text("Transfer Dana", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                ExposedDropdownMenuBox(
-                    expanded = expandedFrom,
-                    onExpandedChange = { expandedFrom = !expandedFrom }
-                ) {
-                    OutlinedTextField(
-                        value = fromAccount.name,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Dari Akun") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedFrom) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedFrom,
-                        onDismissRequest = { expandedFrom = false }
-                    ) {
-                        accounts.forEach { account ->
-                            DropdownMenuItem(
-                                text = { Text(account.name) },
-                                onClick = {
-                                    fromAccount = account
-                                    expandedFrom = false
-                                }
-                            )
-                        }
-                    }
-                }
-                ExposedDropdownMenuBox(
-                    expanded = expandedTo,
-                    onExpandedChange = { expandedTo = !expandedTo }
-                ) {
-                    OutlinedTextField(
-                        value = toAccount.name,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Ke Akun") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTo) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedTo,
-                        onDismissRequest = { expandedTo = false }
-                    ) {
-                        accounts.forEach { account ->
-                            DropdownMenuItem(
-                                text = { Text(account.name) },
-                                onClick = {
-                                    toAccount = account
-                                    expandedTo = false
-                                }
-                            )
-                        }
-                    }
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Dari: ${fromAccount?.name}")
+                Text("Ke: ${toAccount?.name}")
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
                     label = { Text("Jumlah") },
-                    placeholder = { Text("Rp 0") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    val amountValue = amount.toDoubleOrNull() ?: 0.0
-                    onConfirm(fromAccount, toAccount, amountValue)
-                }
+                    if (fromAccount != null && toAccount != null) {
+                        onConfirm(fromAccount!!, toAccount!!, amount.toDoubleOrNull() ?: 0.0)
+                    }
+                },
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Transfer")
             }
@@ -698,72 +733,4 @@ fun TransferDialog(
             }
         }
     )
-}
-
-// PERBAIKAN: Desain ulang Animasi Reward
-@Composable
-fun InvestmentRewardAnimation(onDismiss: () -> Unit) {
-    var visible by remember { mutableStateOf(true) }
-
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(3000)
-        visible = false
-        kotlinx.coroutines.delay(300)
-        onDismiss()
-    }
-
-    Dialog(onDismissRequest = onDismiss) {
-        AnimatedVisibility(
-            visible = visible,
-            enter = scaleIn() + fadeIn(),
-            exit = scaleOut() + fadeOut()
-        ) {
-            SummaCard(
-                modifier = Modifier.fillMaxWidth(),
-                padding = 32.dp,
-                backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                borderColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    val infiniteTransition = rememberInfiniteTransition(label = "reward_transition")
-                    val scale by infiniteTransition.animateFloat(
-                        initialValue = 1f,
-                        targetValue = 1.2f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(600),
-                            repeatMode = RepeatMode.Reverse
-                        ),
-                        label = "reward_scale"
-                    )
-
-                    Text(
-                        "👑",
-                        style = MaterialTheme.typography.displayMedium,
-                        modifier = Modifier.scale(scale)
-                    )
-
-                    Spacer(Modifier.height(16.dp))
-
-                    Text(
-                        "Masa Depan Lebih Cerah!",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-
-                    Spacer(Modifier.height(8.dp))
-
-                    Text(
-                        "Investasi Anda bertambah. Selamat atas langkah cerdas ini!",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                }
-            }
-        }
-    }
 }

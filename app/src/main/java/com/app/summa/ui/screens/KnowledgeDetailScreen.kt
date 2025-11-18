@@ -5,16 +5,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.ui.viewmodel.KnowledgeViewModel
 import kotlinx.coroutines.launch
+
+// === KNOWLEDGE DETAIL SCREEN ===
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,7 +32,6 @@ fun KnowledgeDetailScreen(
     var content by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
-    // Update TextField saat selectedNote dari ViewModel dimuat
     LaunchedEffect(uiState.selectedNote) {
         uiState.selectedNote?.let {
             title = it.title
@@ -36,11 +39,9 @@ fun KnowledgeDetailScreen(
         }
     }
 
-    // Simpan otomatis saat keluar
     DisposableEffect(Unit) {
         onDispose {
             scope.launch {
-                // Simpan hanya jika ada perubahan dan konten tidak kosong
                 if (content.isNotBlank() &&
                     (title != uiState.selectedNote?.title || content != uiState.selectedNote?.content)
                 ) {
@@ -53,14 +54,13 @@ fun KnowledgeDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { }, // Judul kosong, fokus pada konten
+                title = { },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
                 },
                 actions = {
-                    // Tombol Simpan (manual, jika diperlukan)
                     TextButton(
                         onClick = {
                             viewModel.saveNote(title, content)
@@ -68,44 +68,48 @@ fun KnowledgeDetailScreen(
                         },
                         enabled = content.isNotBlank()
                     ) {
-                        Text("Simpan & Keluar")
+                        Text("Simpan")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                )
             )
         },
         bottomBar = {
             BottomAppBar(
-                actions = {
-                    // Tombol Konversi ke Tugas
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
                     IconButton(onClick = {
                         onConvertToTask(
                             uiState.selectedNote?.title ?: title,
                             uiState.selectedNote?.content ?: content
                         )
                     }) {
-                        Icon(Icons.Default.TaskAlt, contentDescription = "Konversi ke Tugas")
+                        Icon(Icons.Default.TaskAlt, contentDescription = "Jadikan Tugas")
                     }
 
-                    Spacer(Modifier.weight(1f))
-
-                    // Tombol Arsipkan/Permanenkan
                     val isPermanent = uiState.selectedNote?.isPermanent == true
                     IconButton(
                         onClick = {
                             if (!isPermanent) {
                                 viewModel.convertToPermanent()
-                                onBack() // Keluar setelah diarsipkan
+                                onBack()
                             }
                         },
-                        enabled = !isPermanent // Nonaktif jika sudah permanen
+                        enabled = !isPermanent
                     ) {
                         Icon(
-                            if (isPermanent) Icons.Default.Unarchive else Icons.Default.Archive,
-                            contentDescription = if (isPermanent) "Di Pustaka" else "Arsipkan ke Pustaka"
+                            if (isPermanent) Icons.Default.Inventory else Icons.Default.Archive,
+                            contentDescription = "Arsipkan"
                         )
                     }
 
-                    // Tombol Hapus
                     IconButton(onClick = {
                         viewModel.deleteNote()
                         onBack()
@@ -113,7 +117,7 @@ fun KnowledgeDetailScreen(
                         Icon(Icons.Default.Delete, contentDescription = "Hapus")
                     }
                 }
-            )
+            }
         }
     ) { paddingValues ->
         Column(
@@ -125,19 +129,22 @@ fun KnowledgeDetailScreen(
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Judul (Opsional)") },
+                placeholder = { Text("Judul (Opsional)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                textStyle = MaterialTheme.typography.titleLarge,
+                textStyle = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.SemiBold
+                ),
                 colors = OutlinedTextFieldDefaults.colors(
                     unfocusedBorderColor = Color.Transparent,
                     focusedBorderColor = Color.Transparent
                 )
             )
+
             OutlinedTextField(
                 value = content,
                 onValueChange = { content = it },
-                label = { Text("Tulis ide Anda...") },
+                placeholder = { Text("Tulis ide Anda...") },
                 modifier = Modifier.fillMaxSize(),
                 textStyle = MaterialTheme.typography.bodyLarge,
                 colors = OutlinedTextFieldDefaults.colors(

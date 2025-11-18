@@ -14,18 +14,15 @@ import androidx.compose.ui.unit.dp
 fun SummaCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    // PERBAIKAN: Menggunakan warna dari MaterialTheme
     backgroundColor: Color = MaterialTheme.colorScheme.surface,
     borderColor: Color = MaterialTheme.colorScheme.outlineVariant,
-    padding: Dp = 16.dp, // Mengurangi padding default untuk fleksibilitas
+    borderWidth: Dp = 1.dp,
+    padding: Dp = 16.dp,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val cardColors = CardDefaults.cardColors(containerColor = backgroundColor)
-    // PERBAIKAN: Mengganti elevasi dengan border tipis
-    val border = BorderStroke(1.dp, borderColor)
-
-    // PERBAIKAN: Menstandarisasi bentuk rounded
-    val shape = MaterialTheme.shapes.large // (12.dp)
+    val border = BorderStroke(borderWidth, borderColor)
+    val shape = MaterialTheme.shapes.large
 
     if (onClick != null) {
         Card(
@@ -33,7 +30,7 @@ fun SummaCard(
             onClick = onClick,
             shape = shape,
             colors = cardColors,
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), // Tanpa bayangan
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             border = border
         ) {
             Column(
@@ -46,7 +43,7 @@ fun SummaCard(
             modifier = modifier,
             shape = shape,
             colors = cardColors,
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), // Tanpa bayangan
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             border = border
         ) {
             Column(
