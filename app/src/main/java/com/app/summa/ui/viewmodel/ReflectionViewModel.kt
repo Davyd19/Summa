@@ -14,7 +14,6 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
-// Data class untuk ringkasan
 data class DailySummary(
     val completedHabits: List<Habit>,
     val completedTasks: List<Task>
@@ -38,28 +37,23 @@ class ReflectionViewModel @Inject constructor(
     val uiState: StateFlow<ReflectionUiState> = _uiState.asStateFlow()
 
     init {
-        // PERBAIKAN: Dengarkan perubahan identitas secara reaktif
         viewModelScope.launch {
             identityRepository.getAllIdentities().collect { identities ->
                 _uiState.update { it.copy(identities = identities) }
             }
         }
-        // Muat data ringkasan satu kali
         loadSummaryData()
     }
 
-    // PERBAIKAN: Mengganti nama fungsi agar lebih jelas
     private fun loadSummaryData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // 1. Ambil log dan task untuk hari ini
             val today = LocalDate.now()
             val todayHabitLogs = habitRepository.getLogsForDate(today).first()
             val todayTasks = taskRepository.getTasksByDate(today).first()
             val allHabits = habitRepository.getAllHabits().first()
 
-            // 2. Filter yang selesai
             val completedHabits = allHabits.filter { habit ->
                 val log = todayHabitLogs.find { it.habitId == habit.id }
                 (log?.count ?: 0) >= habit.targetCount && habit.targetCount > 0
@@ -77,16 +71,15 @@ class ReflectionViewModel @Inject constructor(
 
     fun addVote(identity: Identity, points: Int, note: String) {
         viewModelScope.launch {
-            // TODO: Simpan 'note' sebagai Jurnal Mikro
-            identityRepository.addVoteToIdentity(identity.id, points)
-            // PERBAIKAN: Tidak perlu memuat ulang data,
-            // 'getAllIdentities()' akan otomatis memicu pembaruan UI.
+            // --- PERUBAHAN ---
+            // Sekarang kita teruskan 'note' ke repository
+            identityRepository.addVoteToIdentity(identity.id, points, note)
+            // -----------------
         }
     }
 
     fun saveReflection(text: String) {
         viewModelScope.launch {
-            // TODO: Simpan jurnal umum
             _uiState.update { it.copy(reflectionText = text) }
         }
     }

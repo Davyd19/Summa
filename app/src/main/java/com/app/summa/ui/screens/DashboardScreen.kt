@@ -34,6 +34,8 @@ import java.util.Locale
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
+    currentMode: String,
+    onModeSelected: (String) -> Unit,
     onNavigateToPlanner: () -> Unit = {},
     onNavigateToHabitDetail: (HabitItem) -> Unit = {},
     onNavigateToMoney: () -> Unit = {},
@@ -44,7 +46,6 @@ fun DashboardScreen(
     var showModeDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Subtle animated gradient background
         AnimatedGradientBackground()
 
         LazyColumn(
@@ -52,16 +53,14 @@ fun DashboardScreen(
             contentPadding = PaddingValues(bottom = 100.dp, top = 0.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Modern Header with animated greeting
             item {
                 ModernHeader(
                     greeting = uiState.greeting,
-                    currentMode = uiState.currentMode,
+                    currentMode = currentMode,
                     onModeClick = { showModeDialog = true }
                 )
             }
 
-            // Hero Points Card with smooth animations
             item {
                 ModernPointsCard(
                     progress = uiState.todayProgress,
@@ -70,8 +69,7 @@ fun DashboardScreen(
                 )
             }
 
-            // Next Action - Prominent and action-oriented
-            if (uiState.currentMode != "Fokus") {
+            if (currentMode != "Fokus") {
                 item {
                     ModernNextActionCard(
                         task = uiState.nextTask,
@@ -82,8 +80,7 @@ fun DashboardScreen(
                 }
             }
 
-            // Today's Habits with modern cards
-            if (uiState.currentMode != "Fokus") {
+            if (currentMode != "Fokus") {
                 item {
                     ModernSectionHeader(
                         title = "Kebiasaan Hari Ini",
@@ -92,23 +89,44 @@ fun DashboardScreen(
                     )
                 }
 
-                item {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(horizontal = 20.dp)
-                    ) {
-                        items(uiState.todayHabits.size) { index ->
-                            ModernHabitCard(
-                                habit = uiState.todayHabits[index],
-                                onClick = { onNavigateToHabitDetail(uiState.todayHabits[index]) }
+                if (uiState.todayHabits.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp)
+                                .height(100.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    RoundedCornerShape(16.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "Belum ada kebiasaan terjadwal",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                    }
+                } else {
+                    item {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(horizontal = 20.dp)
+                        ) {
+                            items(uiState.todayHabits.size) { index ->
+                                ModernHabitCard(
+                                    habit = uiState.todayHabits[index],
+                                    onClick = { onNavigateToHabitDetail(uiState.todayHabits[index]) }
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            // Quick Access with modern icons
-            if (uiState.currentMode == "Normal") {
+            if (currentMode == "Normal") {
                 item {
                     ModernSectionHeader(
                         title = "Akses Cepat",
@@ -127,22 +145,150 @@ fun DashboardScreen(
                 }
             }
 
-            // Bottom spacing
             item { Spacer(Modifier.height(24.dp)) }
         }
     }
 
     if (showModeDialog) {
         ModernModeDialog(
-            currentMode = uiState.currentMode,
+            currentMode = currentMode,
             onDismiss = { showModeDialog = false },
             onModeSelected = {
-                viewModel.setMode(it)
+                onModeSelected(it)
                 showModeDialog = false
             }
         )
     }
 }
+
+// --- PERBAIKAN TAMPILAN AKSES CEPAT ---
+
+@Composable
+fun ModernQuickAccessGrid(
+    totalNetWorth: Double,
+    onMoneyClick: () -> Unit,
+    onNotesClick: () -> Unit,
+    onReflectionClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ModernQuickAccessCard(
+                icon = Icons.Default.AccountBalanceWallet,
+                title = "Keuangan",
+                subtitle = formatter.format(totalNetWorth),
+                color = BlueAccent,
+                onClick = onMoneyClick,
+                modifier = Modifier.weight(1f)
+            )
+            ModernQuickAccessCard(
+                icon = Icons.Default.Book,
+                title = "Pustaka",
+                subtitle = "Ide & Catatan",
+                color = PurpleAccent,
+                onClick = onNotesClick,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        ModernQuickAccessCard(
+            icon = Icons.Default.RateReview,
+            title = "Tinjauan Harian",
+            subtitle = "Refleksi & evaluasi hari ini",
+            color = PinkAccent,
+            onClick = onReflectionClick,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+fun ModernQuickAccessCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    color: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.height(72.dp), // Tinggi sedikit dikurangi agar lebih compact
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                // PERBAIKAN: Padding dikurangi dari 16.dp menjadi 10.dp untuk memberi ruang teks
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            // PERBAIKAN: Spacing antar elemen dikurangi dari 16.dp menjadi 10.dp
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // PERBAIKAN: Ukuran Ikon dikurangi dari 48.dp menjadi 40.dp
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(color.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(20.dp) // Icon dalam box juga sedikit mengecil
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    title,
+                    // PERBAIKAN: Menggunakan titleSmall agar muat, tapi tetap Bold
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.labelSmall, // Font lebih kecil untuk subtitle
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+// --- COMPONENT LAINNYA TETAP SAMA (AnimatedGradientBackground, Header, dll) ---
 
 @Composable
 fun AnimatedGradientBackground() {
@@ -212,7 +358,6 @@ fun ModernHeader(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
 
-                    // Mode badge with better styling
                     Surface(
                         onClick = onModeClick,
                         shape = RoundedCornerShape(24.dp),
@@ -279,7 +424,6 @@ fun ModernPointsCard(
         )
     ) {
         Box {
-            // Decorative circles with subtle animation
             val scale by rememberInfiniteTransition(label = "circle").animateFloat(
                 initialValue = 1f,
                 targetValue = 1.15f,
@@ -328,12 +472,10 @@ fun ModernPointsCard(
                         )
                     }
 
-                    // Modern circular progress dengan glow effect
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.size(100.dp)
                     ) {
-                        // Background circle
                         CircularProgressIndicator(
                             progress = { 1f },
                             modifier = Modifier.fillMaxSize(),
@@ -342,7 +484,6 @@ fun ModernPointsCard(
                             trackColor = Color.Transparent,
                             strokeCap = StrokeCap.Round
                         )
-                        // Progress circle
                         CircularProgressIndicator(
                             progress = { animatedProgress },
                             modifier = Modifier.fillMaxSize(),
@@ -370,7 +511,6 @@ fun ModernPointsCard(
                     }
                 }
 
-                // Modern progress bar dengan label
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -449,7 +589,6 @@ fun ModernNextActionCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Animated pulsing icon
                 val scale by rememberInfiniteTransition(label = "icon").animateFloat(
                     initialValue = 1f,
                     targetValue = if (task != null) 1.15f else 1f,
@@ -538,7 +677,6 @@ fun ModernHabitCard(
         (habit.currentCount.toFloat() / habit.targetCount).coerceAtMost(1f)
     } else 0f
 
-    // Gentle scale animation on complete
     val scale by animateFloatAsState(
         targetValue = if (isComplete) 1.02f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -572,7 +710,6 @@ fun ModernHabitCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                // Emoji dengan background gradient
                 Box(
                     modifier = Modifier
                         .size(56.dp)
@@ -696,117 +833,6 @@ fun ModernSectionHeader(
                     color = SuccessGreen
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun ModernQuickAccessGrid(
-    totalNetWorth: Double,
-    onMoneyClick: () -> Unit,
-    onNotesClick: () -> Unit,
-    onReflectionClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
-
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            ModernQuickAccessCard(
-                icon = Icons.Default.AccountBalanceWallet,
-                title = "Keuangan",
-                subtitle = formatter.format(totalNetWorth),
-                gradient = listOf(BlueAccent, BlueAccent.copy(alpha = 0.6f)),
-                onClick = onMoneyClick,
-                modifier = Modifier.weight(1f)
-            )
-            ModernQuickAccessCard(
-                icon = Icons.Default.Book,
-                title = "Pustaka",
-                subtitle = "Catat ide",
-                gradient = listOf(PurpleAccent, PurpleAccent.copy(alpha = 0.6f)),
-                onClick = onNotesClick,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        ModernQuickAccessCard(
-            icon = Icons.Default.RateReview,
-            title = "Tinjauan Harian",
-            subtitle = "Refleksi & evaluasi hari ini",
-            gradient = listOf(PinkAccent, PinkAccent.copy(alpha = 0.6f)),
-            onClick = onReflectionClick,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
-
-@Composable
-fun ModernQuickAccessCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String,
-    gradient: List<Color>,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        onClick = onClick,
-        modifier = modifier.height(120.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = gradient[0].copy(alpha = 0.08f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(gradient)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Icon(
-                Icons.Default.ArrowForward,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-            )
         }
     }
 }

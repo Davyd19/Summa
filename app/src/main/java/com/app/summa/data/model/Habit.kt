@@ -15,6 +15,11 @@ data class Habit(
     val totalSum: Int = 0,
     val currentStreak: Int = 0,
     val perfectStreak: Int = 0,
+    // --- PENAMBAHAN ---
+    // Kolom ini akan menghubungkan kebiasaan ke identitas
+    // Contoh: Habit "Lari Pagi" terhubung ke Identity "Orang Sehat"
+    val relatedIdentityId: Long? = null,
+    // -------------------
     @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
     val createdAt: Long? = null
 )

@@ -12,18 +12,21 @@ import javax.inject.Inject
 interface HabitRepository {
     fun getAllHabits(): Flow<List<Habit>>
     fun getHabitById(id: Long): Flow<Habit?>
-    // PENAMBAHAN: Flow untuk log harian
     fun getLogsForDate(date: LocalDate): Flow<List<HabitLog>>
     suspend fun insertHabit(habit: Habit): Long
     suspend fun updateHabit(habit: Habit)
     suspend fun deleteHabit(habit: Habit)
     fun getHabitLogs(habitId: Long): Flow<List<HabitLog>>
-    // PERBAIKAN: Mengubah nama fungsi agar lebih jelas
     suspend fun updateHabitCount(habit: Habit, newCount: Int, date: LocalDate = LocalDate.now())
 }
 
+// --- PERUBAHAN IMPLEMENTASI ---
 class HabitRepositoryImpl @Inject constructor(
-    private val habitDao: HabitDao
+    private val habitDao: HabitDao,
+    // --- PENAMBAHAN ---
+    // Kita butuh IdentityRepository untuk voting otomatis
+    private val identityRepository: IdentityRepository
+    // -------------------
 ) : HabitRepository {
 
     override fun getAllHabits(): Flow<List<Habit>> {
@@ -34,7 +37,6 @@ class HabitRepositoryImpl @Inject constructor(
         return habitDao.getHabitById(id)
     }
 
-    // PENAMBAHAN: Implementasi flow untuk log harian
     override fun getLogsForDate(date: LocalDate): Flow<List<HabitLog>> {
         return habitDao.getLogsForDate(date.toString())
     }
@@ -55,21 +57,16 @@ class HabitRepositoryImpl @Inject constructor(
         return habitDao.getHabitLogs(habitId)
     }
 
-    // IMPLEMENTASI: Ini adalah logika inti Summa
     override suspend fun updateHabitCount(habit: Habit, newCount: Int, date: LocalDate) {
-        // Pindah ke I/O dispatcher untuk operasi database
         withContext(Dispatchers.IO) {
             val dateString = date.toString()
             val existingLog = habitDao.getHabitLogByDate(habit.id, dateString)
 
             var countDifference = newCount
             if (existingLog != null) {
-                // Hitung selisihnya
                 countDifference = newCount - existingLog.count
-                // Update log yang ada
                 habitDao.updateHabitLog(existingLog.copy(count = newCount))
             } else {
-                // Buat log baru
                 habitDao.insertHabitLog(
                     HabitLog(
                         habitId = habit.id,
@@ -79,13 +76,24 @@ class HabitRepositoryImpl @Inject constructor(
                 )
             }
 
-            // Hitung ulang streak dan total sum
+            // --- LOGIKA VOTING OTOMATIS ---
+            val isTargetMet = habit.targetCount > 0 && newCount >= habit.targetCount
+            val wasTargetMetBefore = existingLog != null && existingLog.count >= habit.targetCount
+
+            // Jika target baru saja tercapai (sebelumnya belum) dan ada ID identitas
+            if (isTargetMet && !wasTargetMetBefore && habit.relatedIdentityId != null && date.isEqual(LocalDate.now())) {
+                identityRepository.addVoteToIdentity(
+                    identityId = habit.relatedIdentityId,
+                    points = 5, // Anda bisa sesuaikan poinnya
+                    note = "Otomatis dari penyelesaian kebiasaan: ${habit.name}" // Jurnal otomatis!
+                )
+            }
+            // --------------------------------
+
             val (newCurrentStreak, newPerfectStreak) = calculateStreaks(habit.id, habit.targetCount)
 
-            // Update Habit utama dengan data baru
             habitDao.updateHabit(
                 habit.copy(
-                    // Tambahkan selisihnya ke totalSum
                     totalSum = (habit.totalSum + countDifference).coerceAtLeast(0),
                     currentStreak = newCurrentStreak,
                     perfectStreak = newPerfectStreak
@@ -94,7 +102,6 @@ class HabitRepositoryImpl @Inject constructor(
         }
     }
 
-    // IMPLEMENTASI: Logika perhitungan Streak Fleksibel
     private suspend fun calculateStreaks(habitId: Long, targetCount: Int): Pair<Int, Int> {
         val allLogs = habitDao.getAllLogsForHabit(habitId).associateBy { LocalDate.parse(it.date) }
         var currentDate = LocalDate.now()
@@ -102,18 +109,14 @@ class HabitRepositoryImpl @Inject constructor(
         var currentStreak = 0
         var perfectStreak = 0
 
-        // 1. Hitung Streak Konsistensi (🔥) (count > 0)
-        // Cek hari ini
         if (allLogs[currentDate]?.count ?: 0 > 0) {
             currentStreak = 1
             var checkDate = currentDate.minusDays(1)
-            // Cek hari-hari sebelumnya
             while (allLogs.containsKey(checkDate) && allLogs[checkDate]!!.count > 0) {
                 currentStreak++
                 checkDate = checkDate.minusDays(1)
             }
         } else {
-            // Jika hari ini 0, cek kemarin
             var checkDate = currentDate.minusDays(1)
             while (allLogs.containsKey(checkDate) && allLogs[checkDate]!!.count > 0) {
                 currentStreak++
@@ -121,19 +124,14 @@ class HabitRepositoryImpl @Inject constructor(
             }
         }
 
-
-        // 2. Hitung Streak Sempurna (👑) (count >= targetCount)
-        // Cek hari ini
         if (allLogs[currentDate]?.count ?: 0 >= targetCount) {
             perfectStreak = 1
             var checkDate = currentDate.minusDays(1)
-            // Cek hari-hari sebelumnya
             while (allLogs.containsKey(checkDate) && allLogs[checkDate]!!.count >= targetCount) {
                 perfectStreak++
                 checkDate = checkDate.minusDays(1)
             }
         } else {
-            // Jika hari ini tidak sempurna, cek kemarin
             var checkDate = currentDate.minusDays(1)
             while (allLogs.containsKey(checkDate) && allLogs[checkDate]!!.count >= targetCount) {
                 perfectStreak++

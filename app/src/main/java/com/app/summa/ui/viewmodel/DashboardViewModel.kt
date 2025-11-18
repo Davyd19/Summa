@@ -2,13 +2,11 @@ package com.app.summa.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-// PENAMBAHAN: Import data model dan repo
 import com.app.summa.data.model.HabitLog
 import com.app.summa.data.model.Task
 import com.app.summa.data.repository.AccountRepository
 import com.app.summa.data.repository.HabitRepository
 import com.app.summa.data.repository.TaskRepository
-// PENAMBAHAN: Import model UI
 import com.app.summa.ui.model.HabitItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -17,7 +15,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import javax.inject.Inject
 
-// PERBAIKAN: UiState yang jauh lebih lengkap
 data class DashboardUiState(
     val greeting: String = "",
     val todayProgress: Float = 0f,
@@ -25,22 +22,23 @@ data class DashboardUiState(
     val nextTask: Task? = null,
     val todayHabits: List<HabitItem> = emptyList(),
     val totalNetWorth: Double = 0.0,
-    val isLoading: Boolean = true,
-    val currentMode: String = "Normal" // Untuk Mode Kontekstual
+    val isLoading: Boolean = true
+    // --- PERUBAHAN ---
+    // 'currentMode' DIHAPUS dari state lokal ini.
+    // Sekarang dipegang oleh MainViewModel.
+    // -------------------
 )
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val habitRepository: HabitRepository,
     private val taskRepository: TaskRepository,
-    // PENAMBAHAN: Injeksi AccountRepository
     private val accountRepository: AccountRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
-    // Ambil data hari ini
     private val today = LocalDate.now()
     private val todayLogs = habitRepository.getLogsForDate(today)
     private val todayTasks = taskRepository.getTasksByDate(today)
@@ -51,7 +49,6 @@ class DashboardViewModel @Inject constructor(
 
     private fun loadDashboardData() {
         viewModelScope.launch {
-            // GABUNGKAN (Combine) SEMUA data yang dibutuhkan dasbor
             combine(
                 habitRepository.getAllHabits(),
                 todayLogs,
@@ -59,7 +56,6 @@ class DashboardViewModel @Inject constructor(
                 accountRepository.getTotalNetWorth()
             ) { habits, logs, tasks, netWorth ->
 
-                // --- Logika untuk Habits & Progress ---
                 val habitItems = habits.map { habit ->
                     val todayLog = logs.find { it.habitId == habit.id }
                     HabitItem(
@@ -83,24 +79,19 @@ class DashboardViewModel @Inject constructor(
                     completedHabits.toFloat() / totalTargetHabits
                 } else 0f
 
-                // --- Logika untuk Planner ---
                 val nextTask = tasks.filter {
-                    // Filter task yang belum selesai
                     !it.isCompleted &&
-                            // Filter task yang waktunya masih akan datang
                             try {
                                 LocalTime.parse(it.scheduledTime ?: "00:00").isAfter(LocalTime.now())
                             } catch (e: Exception) {
                                 true
                             }
-                }.minByOrNull { // Ambil yang paling awal
+                }.minByOrNull {
                     it.scheduledTime ?: "23:59"
                 }
 
-                // --- Logika Poin Summa ---
                 val summaPoints = habitItems.sumOf { it.totalSum }
 
-                // --- Update State ---
                 DashboardUiState(
                     greeting = getGreeting(),
                     todayProgress = progress,
@@ -108,8 +99,10 @@ class DashboardViewModel @Inject constructor(
                     nextTask = nextTask,
                     todayHabits = habitItems,
                     totalNetWorth = netWorth ?: 0.0,
-                    isLoading = false,
-                    currentMode = _uiState.value.currentMode
+                    isLoading = false
+                    // --- PERUBAHAN ---
+                    // 'currentMode' DIHAPUS dari update state ini
+                    // -------------------
                 )
             }.catch { e ->
                 _uiState.update { it.copy(isLoading = false) }
@@ -121,9 +114,9 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    fun setMode(mode: String) {
-        _uiState.update { it.copy(currentMode = mode) }
-    }
+    // --- PERUBAHAN ---
+    // 'setMode' DIHAPUS. Fungsi ini sekarang ditangani oleh MainViewModel.
+    // -------------------
 
     private fun getGreeting(): String {
         val hour = LocalTime.now().hour

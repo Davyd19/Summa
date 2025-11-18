@@ -15,9 +15,10 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideHabitRepository(
-        habitDao: HabitDao
+        habitDao: HabitDao,
+        identityRepository: IdentityRepository
     ): HabitRepository {
-        return HabitRepositoryImpl(habitDao)
+        return HabitRepositoryImpl(habitDao, identityRepository)
     }
 
     @Provides
@@ -47,8 +48,24 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideIdentityRepository(
-        identityDao: IdentityDao
+        identityDao: IdentityDao,
+        knowledgeRepository: KnowledgeRepository
     ): IdentityRepository {
-        return IdentityRepositoryImpl(identityDao)
+        return IdentityRepositoryImpl(identityDao, knowledgeRepository)
     }
+
+    // --- PENAMBAHAN ---
+    @Provides
+    fun provideFocusSessionDao(database: SummaDatabase): FocusSessionDao {
+        return database.focusSessionDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFocusRepository(
+        dao: FocusSessionDao
+    ): FocusRepository {
+        return FocusRepositoryImpl(dao)
+    }
+    // -------------------
 }

@@ -4,8 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.summa.data.model.Habit as HabitModel
 import com.app.summa.data.model.HabitLog as HabitLogModel
+import com.app.summa.data.model.Identity
 import com.app.summa.data.repository.HabitRepository
-// PENAMBAHAN: Import HabitItem dari layar UI
+import com.app.summa.data.repository.IdentityRepository
 import com.app.summa.ui.model.HabitItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -14,64 +15,69 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 data class HabitUiState(
-    // PERBAIKAN: Menggunakan HabitItem (model UI)
     val habits: List<HabitItem> = emptyList(),
-    // PERBAIKAN: Menggunakan HabitItem (model UI)
     val selectedHabit: HabitItem? = null,
     val habitLogs: List<HabitLogModel> = emptyList(),
+    // --- PENAMBAHAN ---
+    // Daftar identitas untuk ditampilkan di Dropdown saat tambah habit
+    val availableIdentities: List<Identity> = emptyList(),
+    // -------------------
     val isLoading: Boolean = true,
     val error: String? = null
 )
 
 @HiltViewModel
 class HabitViewModel @Inject constructor(
-    private val habitRepository: HabitRepository
+    private val habitRepository: HabitRepository,
+    // --- PENAMBAHAN ---
+    // Kita butuh repo ini untuk mengambil daftar pilihan identitas
+    private val identityRepository: IdentityRepository
+    // -------------------
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HabitUiState())
     val uiState: StateFlow<HabitUiState> = _uiState.asStateFlow()
 
-    // Mengambil log untuk hari ini
     private val todayLogs = habitRepository.getLogsForDate(LocalDate.now())
 
     init {
         loadHabits()
+        loadIdentities()
     }
+
+    // --- PENAMBAHAN ---
+    private fun loadIdentities() {
+        viewModelScope.launch {
+            identityRepository.getAllIdentities().collect { identities ->
+                _uiState.update { it.copy(availableIdentities = identities) }
+            }
+        }
+    }
+    // -------------------
 
     private fun loadHabits() {
         viewModelScope.launch {
-            // GABUNGKAN (Combine) data habit dengan data log hari ini
             habitRepository.getAllHabits().combine(todayLogs) { habits, logs ->
-                // Ubah data database (HabitModel) menjadi data UI (HabitItem)
                 habits.map { habit ->
                     val todayLog = logs.find { it.habitId == habit.id }
                     HabitItem(
                         id = habit.id,
                         name = habit.name,
                         icon = habit.icon,
-                        // Ambil count dari log hari ini, atau 0 jika tidak ada
                         currentCount = todayLog?.count ?: 0,
                         targetCount = habit.targetCount,
                         totalSum = habit.totalSum,
                         currentStreak = habit.currentStreak,
                         perfectStreak = habit.perfectStreak,
-                        // Simpan model asli untuk referensi
                         originalModel = habit
                     )
                 }
             }
                 .catch { e ->
-                    _uiState.value = _uiState.value.copy(
-                        error = e.message,
-                        isLoading = false
-                    )
+                    _uiState.update { it.copy(error = e.message, isLoading = false) }
                 }
                 .collect { mappedHabits ->
-                    _uiState.value = _uiState.value.copy(
-                        habits = mappedHabits,
-                        isLoading = false,
-                        error = null
-                    )
+                    _uiState.update { it.copy(habits = mappedHabits, isLoading = false, error = null) }
                 }
         }
     }
@@ -80,19 +86,14 @@ class HabitViewModel @Inject constructor(
         viewModelScope.launch {
             habitRepository.getHabitLogs(habitItem.id)
                 .collect { logs ->
-                    _uiState.value = _uiState.value.copy(
-                        selectedHabit = habitItem,
-                        habitLogs = logs
-                    )
+                    _uiState.update { it.copy(selectedHabit = habitItem, habitLogs = logs) }
                 }
         }
     }
 
-    // IMPLEMENTASI: Fungsi untuk menambah hitungan
     fun incrementHabit(habitItem: HabitItem) {
         viewModelScope.launch {
             val newCount = habitItem.currentCount + 1
-            // Panggil repository dengan model database asli
             habitRepository.updateHabitCount(
                 habit = habitItem.originalModel,
                 newCount = newCount
@@ -100,12 +101,10 @@ class HabitViewModel @Inject constructor(
         }
     }
 
-    // IMPLEMENTASI: Fungsi untuk mengurangi hitungan
     fun decrementHabit(habitItem: HabitItem) {
         if (habitItem.currentCount > 0) {
             viewModelScope.launch {
                 val newCount = habitItem.currentCount - 1
-                // Panggil repository dengan model database asli
                 habitRepository.updateHabitCount(
                     habit = habitItem.originalModel,
                     newCount = newCount
@@ -114,13 +113,14 @@ class HabitViewModel @Inject constructor(
         }
     }
 
-    fun addHabit(name: String, icon: String, targetCount: Int) {
+    fun addHabit(name: String, icon: String, targetCount: Int, relatedIdentityId: Long? = null) {
         viewModelScope.launch {
             val newHabit = HabitModel(
                 name = name,
                 icon = icon,
                 targetCount = targetCount,
-                createdAt = System.currentTimeMillis() // Set waktu pembuatan
+                relatedIdentityId = relatedIdentityId,
+                createdAt = System.currentTimeMillis()
             )
             habitRepository.insertHabit(newHabit)
         }
@@ -128,20 +128,17 @@ class HabitViewModel @Inject constructor(
 
     fun updateHabit(habitItem: HabitItem) {
         viewModelScope.launch {
-            // PERBAIKAN: Pastikan Anda mengupdate originalModel
             habitRepository.updateHabit(habitItem.originalModel)
         }
     }
 
     fun deleteHabit(habitItem: HabitItem) {
         viewModelScope.launch {
-            // PERBAIKAN: Pastikan Anda menghapus originalModel
             habitRepository.deleteHabit(habitItem.originalModel)
         }
     }
 
-    // Fungsi untuk menutup layar detail
     fun onBackFromDetail() {
-        _uiState.value = _uiState.value.copy(selectedHabit = null)
+        _uiState.update { it.copy(selectedHabit = null) }
     }
 }

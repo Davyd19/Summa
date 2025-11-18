@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,13 +27,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.Task
-import com.app.summa.ui.components.*
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.PlannerUiState
 import com.app.summa.ui.viewmodel.PlannerViewModel
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
@@ -49,6 +51,15 @@ fun PlannerScreen(
     var selectedTask by remember { mutableStateOf<Task?>(null) }
     var showAddTaskDialog by remember { mutableStateOf(false) }
 
+    // State untuk Date Picker
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = uiState.selectedDate
+            .atStartOfDay(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+    )
+
     LaunchedEffect(uiState.initialTaskTitle) {
         if (uiState.initialTaskTitle != null) {
             showAddTaskDialog = true
@@ -58,8 +69,9 @@ fun PlannerScreen(
     if (showFocusMode && selectedTask != null) {
         FocusModeScreen(
             task = selectedTask!!,
-            onComplete = {
+            onComplete = { paperclips, startTime ->
                 viewModel.completeTask(selectedTask!!.id)
+                viewModel.saveFocusSession(selectedTask!!.id, paperclips, startTime)
                 showFocusMode = false
                 selectedTask = null
             },
@@ -87,7 +99,8 @@ fun PlannerScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { /* TODO: Date picker */ }) {
+                        // Tombol Kalender sekarang memicu Dialog
+                        IconButton(onClick = { showDatePicker = true }) {
                             Icon(Icons.Default.Today, contentDescription = "Pilih Tanggal")
                         }
                         IconButton(onClick = { showAddTaskDialog = true }) {
@@ -173,6 +186,35 @@ fun PlannerScreen(
                     }
                 }
             }
+        }
+    }
+
+    // Dialog Date Picker
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val selectedDate = Instant.ofEpochMilli(millis)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDate()
+                            viewModel.selectDate(selectedDate)
+                        }
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Batal")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 
@@ -762,13 +804,17 @@ fun CleanAddTaskDialog(
 @Composable
 fun FocusModeScreen(
     task: Task,
-    onComplete: () -> Unit,
+    onComplete: (Int, Long) -> Unit, // (paperclips, startTime)
     onCancel: () -> Unit
 ) {
-    var timeRemaining by remember { mutableStateOf(60 * 25) }
-    var paperclipsLeft by remember { mutableStateOf(10) }
-    var paperclipsMoved by remember { mutableStateOf(0) }
-    var isRunning by remember { mutableStateOf(false) }
+    // State bertahan saat rotasi layar
+    var timeRemaining by rememberSaveable { mutableIntStateOf(60 * 25) }
+    var paperclipsLeft by rememberSaveable { mutableIntStateOf(10) }
+    var paperclipsMoved by rememberSaveable { mutableIntStateOf(0) }
+    var isRunning by rememberSaveable { mutableStateOf(false) }
+
+    // Catat waktu mulai (hanya sekali saat pertama dibuka)
+    val startTime by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
 
     LaunchedEffect(isRunning, timeRemaining) {
         if (isRunning && timeRemaining > 0) {
@@ -798,7 +844,10 @@ fun FocusModeScreen(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
-            TextButton(onClick = onComplete) {
+            TextButton(onClick = {
+                // Kirim data saat selesai manual
+                onComplete(paperclipsMoved, startTime)
+            }) {
                 Text("Selesai")
             }
         }
@@ -848,7 +897,10 @@ fun FocusModeScreen(
                     paperclipsMoved++
                     if (!isRunning) isRunning = true
                 }
-                if (paperclipsLeft == 0) onComplete()
+                if (paperclipsLeft == 0) {
+                    // Otomatis selesai jika klip habis
+                    onComplete(paperclipsMoved, startTime)
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()

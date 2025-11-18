@@ -19,17 +19,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.app.summa.data.model.HabitLog
+import com.app.summa.data.model.Identity
+import com.app.summa.ui.model.HabitItem
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.HabitViewModel
-import com.app.summa.ui.model.HabitItem
-import com.app.summa.data.model.HabitLog
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -95,6 +96,11 @@ fun HabitsScreen(
                     ) {
                         CircularProgressIndicator()
                     }
+                } else if (uiState.habits.isEmpty()) {
+                    EmptyHabitState(
+                        modifier = Modifier.padding(paddingValues),
+                        onAddClick = { showAddDialog = true }
+                    )
                 } else {
                     LazyColumn(
                         modifier = Modifier
@@ -119,12 +125,87 @@ fun HabitsScreen(
 
     if (showAddDialog) {
         ModernAddHabitDialog(
+            identities = uiState.availableIdentities,
             onDismiss = { showAddDialog = false },
-            onAdd = { name, icon, target ->
-                viewModel.addHabit(name, icon, target)
+            onAdd = { name, icon, target, identityId ->
+                viewModel.addHabit(name, icon, target, identityId)
                 showAddDialog = false
             }
         )
+    }
+}
+
+@Composable
+fun EmptyHabitState(
+    modifier: Modifier = Modifier,
+    onAddClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        val infiniteTransition = rememberInfiniteTransition(label = "empty")
+        val scale by infiniteTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.05f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2000, easing = EaseInOut),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "scale"
+        )
+
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .scale(scale)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "🌱",
+                style = MaterialTheme.typography.displayLarge
+            )
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        Text(
+            "Belum Ada Kebiasaan",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        Text(
+            "Setiap langkah besar dimulai dari kebiasaan kecil. Tentukan identitas yang ingin Anda bangun hari ini.",
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+
+        Spacer(Modifier.height(32.dp))
+
+        Button(
+            onClick = onAddClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Buat Kebiasaan Pertama", style = MaterialTheme.typography.titleMedium)
+        }
     }
 }
 
@@ -141,7 +222,6 @@ fun EnhancedHabitItem(
         (habit.currentCount.toFloat() / habit.targetCount).coerceAtMost(1f)
     } else 0f
 
-    // Celebration animation when complete
     val scale by animateFloatAsState(
         targetValue = if (isComplete) 1.02f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -174,13 +254,11 @@ fun EnhancedHabitItem(
         )
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
-            // Top section with icon and streaks
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Icon dengan gradient background
                 Box(
                     modifier = Modifier
                         .size(72.dp)
@@ -236,7 +314,6 @@ fun EnhancedHabitItem(
 
             Spacer(Modifier.height(20.dp))
 
-            // Habit name
             Text(
                 text = habit.name,
                 style = MaterialTheme.typography.headlineSmall,
@@ -245,13 +322,11 @@ fun EnhancedHabitItem(
 
             Spacer(Modifier.height(20.dp))
 
-            // Progress and controls section
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Counter controls
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -326,49 +401,6 @@ fun EnhancedHabitItem(
                         )
                     }
                 }
-
-                // Completion badge with animation
-                if (isComplete) {
-                    val infiniteTransition = rememberInfiniteTransition(label = "badge")
-                    val badgeScale by infiniteTransition.animateFloat(
-                        initialValue = 1f,
-                        targetValue = 1.1f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(1000, easing = FastOutSlowInEasing),
-                            repeatMode = RepeatMode.Reverse
-                        ),
-                        label = "badge_scale"
-                    )
-
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = when {
-                            isOverAchieved -> GoldAccent
-                            else -> SuccessGreen
-                        },
-                        modifier = Modifier.scale(badgeScale),
-                        shadowElevation = 4.dp
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                if (isOverAchieved) Icons.Default.Star else Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = Color.White
-                            )
-                            Text(
-                                if (isOverAchieved) "Luar Biasa!" else "Selesai",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
             }
 
             if (habit.targetCount > 0) {
@@ -387,26 +419,6 @@ fun EnhancedHabitItem(
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                     strokeCap = StrokeCap.Round
                 )
-            }
-
-            // Total points indicator
-            if (habit.totalSum > 0) {
-                Spacer(Modifier.height(12.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        "⭐",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        "${habit.totalSum} Summa Points",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = GoldAccent
-                    )
-                }
             }
         }
     }
@@ -453,12 +465,15 @@ fun EnhancedStreakBadge(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModernAddHabitDialog(
+    identities: List<Identity> = emptyList(),
     onDismiss: () -> Unit,
-    onAdd: (name: String, icon: String, target: Int) -> Unit
+    onAdd: (name: String, icon: String, target: Int, relatedIdentityId: Long?) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var icon by remember { mutableStateOf("🎯") }
     var target by remember { mutableStateOf("1") }
+    var selectedIdentity by remember { mutableStateOf<Identity?>(null) }
+    var expanded by remember { mutableStateOf(false) }
 
     val commonEmojis = listOf(
         "🎯", "📚", "💪", "🧘", "🏃", "🎨", "✍️", "💻",
@@ -485,6 +500,49 @@ fun ModernAddHabitDialog(
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true
                 )
+
+                // --- DROPDOWN IDENTITAS ---
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = selectedIdentity?.name ?: "Hubungkan ke Identitas (Opsional)",
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.secondary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Tidak ada", fontStyle = androidx.compose.ui.text.font.FontStyle.Italic) },
+                            onClick = {
+                                selectedIdentity = null
+                                expanded = false
+                            }
+                        )
+                        identities.forEach { identity ->
+                            DropdownMenuItem(
+                                text = { Text(identity.name) },
+                                onClick = {
+                                    selectedIdentity = identity
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
 
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
@@ -528,7 +586,7 @@ fun ModernAddHabitDialog(
             Button(
                 onClick = {
                     if (name.isNotBlank()) {
-                        onAdd(name, icon, target.toIntOrNull() ?: 1)
+                        onAdd(name, icon, target.toIntOrNull() ?: 1, selectedIdentity?.id)
                     }
                 },
                 shape = RoundedCornerShape(16.dp),
@@ -580,7 +638,6 @@ fun ModernHabitDetailScreen(
             contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(28.dp)
         ) {
-            // Hero Header
             item {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -613,7 +670,6 @@ fun ModernHabitDetailScreen(
                 }
             }
 
-            // Stats Cards
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -650,7 +706,6 @@ fun ModernHabitDetailScreen(
                 )
             }
 
-            // Heatmap
             item {
                 Text(
                     "Riwayat 12 Minggu",

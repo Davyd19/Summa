@@ -3,7 +3,9 @@ package com.app.summa.ui.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.app.summa.data.model.FocusSession
 import com.app.summa.data.model.Task
+import com.app.summa.data.repository.FocusRepository
 import com.app.summa.data.repository.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -15,9 +17,7 @@ import javax.inject.Inject
 
 data class PlannerUiState(
     val selectedDate: LocalDate = LocalDate.now(),
-    // PERBAIKAN: Ganti nama 'tasks' menjadi 'tasksForDay'
     val tasksForDay: List<Task> = emptyList(),
-    // PENAMBAHAN: State untuk data mingguan dan bulanan
     val tasksForWeek: List<Task> = emptyList(),
     val tasksForMonth: List<Task> = emptyList(),
     val isLoading: Boolean = true,
@@ -29,6 +29,9 @@ data class PlannerUiState(
 @HiltViewModel
 class PlannerViewModel @Inject constructor(
     private val taskRepository: TaskRepository,
+    // --- PENAMBAHAN ---
+    private val focusRepository: FocusRepository,
+    // -------------------
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -51,27 +54,21 @@ class PlannerViewModel @Inject constructor(
         loadAllTasksForDate(_uiState.value.selectedDate)
     }
 
-    // PERBAIKAN: Ubah fungsi ini untuk memuat semua data yang relevan
     private fun loadAllTasksForDate(date: LocalDate) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // 1. Tentukan rentang tanggal Minggu (Senin - Minggu)
-            // Asumsi Senin adalah hari pertama dalam seminggu
             val firstDayOfWeek = date.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
             val lastDayOfWeek = firstDayOfWeek.plusDays(6)
 
-            // 2. Tentukan rentang tanggal Bulan
             val firstDayOfMonth = date.with(TemporalAdjusters.firstDayOfMonth())
             val lastDayOfMonth = date.with(TemporalAdjusters.lastDayOfMonth())
 
-            // 3. Gabungkan 3 flow data menggunakan combine
             combine(
                 taskRepository.getTasksByDate(date),
                 taskRepository.getTasksForDateRange(firstDayOfWeek, lastDayOfWeek),
                 taskRepository.getTasksForDateRange(firstDayOfMonth, lastDayOfMonth)
             ) { dayTasks, weekTasks, monthTasks ->
-                // Update UI State dengan semua data baru
                 _uiState.update {
                     it.copy(
                         tasksForDay = dayTasks,
@@ -88,7 +85,7 @@ class PlannerViewModel @Inject constructor(
                         isLoading = false
                     )
                 }
-            }.collect() // Mulai mengumpulkan flow gabungan
+            }.collect()
         }
     }
 
@@ -98,7 +95,6 @@ class PlannerViewModel @Inject constructor(
 
     fun selectDate(date: LocalDate) {
         _uiState.update { it.copy(selectedDate = date) }
-        // PERBAIKAN: Panggil fungsi yang memuat semua data
         loadAllTasksForDate(date)
     }
 
@@ -139,4 +135,21 @@ class PlannerViewModel @Inject constructor(
             taskRepository.deleteTask(task)
         }
     }
+
+    // --- PENAMBAHAN ---
+    // Fungsi baru untuk menyimpan sesi fokus
+    fun saveFocusSession(taskId: Long, paperclips: Int, startTime: Long) {
+        viewModelScope.launch {
+            val endTime = System.currentTimeMillis()
+            val session = FocusSession(
+                taskId = taskId,
+                startTime = startTime,
+                endTime = endTime,
+                paperclipsCollected = paperclips,
+                createdAt = endTime
+            )
+            focusRepository.saveSession(session)
+        }
+    }
+    // -------------------
 }

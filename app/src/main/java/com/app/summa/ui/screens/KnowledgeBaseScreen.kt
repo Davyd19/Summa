@@ -40,6 +40,9 @@ fun KnowledgeBaseScreen(
     val scope = rememberCoroutineScope()
     val tabTitles = listOf("Inbox", "Pustaka")
 
+    // State untuk pencarian
+    var searchQuery by remember { mutableStateOf("") }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -61,21 +64,6 @@ fun KnowledgeBaseScreen(
                     containerColor = Color.Transparent
                 )
             )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onAddNoteClick,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White,
-                shape = RoundedCornerShape(20.dp),
-                elevation = FloatingActionButtonDefaults.elevation(
-                    defaultElevation = 8.dp
-                )
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Catat Cepat", fontWeight = FontWeight.SemiBold)
-            }
         }
     ) { paddingValues ->
         Column(
@@ -83,6 +71,23 @@ fun KnowledgeBaseScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Search Bar Baru
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                placeholder = { Text("Cari catatan...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary
+                ),
+                singleLine = true
+            )
+
             // Modern Tab Selector
             Surface(
                 modifier = Modifier
@@ -133,20 +138,33 @@ fun KnowledgeBaseScreen(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
+                // Filter catatan berdasarkan query pencarian
+                val filteredInbox = uiState.inboxNotes.filter {
+                    it.title.contains(searchQuery, ignoreCase = true) ||
+                            it.content.contains(searchQuery, ignoreCase = true) ||
+                            it.tags.contains(searchQuery, ignoreCase = true)
+                }
+
+                val filteredPermanent = uiState.permanentNotes.filter {
+                    it.title.contains(searchQuery, ignoreCase = true) ||
+                            it.content.contains(searchQuery, ignoreCase = true) ||
+                            it.tags.contains(searchQuery, ignoreCase = true)
+                }
+
                 when (page) {
                     0 -> EnhancedNoteList(
-                        notes = uiState.inboxNotes,
+                        notes = filteredInbox,
                         onNoteClick = onNoteClick,
                         emptyIcon = "📥",
-                        emptyTitle = "Inbox Kosong",
-                        emptyText = "Tekan tombol '+' untuk mencatat ide atau pembelajaran baru"
+                        emptyTitle = if(searchQuery.isEmpty()) "Inbox Kosong" else "Tidak Ditemukan",
+                        emptyText = if(searchQuery.isEmpty()) "Tekan tombol '+' untuk mencatat ide baru" else "Coba kata kunci lain"
                     )
                     1 -> EnhancedNoteList(
-                        notes = uiState.permanentNotes,
+                        notes = filteredPermanent,
                         onNoteClick = onNoteClick,
                         emptyIcon = "📚",
-                        emptyTitle = "Pustaka Kosong",
-                        emptyText = "Arsipkan catatan penting dari Inbox ke Pustaka"
+                        emptyTitle = if(searchQuery.isEmpty()) "Pustaka Kosong" else "Tidak Ditemukan",
+                        emptyText = if(searchQuery.isEmpty()) "Arsipkan catatan dari Inbox ke sini" else "Coba kata kunci lain"
                     )
                 }
             }
@@ -205,7 +223,7 @@ fun EnhancedNoteList(
         }
     } else {
         LazyColumn(
-            contentPadding = PaddingValues(20.dp),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(notes) { note ->
