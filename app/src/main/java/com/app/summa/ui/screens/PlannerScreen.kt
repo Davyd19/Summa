@@ -1,9 +1,10 @@
 package com.app.summa.ui.screens
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -21,15 +22,19 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.Task
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.PlannerUiState
 import com.app.summa.ui.viewmodel.PlannerViewModel
+import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -39,6 +44,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,6 +66,7 @@ fun PlannerScreen(
             .toEpochMilli()
     )
 
+    // Cek apakah ada task awal dari navigasi (misal dari Knowledge)
     LaunchedEffect(uiState.initialTaskTitle) {
         if (uiState.initialTaskTitle != null) {
             showAddTaskDialog = true
@@ -67,7 +74,7 @@ fun PlannerScreen(
     }
 
     if (showFocusMode && selectedTask != null) {
-        FocusModeScreen(
+        PhysicalFocusModeScreen(
             task = selectedTask!!,
             onComplete = { paperclips, startTime ->
                 viewModel.completeTask(selectedTask!!.id)
@@ -99,7 +106,6 @@ fun PlannerScreen(
                         }
                     },
                     actions = {
-                        // Tombol Kalender sekarang memicu Dialog
                         IconButton(onClick = { showDatePicker = true }) {
                             Icon(Icons.Default.Today, contentDescription = "Pilih Tanggal")
                         }
@@ -189,7 +195,6 @@ fun PlannerScreen(
         }
     }
 
-    // Dialog Date Picker
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -241,113 +246,273 @@ fun PlannerScreen(
     }
 }
 
+// --- PHYSICAL PAPERCLIP MODE WITH DRAG & DROP ---
+
 @Composable
-fun CleanDailyView(
-    tasks: List<Task>,
-    onTaskClick: (Task) -> Unit
+fun PhysicalFocusModeScreen(
+    task: Task,
+    onComplete: (Int, Long) -> Unit,
+    onCancel: () -> Unit
 ) {
-    val tasksByHour = remember(tasks) {
-        tasks.groupBy {
-            try {
-                LocalTime.parse(it.scheduledTime ?: "00:00").hour
-            } catch (e: Exception) {
-                0
-            }
+    var timeRemaining by rememberSaveable { mutableIntStateOf(60 * 25) }
+    var paperclipsLeft by rememberSaveable { mutableIntStateOf(10) } // Target 10 klip per sesi
+    var paperclipsMoved by rememberSaveable { mutableIntStateOf(0) }
+    var isRunning by rememberSaveable { mutableStateOf(false) }
+    val startTime by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
+
+    // Drag State
+    var dragOffset by remember { mutableStateOf(Offset.Zero) }
+    var isDragging by remember { mutableStateOf(false) }
+
+    // Animatable offset untuk efek snap-back
+    val animatedOffsetX = remember { Animatable(0f) }
+    val animatedOffsetY = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(isRunning, timeRemaining) {
+        if (isRunning && timeRemaining > 0) {
+            kotlinx.coroutines.delay(1000)
+            timeRemaining--
+        } else if (timeRemaining == 0) {
+            isRunning = false
         }
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(1.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        items(24) { hour ->
-            CleanTimeSlot(
-                hour = hour,
-                tasks = tasksByHour[hour] ?: emptyList(),
-                onTaskClick = onTaskClick
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(onClick = onCancel) {
+                Icon(Icons.Default.Close, contentDescription = "Tutup")
+            }
+            Text(
+                task.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+            TextButton(onClick = { onComplete(paperclipsMoved, startTime) }) {
+                Text("Selesai")
+            }
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        // Timer
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(220.dp)
+                .border(4.dp, DeepTeal.copy(alpha = 0.2f), CircleShape)
+        ) {
+            Text(
+                String.format("%02d:%02d", timeRemaining / 60, timeRemaining % 60),
+                style = MaterialTheme.typography.displayLarge,
+                fontWeight = FontWeight.Bold,
+                color = DeepTeal
             )
         }
+
+        Spacer(Modifier.height(24.dp))
+
+        IconButton(
+            onClick = { isRunning = !isRunning },
+            modifier = Modifier.size(64.dp)
+        ) {
+            Icon(
+                if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                contentDescription = if (isRunning) "Pause" else "Play",
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        Text(
+            "Tarik Klip ke Kanan untuk Fokus ->",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // SOURCE PILE (Draggable Area)
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(100.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(24.dp))
+            ) {
+                if (paperclipsLeft > 0) {
+                    // Draggable Paperclip (Emoji or Icon)
+                    Text(
+                        "📎",
+                        style = MaterialTheme.typography.displayMedium,
+                        modifier = Modifier
+                            .offset {
+                                IntOffset(
+                                    animatedOffsetX.value.roundToInt() + dragOffset.x.roundToInt(),
+                                    animatedOffsetY.value.roundToInt() + dragOffset.y.roundToInt()
+                                )
+                            }
+                            .pointerInput(Unit) {
+                                detectDragGestures(
+                                    onDragStart = {
+                                        isDragging = true
+                                        if(!isRunning) isRunning = true // Otomatis mulai timer
+                                    },
+                                    onDragEnd = {
+                                        isDragging = false
+                                        // LOGIKA DROP: Jika ditarik cukup jauh ke kanan (> 150px)
+                                        if (dragOffset.x > 150) {
+                                            paperclipsLeft--
+                                            paperclipsMoved++
+                                            // Reset posisi seketika untuk klip berikutnya
+                                            scope.launch {
+                                                animatedOffsetX.snapTo(0f)
+                                                animatedOffsetY.snapTo(0f)
+                                            }
+                                            dragOffset = Offset.Zero
+
+                                            if(paperclipsLeft == 0) {
+                                                onComplete(paperclipsMoved, startTime)
+                                            }
+                                        } else {
+                                            // ANIMASI SNAP-BACK (Kembali ke asal jika gagal drop)
+                                            scope.launch {
+                                                val endX = dragOffset.x
+                                                val endY = dragOffset.y
+                                                // Pindahkan beban offset ke Animatable
+                                                animatedOffsetX.snapTo(endX)
+                                                animatedOffsetY.snapTo(endY)
+                                                // Reset dragOffset manual
+                                                dragOffset = Offset.Zero
+                                                // Animate back to 0
+                                                launch { animatedOffsetX.animateTo(0f) }
+                                                launch { animatedOffsetY.animateTo(0f) }
+                                            }
+                                        }
+                                    }
+                                ) { change, dragAmount ->
+                                    change.consume()
+                                    dragOffset += dragAmount
+                                }
+                            }
+                    )
+                } else {
+                    Text("Selesai!", style = MaterialTheme.typography.labelMedium)
+                }
+
+                // Counter Badge
+                Box(modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = CircleShape,
+                        shadowElevation = 2.dp
+                    ) {
+                        Text(
+                            "$paperclipsLeft",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            Icon(
+                Icons.Default.ArrowForward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+            )
+
+            // TARGET PILE (Drop Zone)
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(100.dp)
+                    .background(SuccessGreen.copy(alpha = 0.1f), RoundedCornerShape(24.dp))
+                    .border(2.dp, SuccessGreen.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("📎", style = MaterialTheme.typography.displayMedium, color = SuccessGreen.copy(alpha = 0.5f))
+                    Text(
+                        "$paperclipsMoved",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = SuccessGreen
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(48.dp))
+    }
+}
+
+// --- VIEWS IMPLEMENTATION (FULL LOGIC) ---
+
+@Composable
+fun CleanDailyView(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
+    val tasksByHour = remember(tasks) {
+        tasks.groupBy { try { LocalTime.parse(it.scheduledTime ?: "00:00").hour } catch (e: Exception) { 0 } }
+    }
+    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+        items(24) { hour -> CleanTimeSlot(hour, tasksByHour[hour] ?: emptyList(), onTaskClick) }
     }
 }
 
 @Composable
-fun CleanTimeSlot(
-    hour: Int,
-    tasks: List<Task>,
-    onTaskClick: (Task) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 64.dp)
-    ) {
-        // Time Label
-        Box(
-            modifier = Modifier
-                .width(56.dp)
-                .padding(top = 4.dp),
-            contentAlignment = Alignment.TopStart
-        ) {
+fun CleanTimeSlot(hour: Int, tasks: List<Task>, onTaskClick: (Task) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp)) {
+        Box(modifier = Modifier.width(56.dp).padding(top = 4.dp)) {
             Text(
-                text = String.format("%02d:00", hour),
+                String.format("%02d:00", hour),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
-
-        Spacer(Modifier.width(12.dp))
-
-        // Task Area
         Column(
             modifier = Modifier
                 .weight(1f)
-                .border(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                    RoundedCornerShape(8.dp)
-                )
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            tasks.forEach { task ->
-                CleanTaskCard(
-                    task = task,
-                    onClick = { onTaskClick(task) }
-                )
-            }
+            tasks.forEach { task -> CleanTaskCard(task, onClick = { onTaskClick(task) }) }
         }
     }
 }
 
 @Composable
-fun CleanTaskCard(
-    task: Task,
-    onClick: () -> Unit
-) {
+fun CleanTaskCard(task: Task, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (task.isCommitment)
-                DeepTeal.copy(alpha = 0.1f)
-            else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (task.isCommitment) DeepTeal.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(
             1.dp,
-            if (task.isCommitment) DeepTeal.copy(alpha = 0.3f)
-            else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+            if (task.isCommitment) DeepTeal.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
         )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Status Indicator
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(8.dp)
@@ -358,15 +523,9 @@ fun CleanTaskCard(
                         else MaterialTheme.colorScheme.outline
                     )
             )
-
             Spacer(Modifier.width(12.dp))
-
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    task.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
+                Text(task.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 if (task.scheduledTime != null) {
                     Text(
                         task.scheduledTime,
@@ -375,25 +534,17 @@ fun CleanTaskCard(
                     )
                 }
             }
-
-            if (task.isCompleted) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = "Selesai",
-                    tint = SuccessGreen,
-                    modifier = Modifier.size(20.dp)
-                )
-            } else {
-                Icon(
-                    Icons.Default.ArrowForward,
-                    contentDescription = "Mulai",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+            Icon(
+                if (task.isCompleted) Icons.Default.CheckCircle else Icons.Default.ArrowForward,
+                null,
+                tint = if (task.isCompleted) SuccessGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }
+
+// --- FULLY IMPLEMENTED WEEKLY VIEW ---
 
 @Composable
 fun CleanWeeklyView(
@@ -402,40 +553,32 @@ fun CleanWeeklyView(
     onTaskClick: (Task) -> Unit
 ) {
     val selectedDate = uiState.selectedDate
+    // Tentukan hari pertama dalam minggu (Senin)
     val firstDayOfWeek = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-    val weekDays = remember(firstDayOfWeek) {
-        (0..6).map { firstDayOfWeek.plusDays(it.toLong()) }
-    }
+    // Buat list 7 hari ke depan
+    val weekDays = remember(firstDayOfWeek) { (0..6).map { firstDayOfWeek.plusDays(it.toLong()) } }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Week Navigation
+        // Header Navigasi Minggu
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = {
-                viewModel.selectDate(firstDayOfWeek.minusWeeks(1))
-            }) {
+            IconButton(onClick = { viewModel.selectDate(firstDayOfWeek.minusWeeks(1)) }) {
                 Icon(Icons.Default.ChevronLeft, contentDescription = "Minggu Sebelumnya")
             }
-
             Text(
                 "${firstDayOfWeek.format(DateTimeFormatter.ofPattern("d MMM"))} - ${weekDays.last().format(DateTimeFormatter.ofPattern("d MMM"))}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
-
-            IconButton(onClick = {
-                viewModel.selectDate(firstDayOfWeek.plusWeeks(1))
-            }) {
+            IconButton(onClick = { viewModel.selectDate(firstDayOfWeek.plusWeeks(1)) }) {
                 Icon(Icons.Default.ChevronRight, contentDescription = "Minggu Berikutnya")
             }
         }
 
-        // Days Row
+        // Baris Hari (Horizontal Scroll)
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 16.dp),
@@ -452,21 +595,26 @@ fun CleanWeeklyView(
         }
 
         Spacer(Modifier.height(16.dp))
+        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-        // Tasks for Selected Day
+        // Daftar Tugas untuk Hari yang DIPILIH
         LazyColumn(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (uiState.tasksForDay.isEmpty()) {
                 item {
-                    Text(
-                        "Tidak ada tugas",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Tidak ada tugas untuk tanggal ini",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             } else {
                 items(uiState.tasksForDay) { task ->
@@ -478,15 +626,9 @@ fun CleanWeeklyView(
 }
 
 @Composable
-fun CleanDayCell(
-    date: LocalDate,
-    isSelected: Boolean,
-    isToday: Boolean,
-    onClick: () -> Unit
-) {
+fun CleanDayCell(date: LocalDate, isSelected: Boolean, isToday: Boolean, onClick: () -> Unit) {
     val dayName = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("id"))
     val dayNumber = date.dayOfMonth.toString()
-
     Card(
         onClick = onClick,
         modifier = Modifier.width(60.dp),
@@ -499,38 +641,16 @@ fun CleanDayCell(
             }
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(
-            1.dp,
-            when {
-                isSelected -> MaterialTheme.colorScheme.primary
-                isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                else -> MaterialTheme.colorScheme.outlineVariant
-            }
-        )
+        border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                dayName,
-                style = MaterialTheme.typography.labelSmall,
-                color = if (isSelected) Color.White
-                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                dayNumber,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = if (isSelected) Color.White
-                else MaterialTheme.colorScheme.onSurface
-            )
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(dayName, style = MaterialTheme.typography.labelSmall, color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+            Text(dayNumber, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface)
         }
     }
 }
+
+// --- FULLY IMPLEMENTED MONTHLY VIEW ---
 
 @Composable
 fun CleanMonthlyView(
@@ -538,116 +658,100 @@ fun CleanMonthlyView(
     uiState: PlannerUiState,
     onTaskClick: (Task) -> Unit
 ) {
+    // Kelompokkan tugas bulan ini berdasarkan tanggal untuk indikator titik
     val tasksByDate = remember(uiState.tasksForMonth) {
-        uiState.tasksForMonth.groupBy {
-            try {
-                LocalDate.parse(it.scheduledDate)
-            } catch (e: Exception) {
-                null
-            }
-        }
+        uiState.tasksForMonth.groupBy { try { LocalDate.parse(it.scheduledDate) } catch (e: Exception) { null } }
     }
 
     val firstDayOfMonth = uiState.selectedDate.with(TemporalAdjusters.firstDayOfMonth())
-    val firstDayOfWeekValue = firstDayOfMonth.dayOfWeek.value
-    val paddingDays = (firstDayOfWeekValue - DayOfWeek.MONDAY.value + 7) % 7
+    // Hitung padding hari (misal tgl 1 hari Rabu, berarti Senin & Selasa kosong)
+    val paddingDays = (firstDayOfMonth.dayOfWeek.value - DayOfWeek.MONDAY.value + 7) % 7
     val daysInMonth = firstDayOfMonth.lengthOfMonth()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Month Navigation
+        // Header Navigasi Bulan
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = {
-                viewModel.selectDate(firstDayOfMonth.minusMonths(1))
-            }) {
-                Icon(Icons.Default.ChevronLeft, contentDescription = "Bulan Sebelumnya")
+            IconButton(onClick = { viewModel.selectDate(firstDayOfMonth.minusMonths(1)) }) {
+                Icon(Icons.Default.ChevronLeft, "Bulan Sebelumnya")
             }
-
             Text(
                 firstDayOfMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale("id"))),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-
-            IconButton(onClick = {
-                viewModel.selectDate(firstDayOfMonth.plusMonths(1))
-            }) {
-                Icon(Icons.Default.ChevronRight, contentDescription = "Bulan Berikutnya")
+            IconButton(onClick = { viewModel.selectDate(firstDayOfMonth.plusMonths(1)) }) {
+                Icon(Icons.Default.ChevronRight, "Bulan Berikutnya")
             }
         }
 
-        // Calendar Grid
+        // Grid Kalender
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Day Headers
+            // Header Nama Hari
             items(7) { index ->
-                val dayName = DayOfWeek.of(index + 1).getDisplayName(TextStyle.SHORT, Locale("id"))
                 Text(
-                    dayName,
+                    DayOfWeek.of(index + 1).getDisplayName(TextStyle.SHORT, Locale("id")),
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
 
-            // Empty cells
-            items(paddingDays) {
-                Box(modifier = Modifier.aspectRatio(1f))
-            }
+            // Sel Kosong (Padding)
+            items(paddingDays) { Box(modifier = Modifier.aspectRatio(1f)) }
 
-            // Date cells
+            // Sel Tanggal
             items(daysInMonth) { dayIndex ->
-                val dayOfMonth = dayIndex + 1
                 val currentDate = firstDayOfMonth.plusDays(dayIndex.toLong())
                 val tasksOnDay = tasksByDate[currentDate] ?: emptyList()
-                val isToday = currentDate.isEqual(LocalDate.now())
-                val isSelected = currentDate.isEqual(uiState.selectedDate)
 
                 CleanCalendarCell(
-                    day = dayOfMonth,
+                    day = dayIndex + 1,
                     taskCount = tasksOnDay.size,
-                    isToday = isToday,
-                    isSelected = isSelected,
+                    isToday = currentDate.isEqual(LocalDate.now()),
+                    isSelected = currentDate.isEqual(uiState.selectedDate),
                     onClick = { viewModel.selectDate(currentDate) }
                 )
             }
         }
 
         Spacer(Modifier.height(16.dp))
+        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-        // Tasks for Selected Date
+        // Judul Section Daftar Tugas
         Text(
             "Tugas pada ${uiState.selectedDate.format(DateTimeFormatter.ofPattern("dd MMMM", Locale("id")))}",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
-        Spacer(Modifier.height(8.dp))
-
+        // Daftar Tugas di bawah Kalender
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (uiState.tasksForDay.isEmpty()) {
                 item {
-                    Text(
-                        "Tidak ada tugas",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Tidak ada tugas",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
                 }
             } else {
                 items(uiState.tasksForDay) { task ->
@@ -659,60 +763,44 @@ fun CleanMonthlyView(
 }
 
 @Composable
-fun CleanCalendarCell(
-    day: Int,
-    taskCount: Int,
-    isToday: Boolean,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
+fun CleanCalendarCell(day: Int, taskCount: Int, isToday: Boolean, isSelected: Boolean, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.aspectRatio(1f),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = when {
-                isSelected -> MaterialTheme.colorScheme.primary
-                isToday -> MaterialTheme.colorScheme.primaryContainer
-                else -> Color.Transparent
-            }
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primary
+            else if (isToday) MaterialTheme.colorScheme.primaryContainer
+            else Color.Transparent
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(
             1.dp,
-            when {
-                isSelected -> MaterialTheme.colorScheme.primary
-                isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-            }
+            if (isSelected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
         )
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(4.dp),
+            modifier = Modifier.fillMaxSize().padding(4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Text(
                 day.toString(),
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
-                color = if (isSelected) Color.White
-                else MaterialTheme.colorScheme.onSurface
+                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal
             )
+
+            // Indikator Titik jika ada tugas
             if (taskCount > 0) {
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     repeat(minOf(taskCount, 3)) {
                         Box(
                             modifier = Modifier
                                 .size(4.dp)
                                 .clip(CircleShape)
-                                .background(
-                                    if (isSelected) Color.White
-                                    else DeepTeal
-                                )
+                                .background(if (isSelected) Color.White else DeepTeal)
                         )
                     }
                 }
@@ -799,157 +887,4 @@ fun CleanAddTaskDialog(
             }
         }
     )
-}
-
-@Composable
-fun FocusModeScreen(
-    task: Task,
-    onComplete: (Int, Long) -> Unit, // (paperclips, startTime)
-    onCancel: () -> Unit
-) {
-    // State bertahan saat rotasi layar
-    var timeRemaining by rememberSaveable { mutableIntStateOf(60 * 25) }
-    var paperclipsLeft by rememberSaveable { mutableIntStateOf(10) }
-    var paperclipsMoved by rememberSaveable { mutableIntStateOf(0) }
-    var isRunning by rememberSaveable { mutableStateOf(false) }
-
-    // Catat waktu mulai (hanya sekali saat pertama dibuka)
-    val startTime by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
-
-    LaunchedEffect(isRunning, timeRemaining) {
-        if (isRunning && timeRemaining > 0) {
-            kotlinx.coroutines.delay(1000)
-            timeRemaining--
-        } else if (timeRemaining == 0) {
-            isRunning = false
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IconButton(onClick = onCancel) {
-                Icon(Icons.Default.Close, contentDescription = "Tutup")
-            }
-            Text(
-                task.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            TextButton(onClick = {
-                // Kirim data saat selesai manual
-                onComplete(paperclipsMoved, startTime)
-            }) {
-                Text("Selesai")
-            }
-        }
-
-        Spacer(Modifier.height(48.dp))
-
-        // Timer
-        Text(
-            String.format("%02d:%02d", timeRemaining / 60, timeRemaining % 60),
-            style = MaterialTheme.typography.displayLarge,
-            fontWeight = FontWeight.Bold,
-            color = DeepTeal
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        IconButton(
-            onClick = { isRunning = !isRunning },
-            modifier = Modifier.size(64.dp)
-        ) {
-            Icon(
-                if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = if (isRunning) "Pause" else "Play",
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-
-        Spacer(Modifier.weight(1f))
-
-        // Paperclip Progress
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            PaperclipCounter("Tersisa", paperclipsLeft, DeepTeal)
-            PaperclipCounter("Selesai", paperclipsMoved, SuccessGreen)
-        }
-
-        Spacer(Modifier.height(32.dp))
-
-        // Move Button
-        Button(
-            onClick = {
-                if (paperclipsLeft > 0) {
-                    paperclipsLeft--
-                    paperclipsMoved++
-                    if (!isRunning) isRunning = true
-                }
-                if (paperclipsLeft == 0) {
-                    // Otomatis selesai jika klip habis
-                    onComplete(paperclipsMoved, startTime)
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp),
-            shape = RoundedCornerShape(16.dp),
-            enabled = paperclipsLeft > 0
-        ) {
-            Text(
-                "PINDAHKAN 1 KLIP 📎",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Composable
-fun PaperclipCounter(label: String, count: Int, color: Color) {
-    Card(
-        modifier = Modifier.width(140.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.1f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.5.dp, color.copy(alpha = 0.3f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                "📎",
-                style = MaterialTheme.typography.headlineLarge
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                count.toString(),
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
-            Text(
-                label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-        }
-    }
 }

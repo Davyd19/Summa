@@ -19,9 +19,16 @@ data class DailySummary(
     val completedTasks: List<Task>
 )
 
+data class VoteSuggestion(
+    val identity: Identity,
+    val reason: String, // "Karena kamu menyelesaikan Lari Pagi"
+    val points: Int = 10
+)
+
 data class ReflectionUiState(
     val summary: DailySummary? = null,
     val identities: List<Identity> = emptyList(),
+    val suggestions: List<VoteSuggestion> = emptyList(), // SMART SUGGESTIONS
     val reflectionText: String = "",
     val isLoading: Boolean = true
 )
@@ -40,9 +47,10 @@ class ReflectionViewModel @Inject constructor(
         viewModelScope.launch {
             identityRepository.getAllIdentities().collect { identities ->
                 _uiState.update { it.copy(identities = identities) }
+                // Regenerate suggestions when identities load
+                loadSummaryData()
             }
         }
-        loadSummaryData()
     }
 
     private fun loadSummaryData() {
@@ -53,6 +61,7 @@ class ReflectionViewModel @Inject constructor(
             val todayHabitLogs = habitRepository.getLogsForDate(today).first()
             val todayTasks = taskRepository.getTasksByDate(today).first()
             val allHabits = habitRepository.getAllHabits().first()
+            val allIdentities = _uiState.value.identities
 
             val completedHabits = allHabits.filter { habit ->
                 val log = todayHabitLogs.find { it.habitId == habit.id }
@@ -60,9 +69,45 @@ class ReflectionViewModel @Inject constructor(
             }
             val completedTasks = todayTasks.filter { it.isCompleted }
 
+            // --- LOGIKA SMART SUGGESTION ---
+            val suggestions = mutableListOf<VoteSuggestion>()
+
+            // 1. Suggestion dari Habit yang terhubung Identitas
+            completedHabits.forEach { habit ->
+                if (habit.relatedIdentityId != null) {
+                    val identity = allIdentities.find { it.id == habit.relatedIdentityId }
+                    if (identity != null) {
+                        suggestions.add(
+                            VoteSuggestion(
+                                identity = identity,
+                                reason = "Menyelesaikan habit ${habit.icon} ${habit.name}"
+                            )
+                        )
+                    }
+                }
+            }
+
+            // 2. Suggestion Generik untuk Task
+            if (completedTasks.isNotEmpty()) {
+                // Cari identitas "Produktif" atau ambil yang pertama sebagai fallback
+                val productiveIdentity = allIdentities.find { it.name.contains("Produktif", ignoreCase = true) }
+                    ?: allIdentities.firstOrNull()
+
+                if (productiveIdentity != null) {
+                    suggestions.add(
+                        VoteSuggestion(
+                            identity = productiveIdentity,
+                            reason = "Menyelesaikan ${completedTasks.size} tugas hari ini",
+                            points = completedTasks.size * 2
+                        )
+                    )
+                }
+            }
+
             _uiState.update {
                 it.copy(
                     summary = DailySummary(completedHabits, completedTasks),
+                    suggestions = suggestions,
                     isLoading = false
                 )
             }
@@ -71,10 +116,11 @@ class ReflectionViewModel @Inject constructor(
 
     fun addVote(identity: Identity, points: Int, note: String) {
         viewModelScope.launch {
-            // --- PERUBAHAN ---
-            // Sekarang kita teruskan 'note' ke repository
             identityRepository.addVoteToIdentity(identity.id, points, note)
-            // -----------------
+            // Hapus suggestion setelah divote agar tidak duplikat (opsional UX)
+            _uiState.update { state ->
+                state.copy(suggestions = state.suggestions.filter { it.identity.id != identity.id })
+            }
         }
     }
 

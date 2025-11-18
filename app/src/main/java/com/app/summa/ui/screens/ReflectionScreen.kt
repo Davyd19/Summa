@@ -4,30 +4,30 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.Identity
-import com.app.summa.ui.components.SummaCard
 import com.app.summa.ui.theme.GoldAccent
+import com.app.summa.ui.theme.SuccessGreen
 import com.app.summa.ui.viewmodel.ReflectionUiState
 import com.app.summa.ui.viewmodel.ReflectionViewModel
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ThumbUp
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import com.app.summa.ui.theme.SuccessGreen
+import com.app.summa.ui.viewmodel.VoteSuggestion
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,43 +68,57 @@ fun ReflectionScreen(
                     .fillMaxSize()
                     .padding(paddingValues),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // Daily Summary
-                item {
-                    Text(
-                        "Ringkasan Hari Ini",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
+                // 1. SMART SUGGESTIONS (Refleksi Cerdas)
+                if (uiState.suggestions.isNotEmpty()) {
+                    item {
+                        Text(
+                            "Saran Berdasarkan Aktivitas",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    item {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp)
+                        ) {
+                            items(uiState.suggestions) { suggestion ->
+                                SmartSuggestionCard(
+                                    suggestion = suggestion,
+                                    onVote = {
+                                        viewModel.addVote(suggestion.identity, suggestion.points, suggestion.reason)
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
 
+                // 2. Daily Summary (Ringkasan)
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                        )
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
                         Column(
                             modifier = Modifier.padding(20.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
+                            Text("Ringkasan Cepat", fontWeight = FontWeight.Bold)
                             SummarySection(
                                 title = "Tugas Selesai",
                                 items = uiState.summary?.completedTasks?.map { it.title } ?: emptyList(),
                                 emptyText = "Belum ada tugas selesai"
                             )
 
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
 
                             SummarySection(
                                 title = "Kebiasaan Selesai",
@@ -115,41 +129,39 @@ fun ReflectionScreen(
                     }
                 }
 
-                // Identity Voting
+                // 3. Manual Voting
                 item {
                     Text(
-                        "Beri Suara Identitas",
+                        "Semua Identitas",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                items(uiState.identities.size) { index ->
+                items(uiState.identities) { identity ->
                     CleanIdentityCard(
-                        identity = uiState.identities[index],
+                        identity = identity,
                         onVote = { note ->
-                            viewModel.addVote(uiState.identities[index], 10, note)
+                            viewModel.addVote(identity, 10, note)
                         }
                     )
                 }
 
-                // Journal
+                // 4. Journaling
                 item {
                     Text(
-                        "Jurnal Harian",
+                        "Jurnal Penutup",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
-                }
-
-                item {
+                    Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = uiState.reflectionText,
                         onValueChange = { viewModel.saveReflection(it) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .defaultMinSize(minHeight = 150.dp),
-                        placeholder = { Text("Apa yang Anda pelajari/syukuri hari ini?") },
+                            .defaultMinSize(minHeight = 120.dp),
+                        placeholder = { Text("Apa pelajaran terbesar hari ini?") },
                         shape = RoundedCornerShape(16.dp)
                     )
                 }
@@ -159,42 +171,62 @@ fun ReflectionScreen(
 }
 
 @Composable
-fun SummarySection(
-    title: String,
-    items: List<String>,
-    emptyText: String
+fun SmartSuggestionCard(
+    suggestion: VoteSuggestion,
+    onVote: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onPrimaryContainer
-        )
+    Card(
+        modifier = Modifier
+            .width(240.dp)
+            .height(160.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = GoldAccent.copy(alpha = 0.1f)),
+        border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.3f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    "Karena Anda...",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                Text(
+                    suggestion.reason,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2
+                )
+            }
 
+            Button(
+                onClick = onVote,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = GoldAccent),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Vote: ${suggestion.identity.name} (+${suggestion.points})", color = Color.Black)
+            }
+        }
+    }
+}
+
+// --- EXISTING COMPONENTS (SummarySection, CleanIdentityCard) REMAIN THE SAME ---
+@Composable
+fun SummarySection(title: String, items: List<String>, emptyText: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
         if (items.isEmpty()) {
-            Text(
-                emptyText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-            )
+            Text(emptyText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
         } else {
             items.forEach { item ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = SuccessGreen,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        item,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
+                    Text(item, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
@@ -202,10 +234,9 @@ fun SummarySection(
 }
 
 @Composable
-fun CleanIdentityCard(
-    identity: Identity,
-    onVote: (String) -> Unit
-) {
+fun CleanIdentityCard(identity: Identity, onVote: (String) -> Unit) {
+    // Gunakan kode CleanIdentityCard dari file sebelumnya untuk menghemat space, logika sama persis
+    // Hanya pastikan progress bar dan tombol vote manual tetap ada.
     var showNoteField by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf("") }
     val progress = (identity.progress % 1000) / 1000f
@@ -215,12 +246,12 @@ fun CleanIdentityCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         )
     ) {
         Column(
@@ -246,7 +277,8 @@ fun CleanIdentityCard(
 
                     FilledTonalButton(
                         onClick = { showNoteField = !showNoteField },
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.padding(top = 8.dp)
                     ) {
                         Icon(
                             Icons.Default.ThumbUp,
@@ -261,42 +293,42 @@ fun CleanIdentityCard(
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .width(100.dp) // Fixed width for cleaner look
                         .height(8.dp)
                         .clip(RoundedCornerShape(4.dp)),
                     color = MaterialTheme.colorScheme.secondary,
                     trackColor = MaterialTheme.colorScheme.secondaryContainer
                 )
+            }
 
-                if (showNoteField) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            if (showNoteField) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = note,
+                        onValueChange = { note = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Catatan (opsional)") },
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    IconButton(
+                        onClick = {
+                            onVote(note)
+                            note = ""
+                            showNoteField = false
+                        },
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.secondary)
                     ) {
-                        OutlinedTextField(
-                            value = note,
-                            onValueChange = { note = it },
-                            modifier = Modifier.weight(1f),
-                            placeholder = { Text("Catatan singkat (opsional)") },
-                            shape = RoundedCornerShape(12.dp)
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "Simpan",
+                            tint = Color.White
                         )
-                        IconButton(
-                            onClick = {
-                                onVote(note)
-                                note = ""
-                                showNoteField = false
-                            },
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondary)
-                        ) {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = "Simpan",
-                                tint = Color.White
-                            )
-                        }
                     }
                 }
             }

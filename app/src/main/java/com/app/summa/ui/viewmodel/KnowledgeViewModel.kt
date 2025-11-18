@@ -14,6 +14,8 @@ data class KnowledgeUiState(
     val inboxNotes: List<KnowledgeNote> = emptyList(),
     val permanentNotes: List<KnowledgeNote> = emptyList(),
     val selectedNote: KnowledgeNote? = null,
+    // List catatan yang terhubung dengan catatan yang sedang dipilih
+    val linkedNotes: List<KnowledgeNote> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -28,6 +30,10 @@ class KnowledgeViewModel @Inject constructor(
     val uiState: StateFlow<KnowledgeUiState> = _uiState.asStateFlow()
 
     private val noteId: Long = savedStateHandle.get<Long>("noteId") ?: 0L
+
+    // State untuk pencarian saat linking
+    private val _searchResults = MutableStateFlow<List<KnowledgeNote>>(emptyList())
+    val searchResults: StateFlow<List<KnowledgeNote>> = _searchResults.asStateFlow()
 
     init {
         if (noteId > 0) {
@@ -52,7 +58,7 @@ class KnowledgeViewModel @Inject constructor(
                 .catch { e ->
                     _uiState.update { it.copy(isLoading = false, error = e.message) }
                 }
-                .collect() // Mulai flow
+                .collect()
         }
     }
 
@@ -64,31 +70,90 @@ class KnowledgeViewModel @Inject constructor(
                 }
                 .collect { note ->
                     _uiState.update { it.copy(isLoading = false, selectedNote = note) }
+                    // Jika ada linked IDs, muat detail catatan-catatan tersebut
+                    if (note != null && note.linkedNoteIds.isNotEmpty()) {
+                        loadLinkedNotes(note.linkedNoteIds)
+                    }
                 }
         }
     }
 
-    fun saveNote(title: String, content: String) {
+    private fun loadLinkedNotes(idsString: String) {
+        viewModelScope.launch {
+            val ids = idsString.split(",").mapNotNull { it.trim().toLongOrNull() }
+            // Di real app, buat query WHERE id IN (:ids).
+            // Di sini kita filter manual dari flow yang ada untuk simplifikasi
+            val allNotes = repository.getPermanentNotes().first() + repository.getInboxNotes().first()
+            val linked = allNotes.filter { it.id in ids }
+            _uiState.update { it.copy(linkedNotes = linked) }
+        }
+    }
+
+    fun searchNotesForLinking(query: String) {
+        viewModelScope.launch {
+            if (query.isBlank()) {
+                _searchResults.value = emptyList()
+                return@launch
+            }
+            val allNotes = repository.getPermanentNotes().first() + repository.getInboxNotes().first()
+            _searchResults.value = allNotes.filter {
+                (it.title.contains(query, ignoreCase = true) || it.content.contains(query, ignoreCase = true))
+                        && it.id != _uiState.value.selectedNote?.id // Jangan link ke diri sendiri
+            }
+        }
+    }
+
+    fun addLink(targetNote: KnowledgeNote) {
+        val currentNote = _uiState.value.selectedNote ?: return
+        val currentIds = currentNote.linkedNoteIds.split(",").filter { it.isNotBlank() }.toMutableList()
+
+        if (!currentIds.contains(targetNote.id.toString())) {
+            currentIds.add(targetNote.id.toString())
+            val newIdsString = currentIds.joinToString(",")
+
+            saveNote(
+                title = currentNote.title,
+                content = currentNote.content,
+                linkedNoteIds = newIdsString // Update IDs
+            )
+        }
+    }
+
+    fun removeLink(noteToRemove: KnowledgeNote) {
+        val currentNote = _uiState.value.selectedNote ?: return
+        val currentIds = currentNote.linkedNoteIds.split(",").filter { it.isNotBlank() }.toMutableList()
+
+        if (currentIds.remove(noteToRemove.id.toString())) {
+            val newIdsString = currentIds.joinToString(",")
+            saveNote(
+                title = currentNote.title,
+                content = currentNote.content,
+                linkedNoteIds = newIdsString
+            )
+        }
+    }
+
+    fun saveNote(title: String, content: String, linkedNoteIds: String? = null) {
         viewModelScope.launch {
             val note = _uiState.value.selectedNote
             val currentTime = System.currentTimeMillis()
 
             if (note != null) {
-                // Update catatan yang ada
                 repository.updateNote(
                     note.copy(
                         title = title,
                         content = content,
+                        linkedNoteIds = linkedNoteIds ?: note.linkedNoteIds, // Pertahankan link lama jika null
                         updatedAt = currentTime
                     )
                 )
             } else {
-                // Buat catatan baru (selalu masuk ke Inbox dulu)
                 repository.saveNote(
                     KnowledgeNote(
                         title = title,
                         content = content,
-                        isPermanent = false, // Baru selalu di Inbox
+                        linkedNoteIds = linkedNoteIds ?: "",
+                        isPermanent = false,
                         createdAt = currentTime,
                         updatedAt = currentTime
                     )
