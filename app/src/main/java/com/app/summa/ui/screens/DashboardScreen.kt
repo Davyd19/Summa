@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.ui.model.HabitItem
@@ -49,7 +50,7 @@ fun DashboardScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 100.dp, top = 0.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Modern Header with animated greeting
             item {
@@ -182,56 +183,57 @@ fun ModernHeader(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 24.dp)
+            .padding(horizontal = 20.dp, vertical = 32.dp)
     ) {
-        // Greeting with fade-in animation
         var visible by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) { visible = true }
 
         androidx.compose.animation.AnimatedVisibility(
             visible = visible,
-            enter = androidx.compose.animation.fadeIn(tween(600)) +
-                    androidx.compose.animation.slideInVertically(tween(600)) { -20 }
+            enter = androidx.compose.animation.fadeIn(tween(800)) +
+                    androidx.compose.animation.slideInVertically(tween(800)) { -20 }
         ) {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = "$greeting 👋",
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
-                Spacer(Modifier.height(8.dp))
+
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Mari kita mulai hari yang produktif",
-                        style = MaterialTheme.typography.bodyLarge,
+                        text = "Mari mulai hari produktif",
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
 
-                    // Mode badge
+                    // Mode badge with better styling
                     Surface(
                         onClick = onModeClick,
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(24.dp),
                         color = MaterialTheme.colorScheme.primaryContainer,
-                        tonalElevation = 0.dp
+                        tonalElevation = 2.dp
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 Icons.Default.Tune,
                                 contentDescription = null,
-                                modifier = Modifier.size(14.dp),
+                                modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Text(
                                 currentMode,
-                                style = MaterialTheme.typography.labelMedium,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
@@ -268,22 +270,21 @@ fun ModernPointsCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 8.dp,
-            pressedElevation = 4.dp
+            defaultElevation = 12.dp
         )
     ) {
         Box {
             // Decorative circles with subtle animation
             val scale by rememberInfiniteTransition(label = "circle").animateFloat(
                 initialValue = 1f,
-                targetValue = 1.1f,
+                targetValue = 1.15f,
                 animationSpec = infiniteRepeatable(
-                    animation = tween(3000, easing = FastOutSlowInEasing),
+                    animation = tween(4000, easing = FastOutSlowInEasing),
                     repeatMode = RepeatMode.Reverse
                 ),
                 label = "scale"
@@ -291,81 +292,112 @@ fun ModernPointsCard(
 
             Box(
                 modifier = Modifier
-                    .size(180.dp)
-                    .offset(x = 220.dp, y = (-40).dp)
+                    .size(200.dp)
+                    .offset(x = 220.dp, y = (-50).dp)
                     .scale(scale)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.1f))
+                    .background(Color.White.copy(alpha = 0.08f))
             )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(28.dp)
+                    .padding(32.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         Text(
                             "Summa Points",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = Color.White.copy(alpha = 0.9f)
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White.copy(alpha = 0.9f),
+                            fontWeight = FontWeight.Medium
                         )
-                        Spacer(Modifier.height(12.dp))
                         Text(
                             animatedPoints.toString(),
-                            style = MaterialTheme.typography.displayMedium,
+                            style = MaterialTheme.typography.displayLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                     }
 
-                    // Modern circular progress
+                    // Modern circular progress dengan glow effect
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(88.dp)
+                        modifier = Modifier.size(100.dp)
                     ) {
+                        // Background circle
+                        CircularProgressIndicator(
+                            progress = { 1f },
+                            modifier = Modifier.fillMaxSize(),
+                            color = Color.White.copy(alpha = 0.15f),
+                            strokeWidth = 10.dp,
+                            trackColor = Color.Transparent,
+                            strokeCap = StrokeCap.Round
+                        )
+                        // Progress circle
                         CircularProgressIndicator(
                             progress = { animatedProgress },
                             modifier = Modifier.fillMaxSize(),
                             color = GoldAccent,
-                            strokeWidth = 8.dp,
-                            trackColor = Color.White.copy(alpha = 0.2f),
+                            strokeWidth = 10.dp,
+                            trackColor = Color.Transparent,
                             strokeCap = StrokeCap.Round
                         )
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
                             Text(
                                 "${(animatedProgress * 100).toInt()}%",
-                                style = MaterialTheme.typography.titleLarge,
+                                style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
+                            )
+                            Text(
+                                "hari ini",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.8f)
                             )
                         }
                     }
                 }
 
-                Spacer(Modifier.height(24.dp))
+                // Modern progress bar dengan label
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "Target Harian",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                        Text(
+                            "${(animatedProgress * 100).toInt()}% selesai",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = GoldAccent
+                        )
+                    }
 
-                // Modern progress bar
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     LinearProgressIndicator(
                         progress = { animatedProgress },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(10.dp)
-                            .clip(RoundedCornerShape(5.dp)),
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(6.dp)),
                         color = GoldAccent,
                         trackColor = Color.White.copy(alpha = 0.2f),
                         strokeCap = StrokeCap.Round
-                    )
-
-                    Text(
-                        "Target harian tercapai ${(animatedProgress * 100).toInt()}%",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.9f)
                     )
                 }
             }
@@ -380,83 +412,118 @@ fun ModernNextActionCard(
     onAddTask: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val gradient = if (task != null) {
+        Brush.horizontalGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.secondaryContainer,
+                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+            )
+        )
+    } else {
+        Brush.horizontalGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.surfaceVariant,
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+            )
+        )
+    }
+
     Card(
         onClick = if (task != null) onStartFocus else onAddTask,
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (task != null)
-                MaterialTheme.colorScheme.secondaryContainer
-            else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = Color.Transparent
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                .background(gradient)
         ) {
-            // Animated icon
-            val scale by rememberInfiniteTransition(label = "icon").animateFloat(
-                initialValue = 1f,
-                targetValue = 1.1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(1000),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "scale"
-            )
-
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(60.dp)
-                    .scale(if (task != null) scale else 1f)
-                    .clip(CircleShape)
-                    .background(
-                        if (task != null)
-                            MaterialTheme.colorScheme.secondary
-                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                    ),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                Icon(
-                    if (task != null) Icons.Default.PlayArrow else Icons.Default.Add,
-                    contentDescription = null,
-                    tint = if (task != null) Color.White
-                    else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(30.dp)
+                // Animated pulsing icon
+                val scale by rememberInfiniteTransition(label = "icon").animateFloat(
+                    initialValue = 1f,
+                    targetValue = if (task != null) 1.15f else 1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(1200, easing = EaseInOut),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "scale"
                 )
-            }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    if (task != null) "Selanjutnya" else "Mulai Hari",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    task?.title ?: "Tambah tugas pertama",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                if (task?.scheduledTime != null) {
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        task.scheduledTime,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                Box(
+                    modifier = Modifier
+                        .size(68.dp)
+                        .scale(scale)
+                        .clip(CircleShape)
+                        .background(
+                            if (task != null)
+                                MaterialTheme.colorScheme.secondary
+                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        if (task != null) Icons.Default.PlayArrow else Icons.Default.Add,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(36.dp)
                     )
                 }
-            }
 
-            Icon(
-                Icons.Default.ArrowForward,
-                contentDescription = "Mulai",
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-            )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        if (task != null) "Selanjutnya" else "Mulai Hari",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        task?.title ?: "Tambah tugas pertama",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (task?.scheduledTime != null) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Schedule,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                            Text(
+                                task.scheduledTime,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                }
+
+                Icon(
+                    Icons.Default.ArrowForward,
+                    contentDescription = "Mulai",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
         }
     }
 }
@@ -471,48 +538,79 @@ fun ModernHabitCard(
         (habit.currentCount.toFloat() / habit.targetCount).coerceAtMost(1f)
     } else 0f
 
+    // Gentle scale animation on complete
+    val scale by animateFloatAsState(
+        targetValue = if (isComplete) 1.02f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "scale"
+    )
+
     Card(
         onClick = onClick,
         modifier = Modifier
-            .width(160.dp)
+            .width(180.dp)
+            .scale(scale)
             .animateContentSize(),
-        shape = MaterialTheme.shapes.large,
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isComplete)
-                SuccessGreen.copy(alpha = 0.12f)
+                SuccessGreen.copy(alpha = 0.1f)
             else MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isComplete) 6.dp else 2.dp
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Start
+                verticalAlignment = Alignment.Top
             ) {
-                Text(
-                    habit.icon,
-                    style = MaterialTheme.typography.headlineMedium
-                )
+                // Emoji dengan background gradient
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                colors = if (isComplete) {
+                                    listOf(SuccessGreen.copy(alpha = 0.2f), SuccessGreen.copy(alpha = 0.1f))
+                                } else {
+                                    listOf(
+                                        MaterialTheme.colorScheme.primaryContainer,
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                    )
+                                }
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        habit.icon,
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                }
+
                 if (habit.currentStreak > 0) {
                     Surface(
-                        shape = CircleShape,
+                        shape = RoundedCornerShape(12.dp),
                         color = StreakOrange.copy(alpha = 0.15f)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("🔥", style = MaterialTheme.typography.labelSmall)
+                            Text("🔥", style = MaterialTheme.typography.labelMedium)
                             Text(
                                 "${habit.currentStreak}",
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = StreakOrange
                             )
@@ -523,21 +621,22 @@ fun ModernHabitCard(
 
             Text(
                 habit.name,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
-                maxLines = 2
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         if (habit.targetCount > 1) "${habit.currentCount}/${habit.targetCount}"
                         else "${habit.currentCount}",
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.Bold,
                         color = if (isComplete) SuccessGreen
                         else MaterialTheme.colorScheme.primary
@@ -547,7 +646,7 @@ fun ModernHabitCard(
                             Icons.Default.CheckCircle,
                             contentDescription = "Selesai",
                             tint = SuccessGreen,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(28.dp)
                         )
                     }
                 }
@@ -556,8 +655,8 @@ fun ModernHabitCard(
                     progress = { progressPercentage },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp)),
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
                     color = if (isComplete) SuccessGreen
                     else MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -581,16 +680,22 @@ fun ModernSectionHeader(
     ) {
         Text(
             title,
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
         if (trailing != null) {
-            Text(
-                trailing,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = SuccessGreen
-            )
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = SuccessGreen.copy(alpha = 0.12f)
+            ) {
+                Text(
+                    trailing,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = SuccessGreen
+                )
+            }
         }
     }
 }
@@ -607,17 +712,17 @@ fun ModernQuickAccessGrid(
 
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             ModernQuickAccessCard(
                 icon = Icons.Default.AccountBalanceWallet,
                 title = "Keuangan",
                 subtitle = formatter.format(totalNetWorth),
-                gradient = listOf(BlueAccent, BlueAccent.copy(alpha = 0.7f)),
+                gradient = listOf(BlueAccent, BlueAccent.copy(alpha = 0.6f)),
                 onClick = onMoneyClick,
                 modifier = Modifier.weight(1f)
             )
@@ -625,7 +730,7 @@ fun ModernQuickAccessGrid(
                 icon = Icons.Default.Book,
                 title = "Pustaka",
                 subtitle = "Catat ide",
-                gradient = listOf(PurpleAccent, PurpleAccent.copy(alpha = 0.7f)),
+                gradient = listOf(PurpleAccent, PurpleAccent.copy(alpha = 0.6f)),
                 onClick = onNotesClick,
                 modifier = Modifier.weight(1f)
             )
@@ -633,8 +738,8 @@ fun ModernQuickAccessGrid(
         ModernQuickAccessCard(
             icon = Icons.Default.RateReview,
             title = "Tinjauan Harian",
-            subtitle = "Refleksi & evaluasi",
-            gradient = listOf(PinkAccent, PinkAccent.copy(alpha = 0.7f)),
+            subtitle = "Refleksi & evaluasi hari ini",
+            gradient = listOf(PinkAccent, PinkAccent.copy(alpha = 0.6f)),
             onClick = onReflectionClick,
             modifier = Modifier.fillMaxWidth()
         )
@@ -652,23 +757,23 @@ fun ModernQuickAccessCard(
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier.height(110.dp),
-        shape = MaterialTheme.shapes.large,
+        modifier = modifier.height(120.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = gradient[0].copy(alpha = 0.1f)
+            containerColor = gradient[0].copy(alpha = 0.08f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(20.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(64.dp)
                     .clip(CircleShape)
                     .background(Brush.linearGradient(gradient)),
                 contentAlignment = Alignment.Center
@@ -677,21 +782,24 @@ fun ModernQuickAccessCard(
                     icon,
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(32.dp)
                 )
             }
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
                 )
-                Spacer(Modifier.height(4.dp))
                 Text(
                     subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             Icon(
@@ -715,15 +823,15 @@ fun ModernModeDialog(
             Text(
                 "Mode Kontekstual",
                 fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineMedium
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 listOf(
-                    Triple("Normal", "Tampilan lengkap", Icons.Default.Dashboard),
-                    Triple("Fokus", "Hanya tugas penting", Icons.Default.TipsAndUpdates),
-                    Triple("Pagi", "Rutinitas pagi", Icons.Default.WbSunny)
+                    Triple("Normal", "Tampilan lengkap semua fitur", Icons.Default.Dashboard),
+                    Triple("Fokus", "Hanya tugas prioritas", Icons.Default.TipsAndUpdates),
+                    Triple("Pagi", "Rutinitas pagi hari", Icons.Default.WbSunny)
                 ).forEach { (mode, desc, icon) ->
                     ModernModeOptionCard(
                         title = mode,
@@ -737,10 +845,10 @@ fun ModernModeDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Tutup")
+                Text("Tutup", fontWeight = FontWeight.SemiBold)
             }
         },
-        shape = MaterialTheme.shapes.large
+        shape = RoundedCornerShape(28.dp)
     )
 }
 
@@ -752,35 +860,60 @@ fun ModernModeOptionCard(
     selected: Boolean,
     onClick: () -> Unit
 ) {
+    val animatedScale by animateFloatAsState(
+        targetValue = if (selected) 1.02f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "scale"
+    )
+
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(animatedScale),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (selected)
                 MaterialTheme.colorScheme.primaryContainer
             else MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (selected) 4.dp else 0.dp
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(20.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = if (selected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp)
-            )
-            Column(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = if (selected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     title,
-                    fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge,
                     color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
                     else MaterialTheme.colorScheme.onSurface
                 )
@@ -797,7 +930,7 @@ fun ModernModeOptionCard(
                     Icons.Default.CheckCircle,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             }
         }
