@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.app.summa.data.model.HabitLog
 import com.app.summa.data.model.Task
 import com.app.summa.data.repository.AccountRepository
+import com.app.summa.data.repository.FocusRepository
 import com.app.summa.data.repository.HabitRepository
 import com.app.summa.data.repository.TaskRepository
 import com.app.summa.ui.model.HabitItem
@@ -19,21 +20,21 @@ data class DashboardUiState(
     val greeting: String = "",
     val todayProgress: Float = 0f,
     val summaPoints: Int = 0,
+    // FIELD BARU: Total Paperclips
+    val totalPaperclips: Int = 0,
     val nextTask: Task? = null,
     val todayHabits: List<HabitItem> = emptyList(),
     val totalNetWorth: Double = 0.0,
     val isLoading: Boolean = true
-    // --- PERUBAHAN ---
-    // 'currentMode' DIHAPUS dari state lokal ini.
-    // Sekarang dipegang oleh MainViewModel.
-    // -------------------
 )
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val habitRepository: HabitRepository,
     private val taskRepository: TaskRepository,
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    // INJECT FocusRepository
+    private val focusRepository: FocusRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -53,8 +54,10 @@ class DashboardViewModel @Inject constructor(
                 habitRepository.getAllHabits(),
                 todayLogs,
                 todayTasks,
-                accountRepository.getTotalNetWorth()
-            ) { habits, logs, tasks, netWorth ->
+                accountRepository.getTotalNetWorth(),
+                // COMBINE DATA BARU: Total Paperclips
+                focusRepository.getTotalPaperclips()
+            ) { habits, logs, tasks, netWorth, paperclips ->
 
                 val habitItems = habits.map { habit ->
                     val todayLog = logs.find { it.habitId == habit.id }
@@ -96,13 +99,12 @@ class DashboardViewModel @Inject constructor(
                     greeting = getGreeting(),
                     todayProgress = progress,
                     summaPoints = summaPoints,
+                    // MASUKKAN KE STATE
+                    totalPaperclips = paperclips,
                     nextTask = nextTask,
                     todayHabits = habitItems,
                     totalNetWorth = netWorth ?: 0.0,
                     isLoading = false
-                    // --- PERUBAHAN ---
-                    // 'currentMode' DIHAPUS dari update state ini
-                    // -------------------
                 )
             }.catch { e ->
                 _uiState.update { it.copy(isLoading = false) }
@@ -113,10 +115,6 @@ class DashboardViewModel @Inject constructor(
                 }
         }
     }
-
-    // --- PERUBAHAN ---
-    // 'setMode' DIHAPUS. Fungsi ini sekarang ditangani oleh MainViewModel.
-    // -------------------
 
     private fun getGreeting(): String {
         val hour = LocalTime.now().hour

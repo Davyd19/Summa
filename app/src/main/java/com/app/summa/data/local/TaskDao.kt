@@ -18,13 +18,14 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE id = :taskId")
     suspend fun getTaskById(taskId: Long): Task?
 
-    // --- QUERY BARU UNTUK FITUR CERDAS ---
-    // Mengambil tugas yang:
-    // 1. Belum selesai (isCompleted = 0)
-    // 2. Tanggalnya sebelum hari ini (scheduledDate < :today)
-    // 3. Bukan komitmen (isCommitment = 0) -> Aspirasi
+    // --- FITUR CERDAS: Rollover Aspirasi ---
     @Query("SELECT * FROM tasks WHERE isCompleted = 0 AND scheduledDate < :today AND isCommitment = 0")
     suspend fun getOverdueAspirationTasks(today: String): List<Task>
+
+    // --- FITUR CERDAS: Hukuman Komitmen (BARU) ---
+    // Mengambil tugas Komitmen yang belum selesai dan sudah lewat tanggal
+    @Query("SELECT * FROM tasks WHERE isCompleted = 0 AND scheduledDate < :today AND isCommitment = 1")
+    suspend fun getOverdueCommitmentTasks(today: String): List<Task>
     // -------------------------------------
 
     @Query("UPDATE tasks SET isCompleted = 1, completedAt = :completedAt WHERE id = :taskId")

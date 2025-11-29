@@ -52,4 +52,16 @@ object DatabaseModule {
     fun provideIdentityDao(database: SummaDatabase): IdentityDao {
         return database.identityDao()
     }
+
+    @Provides
+    fun provideFocusSessionDao(database: SummaDatabase): FocusSessionDao {
+        return database.focusSessionDao()
+    }
+
+    // PROVIDER BARU: Sekarang error "Unresolved reference" akan hilang
+    // karena SummaDatabase sudah memiliki method noteLinkDao()
+    @Provides
+    fun provideNoteLinkDao(database: SummaDatabase): NoteLinkDao {
+        return database.noteLinkDao()
+    }
 }

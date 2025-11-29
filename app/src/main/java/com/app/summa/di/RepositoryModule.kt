@@ -24,9 +24,11 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideTaskRepository(
-        taskDao: TaskDao
+        taskDao: TaskDao,
+        // TaskRepo sekarang butuh IdentityRepo untuk memberi poin
+        identityRepository: IdentityRepository
     ): TaskRepository {
-        return TaskRepositoryImpl(taskDao)
+        return TaskRepositoryImpl(taskDao, identityRepository)
     }
 
     @Provides
@@ -40,9 +42,11 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideKnowledgeRepository(
-        dao: KnowledgeDao
+        dao: KnowledgeDao,
+        // KnowledgeRepo sekarang butuh NoteLinkDao untuk Zettelkasten
+        linkDao: NoteLinkDao
     ): KnowledgeRepository {
-        return KnowledgeRepositoryImpl(dao)
+        return KnowledgeRepositoryImpl(dao, linkDao)
     }
 
     @Provides
@@ -54,12 +58,6 @@ object RepositoryModule {
         return IdentityRepositoryImpl(identityDao, knowledgeRepository)
     }
 
-    // --- PENAMBAHAN ---
-    @Provides
-    fun provideFocusSessionDao(database: SummaDatabase): FocusSessionDao {
-        return database.focusSessionDao()
-    }
-
     @Provides
     @Singleton
     fun provideFocusRepository(
@@ -67,5 +65,4 @@ object RepositoryModule {
     ): FocusRepository {
         return FocusRepositoryImpl(dao)
     }
-    // -------------------
 }

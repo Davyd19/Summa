@@ -12,6 +12,11 @@ data class Task(
     val description: String = "",
     val twoMinuteAction: String = "",
     val isCommitment: Boolean = true,
+    // --- KOLOM BARU ---
+    // Menghubungkan tugas ke identitas.
+    // Jika tugas selesai, identitas ini akan dapat poin.
+    val relatedIdentityId: Long? = null,
+    // ------------------
     val scheduledDate: String?, // yyyy-MM-dd
     val scheduledTime: String?, // HH:mm
     val isCompleted: Boolean = false,

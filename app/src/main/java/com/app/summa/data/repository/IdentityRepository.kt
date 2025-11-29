@@ -5,6 +5,7 @@ import com.app.summa.data.model.Identity
 import com.app.summa.data.model.KnowledgeNote
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -13,14 +14,14 @@ interface IdentityRepository {
     suspend fun insertIdentity(identity: Identity): Long
     suspend fun updateIdentity(identity: Identity)
     suspend fun deleteIdentity(identity: Identity)
-
-    // PERBAIKAN: Menambahkan parameter 'note' agar sesuai dengan ViewModel
     suspend fun addVoteToIdentity(identityId: Long, points: Int, note: String)
+
+    // FUNGSI BARU: Mengambil bukti (catatan) untuk identitas spesifik
+    fun getIdentityEvidence(identityName: String): Flow<List<KnowledgeNote>>
 }
 
 class IdentityRepositoryImpl @Inject constructor(
     private val identityDao: IdentityDao,
-    // PERBAIKAN: Menambahkan KnowledgeRepository agar sesuai dengan RepositoryModule
     private val knowledgeRepository: KnowledgeRepository
 ) : IdentityRepository {
 
@@ -37,7 +38,7 @@ class IdentityRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteIdentity(identity: Identity) {
-        // TODO: Implement delete logic if needed
+        // TODO: Implement delete logic
     }
 
     override suspend fun addVoteToIdentity(identityId: Long, points: Int, note: String) {
@@ -48,22 +49,32 @@ class IdentityRepositoryImpl @Inject constructor(
                 val newProgress = identity.progress + points
                 identityDao.updateIdentity(identity.copy(progress = newProgress))
 
-                // 2. IMPLEMENTASI NYATA: Simpan 'note' sebagai Jurnal Mikro ke Pustaka
-                if (note.isNotBlank()) {
-                    val currentTime = System.currentTimeMillis()
-                    val microJournalNote = KnowledgeNote(
-                        title = "Jurnal Identitas: ${identity.name}",
-                        content = note,
-                        // Otomatis tag agar mudah dicari nanti
-                        tags = "#refleksi, #identitas, #${identity.name.lowercase().replace(" ", "_")}",
-                        isPermanent = true, // Langsung masuk pustaka (permanen)
-                        createdAt = currentTime,
-                        updatedAt = currentTime
-                    )
-                    // Simpan ke database knowledge
-                    knowledgeRepository.saveNote(microJournalNote)
-                }
+                // 2. Simpan 'note' sebagai Jurnal Mikro ke Pustaka
+                // Format judul: "Bukti: [Nama Identitas]" agar mudah difilter
+                val currentTime = System.currentTimeMillis()
+                val microJournalNote = KnowledgeNote(
+                    title = "Bukti: ${identity.name}",
+                    content = if (note.isNotBlank()) note else "Melakukan aktivitas identitas",
+                    // Tagging otomatis: #identitas dan #nama_identitas (lowercase, spasi jadi underscore)
+                    tags = "#identitas, #${identity.name.lowercase().replace(" ", "_")}",
+                    isPermanent = true,
+                    createdAt = currentTime,
+                    updatedAt = currentTime
+                )
+                knowledgeRepository.saveNote(microJournalNote)
             }
+        }
+    }
+
+    // IMPLEMENTASI BARU: Filter catatan berdasarkan tag identitas
+    override fun getIdentityEvidence(identityName: String): Flow<List<KnowledgeNote>> {
+        val tagToFind = "#${identityName.lowercase().replace(" ", "_")}"
+        // Kita ambil dari permanent notes karena bukti disimpan sebagai permanent
+        return knowledgeRepository.getPermanentNotes().map { notes ->
+            notes.filter { note ->
+                note.tags.contains(tagToFind, ignoreCase = true) ||
+                        note.tags.contains("#identitas", ignoreCase = true) && note.title.contains(identityName, ignoreCase = true)
+            }.sortedByDescending { it.createdAt } // Urutkan dari yang terbaru
         }
     }
 }

@@ -1,0 +1,359 @@
+package com.app.summa.ui.screens
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import com.app.summa.ui.theme.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
+
+@Composable
+fun UniversalFocusModeScreen(
+    title: String,
+    initialTarget: Int = 10,
+    onComplete: (Int, Long) -> Unit, // Returns: clipsCollected, startTime
+    onCancel: () -> Unit
+) {
+    // Phase: "SETUP" atau "RUNNING"
+    var isSetupPhase by remember { mutableStateOf(true) }
+    var targetClips by remember { mutableStateOf(initialTarget.toFloat()) }
+
+    if (isSetupPhase) {
+        FocusSetupScreen(
+            title = title,
+            targetClips = targetClips,
+            onTargetChange = { targetClips = it },
+            onStart = { isSetupPhase = false },
+            onCancel = onCancel
+        )
+    } else {
+        FocusRunningScreen(
+            title = title,
+            targetClips = targetClips.toInt(),
+            onComplete = onComplete,
+            onCancel = onCancel
+        )
+    }
+}
+
+@Composable
+fun FocusSetupScreen(
+    title: String,
+    targetClips: Float,
+    onTargetChange: (Float) -> Unit,
+    onStart: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            "Persiapan Fokus",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(48.dp))
+
+        // Estimasi Waktu
+        val estimatedTime = targetClips.toInt() * 2 // Asumsi 1 klip ~ 2 menit fokus
+        Text(
+            "$estimatedTime Menit",
+            style = MaterialTheme.typography.displayLarge,
+            fontWeight = FontWeight.Bold,
+            color = DeepTeal
+        )
+        Text(
+            "Estimasi Waktu",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+
+        Spacer(Modifier.height(32.dp))
+
+        // Slider Target Klip
+        Text("Target Klip: ${targetClips.toInt()}", style = MaterialTheme.typography.titleMedium)
+        Slider(
+            value = targetClips,
+            onValueChange = onTargetChange,
+            valueRange = 1f..50f,
+            steps = 49,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        Text(
+            "Geser untuk menambah beban kerja",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+        )
+
+        Spacer(Modifier.height(48.dp))
+
+        Button(
+            onClick = onStart,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Icon(Icons.Default.PlayArrow, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Mulai Sesi", style = MaterialTheme.typography.titleMedium)
+        }
+
+        Spacer(Modifier.height(16.dp))
+        TextButton(onClick = onCancel) {
+            Text("Batal")
+        }
+    }
+}
+
+@Composable
+fun FocusRunningScreen(
+    title: String,
+    targetClips: Int,
+    onComplete: (Int, Long) -> Unit,
+    onCancel: () -> Unit
+) {
+    // Timer State
+    var elapsedTimeSeconds by remember { mutableStateOf(0) }
+    var isRunning by remember { mutableStateOf(false) } // Start paused or auto-start? Let's auto-start via interaction
+
+    // Paperclip Logic
+    var paperclipsLeft by remember { mutableStateOf(targetClips) }
+    var paperclipsMoved by remember { mutableStateOf(0) }
+    val startTime by rememberSaveable { mutableStateOf(System.currentTimeMillis()) }
+
+    // Drag State
+    var dragOffset by remember { mutableStateOf(Offset.Zero) }
+    var isDragging by remember { mutableStateOf(false) }
+    val animatedOffsetX = remember { Animatable(0f) }
+    val animatedOffsetY = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
+
+    // Timer Logic
+    LaunchedEffect(isRunning) {
+        if (isRunning) {
+            val startTimeNano = System.nanoTime()
+            val initialElapsed = elapsedTimeSeconds
+            while (isRunning) {
+                delay(1000)
+                elapsedTimeSeconds = initialElapsed + ((System.nanoTime() - startTimeNano) / 1_000_000_000).toInt()
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onCancel) {
+                Icon(Icons.Default.Close, contentDescription = "Batal")
+            }
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+            // Tombol selesai dini (jika capek sebelum target habis)
+            TextButton(
+                onClick = { onComplete(paperclipsMoved, startTime) },
+                enabled = paperclipsMoved > 0
+            ) {
+                Text("Selesai")
+            }
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        // Timer Display
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(220.dp)
+                .border(4.dp, DeepTeal.copy(alpha = 0.2f), CircleShape)
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    String.format("%02d:%02d", elapsedTimeSeconds / 60, elapsedTimeSeconds % 60),
+                    style = MaterialTheme.typography.displayLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = DeepTeal
+                )
+                Text(
+                    if (isRunning) "Fokus..." else "Tarik klip untuk mulai",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        // Interactive Area
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // SOURCE PILE
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(100.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(24.dp))
+            ) {
+                if (paperclipsLeft > 0) {
+                    Text(
+                        "📎",
+                        style = MaterialTheme.typography.displayMedium,
+                        modifier = Modifier
+                            .offset {
+                                IntOffset(
+                                    animatedOffsetX.value.roundToInt() + dragOffset.x.roundToInt(),
+                                    animatedOffsetY.value.roundToInt() + dragOffset.y.roundToInt()
+                                )
+                            }
+                            .pointerInput(Unit) {
+                                detectDragGestures(
+                                    onDragStart = {
+                                        isDragging = true
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        if (!isRunning) isRunning = true // Auto-start timer
+                                    },
+                                    onDragEnd = {
+                                        isDragging = false
+                                        if (dragOffset.x > 150) {
+                                            // SUKSES DROP
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            paperclipsLeft--
+                                            paperclipsMoved++
+
+                                            scope.launch {
+                                                animatedOffsetX.snapTo(0f)
+                                                animatedOffsetY.snapTo(0f)
+                                            }
+                                            dragOffset = Offset.Zero
+
+                                            // Jika target habis, selesai otomatis?
+                                            // Atau biarkan user menekan "Selesai"?
+                                            // Mari kita auto-finish jika target tercapai agar memuaskan
+                                            if (paperclipsLeft == 0) {
+                                                onComplete(paperclipsMoved, startTime)
+                                            }
+                                        } else {
+                                            // GAGAL (SNAP BACK)
+                                            scope.launch {
+                                                val endX = dragOffset.x
+                                                val endY = dragOffset.y
+                                                animatedOffsetX.snapTo(endX)
+                                                animatedOffsetY.snapTo(endY)
+                                                dragOffset = Offset.Zero
+                                                launch { animatedOffsetX.animateTo(0f) }
+                                                launch { animatedOffsetY.animateTo(0f) }
+                                            }
+                                        }
+                                    }
+                                ) { change, dragAmount ->
+                                    change.consume()
+                                    dragOffset += dragAmount
+                                }
+                            }
+                    )
+                } else {
+                    Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                // Badge Sisa
+                Box(modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = CircleShape,
+                        shadowElevation = 2.dp
+                    ) {
+                        Text(
+                            "$paperclipsLeft",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            Icon(
+                Icons.Default.ArrowForward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+            )
+
+            // TARGET PILE
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(100.dp)
+                    .background(SuccessGreen.copy(alpha = 0.1f), RoundedCornerShape(24.dp))
+                    .border(2.dp, SuccessGreen.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "📎",
+                        style = MaterialTheme.typography.displayMedium,
+                        color = SuccessGreen.copy(alpha = 0.5f)
+                    )
+                    Text(
+                        "$paperclipsMoved",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = SuccessGreen
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(48.dp))
+    }
+}

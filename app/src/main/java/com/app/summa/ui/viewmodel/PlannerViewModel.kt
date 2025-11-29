@@ -4,9 +4,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.summa.data.model.FocusSession
+import com.app.summa.data.model.Identity
 import com.app.summa.data.model.Task
 import com.app.summa.data.repository.FocusRepository
+import com.app.summa.data.repository.IdentityRepository
 import com.app.summa.data.repository.TaskRepository
+import com.app.summa.util.NotificationScheduler // Import Scheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -20,6 +23,7 @@ data class PlannerUiState(
     val tasksForDay: List<Task> = emptyList(),
     val tasksForWeek: List<Task> = emptyList(),
     val tasksForMonth: List<Task> = emptyList(),
+    val availableIdentities: List<Identity> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null,
     val initialTaskTitle: String? = null,
@@ -29,10 +33,11 @@ data class PlannerUiState(
 @HiltViewModel
 class PlannerViewModel @Inject constructor(
     private val taskRepository: TaskRepository,
-    // --- PENAMBAHAN ---
     private val focusRepository: FocusRepository,
-    // -------------------
-    private val savedStateHandle: SavedStateHandle
+    private val identityRepository: IdentityRepository,
+    private val savedStateHandle: SavedStateHandle,
+    // INJECT SCHEDULER
+    private val notificationScheduler: NotificationScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlannerUiState())
@@ -52,6 +57,15 @@ class PlannerViewModel @Inject constructor(
         }
 
         loadAllTasksForDate(_uiState.value.selectedDate)
+        loadIdentities()
+    }
+
+    private fun loadIdentities() {
+        viewModelScope.launch {
+            identityRepository.getAllIdentities().collect { identities ->
+                _uiState.update { it.copy(availableIdentities = identities) }
+            }
+        }
     }
 
     private fun loadAllTasksForDate(date: LocalDate) {
@@ -60,7 +74,6 @@ class PlannerViewModel @Inject constructor(
 
             val firstDayOfWeek = date.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
             val lastDayOfWeek = firstDayOfWeek.plusDays(6)
-
             val firstDayOfMonth = date.with(TemporalAdjusters.firstDayOfMonth())
             val lastDayOfMonth = date.with(TemporalAdjusters.lastDayOfMonth())
 
@@ -79,12 +92,7 @@ class PlannerViewModel @Inject constructor(
                     )
                 }
             }.catch { e ->
-                _uiState.update {
-                    it.copy(
-                        error = e.message,
-                        isLoading = false
-                    )
-                }
+                _uiState.update { it.copy(error = e.message, isLoading = false) }
             }.collect()
         }
     }
@@ -101,48 +109,81 @@ class PlannerViewModel @Inject constructor(
     fun addTask(
         title: String,
         description: String = "",
-        twoMinuteAction: String = "",
+        scheduledTime: String? = null,
         isCommitment: Boolean = true,
-        scheduledTime: String? = null
+        twoMinuteAction: String = "",
+        relatedIdentityId: Long? = null
     ) {
         viewModelScope.launch {
+            val dateStr = _uiState.value.selectedDate.toString()
             val newTask = Task(
                 title = title,
                 description = description,
                 twoMinuteAction = twoMinuteAction,
                 isCommitment = isCommitment,
-                scheduledDate = _uiState.value.selectedDate.toString(),
+                relatedIdentityId = relatedIdentityId,
+                scheduledDate = dateStr,
                 scheduledTime = scheduledTime
             )
-            taskRepository.insertTask(newTask)
+            val newId = taskRepository.insertTask(newTask)
+
+            // JADWALKAN NOTIFIKASI
+            if (scheduledTime != null && scheduledTime.isNotBlank()) {
+                notificationScheduler.scheduleTaskReminder(newId, title, dateStr, scheduledTime)
+            }
         }
     }
 
     fun updateTask(task: Task) {
         viewModelScope.launch {
             taskRepository.updateTask(task)
+            // UPDATE JADWAL (Cancel lama, set baru jika ada waktu)
+            notificationScheduler.cancelTaskReminder(task.id)
+            if (task.scheduledDate != null && task.scheduledTime != null) {
+                notificationScheduler.scheduleTaskReminder(task.id, task.title, task.scheduledDate, task.scheduledTime)
+            }
+        }
+    }
+
+    // Drag & Drop Time Update
+    fun moveTaskToTime(task: Task, newHour: Int) {
+        viewModelScope.launch {
+            val newTimeStr = String.format("%02d:00", newHour)
+            if (task.scheduledTime == newTimeStr) return@launch
+
+            val updatedTask = task.copy(scheduledTime = newTimeStr)
+            taskRepository.updateTask(updatedTask)
+
+            // UPDATE NOTIFIKASI
+            notificationScheduler.cancelTaskReminder(task.id)
+            if (task.scheduledDate != null) {
+                notificationScheduler.scheduleTaskReminder(task.id, task.title, task.scheduledDate, newTimeStr)
+            }
         }
     }
 
     fun completeTask(taskId: Long) {
         viewModelScope.launch {
             taskRepository.completeTask(taskId)
+            // Hapus notifikasi jika tugas selesai (agar tidak bunyi jika belum waktunya)
+            notificationScheduler.cancelTaskReminder(taskId)
         }
     }
 
     fun deleteTask(task: Task) {
         viewModelScope.launch {
             taskRepository.deleteTask(task)
+            // Hapus notifikasi
+            notificationScheduler.cancelTaskReminder(task.id)
         }
     }
 
-    // --- PENAMBAHAN ---
-    // Fungsi baru untuk menyimpan sesi fokus
     fun saveFocusSession(taskId: Long, paperclips: Int, startTime: Long) {
         viewModelScope.launch {
             val endTime = System.currentTimeMillis()
             val session = FocusSession(
                 taskId = taskId,
+                habitId = null,
                 startTime = startTime,
                 endTime = endTime,
                 paperclipsCollected = paperclips,
@@ -151,5 +192,4 @@ class PlannerViewModel @Inject constructor(
             focusRepository.saveSession(session)
         }
     }
-    // -------------------
 }

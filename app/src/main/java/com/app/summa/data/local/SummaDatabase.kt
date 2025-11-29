@@ -14,14 +14,11 @@ import com.app.summa.data.model.*
         Transaction::class,
         KnowledgeNote::class,
         Identity::class,
-        // --- PENAMBAHAN ---
-        FocusSession::class
-        // -------------------
+        FocusSession::class,
+        // ENTITY BARU: Tambahkan NoteLink
+        NoteLink::class
     ],
-    // --- PERUBAHAN ---
-    // Versi dinaikkan ke 11 (sebelumnya 10)
-    version = 11,
-    // -----------------
+    version = 14,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -31,7 +28,7 @@ abstract class SummaDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
     abstract fun knowledgeDao(): KnowledgeDao
     abstract fun identityDao(): IdentityDao
-    // --- PENAMBAHAN ---
     abstract fun focusSessionDao(): FocusSessionDao
-    // -------------------
+    // METHOD BARU: Tambahkan ini agar DatabaseModule bisa memanggilnya
+    abstract fun noteLinkDao(): NoteLinkDao
 }

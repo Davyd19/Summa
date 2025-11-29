@@ -11,11 +11,7 @@ data class KnowledgeNote(
     val title: String = "",
     val content: String,
     val tags: String = "", // Comma-separated
-    // --- PENAMBAHAN ---
-    // Kolom ini adalah dasar untuk Zettelkasten.
-    // Akan menyimpan ID catatan lain (misal: "1,5,23")
-    val linkedNoteIds: String = "",
-    // -------------------
+    // linkedNoteIds DIHAPUS. Kita sekarang menggunakan tabel relasi 'note_links'.
     val isPermanent: Boolean = false, // false = Inbox, true = Pustaka
     @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
     val createdAt: Long? = null,

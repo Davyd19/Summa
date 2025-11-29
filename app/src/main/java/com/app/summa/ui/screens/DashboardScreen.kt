@@ -3,6 +3,7 @@ package com.app.summa.ui.screens
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -40,7 +41,8 @@ fun DashboardScreen(
     onNavigateToHabitDetail: (HabitItem) -> Unit = {},
     onNavigateToMoney: () -> Unit = {},
     onNavigateToNotes: () -> Unit = {},
-    onNavigateToReflections: () -> Unit = {}
+    onNavigateToReflections: () -> Unit = {},
+    onNavigateToIdentityProfile: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showModeDialog by remember { mutableStateOf(false) }
@@ -62,24 +64,41 @@ fun DashboardScreen(
             }
 
             item {
-                ModernPointsCard(
-                    progress = uiState.todayProgress,
-                    points = uiState.summaPoints,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-            }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Points Card
+                    ModernPointsCard(
+                        progress = uiState.todayProgress,
+                        points = uiState.summaPoints,
+                        modifier = Modifier
+                            .weight(1.4f)
+                            .clickable { onNavigateToIdentityProfile() }
+                    )
 
-            if (currentMode != "Fokus") {
-                item {
-                    ModernNextActionCard(
-                        task = uiState.nextTask,
-                        onStartFocus = { /* TODO */ },
-                        onAddTask = onNavigateToPlanner,
-                        modifier = Modifier.padding(horizontal = 20.dp)
+                    // Paperclip Card
+                    ModernPaperclipCard(
+                        count = uiState.totalPaperclips,
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
 
+            // PERBAIKAN: Tampilkan Next Action CARD bahkan di Mode Fokus!
+            // Ini inti dari fokus: mengetahui "apa selanjutnya".
+            item {
+                ModernNextActionCard(
+                    task = uiState.nextTask,
+                    onStartFocus = { /* TODO: Trigger UniversalFocusMode here if needed */ },
+                    onAddTask = onNavigateToPlanner,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+            }
+
+            // Habit hanya muncul jika bukan mode Fokus (agar tidak distraksi)
             if (currentMode != "Fokus") {
                 item {
                     ModernSectionHeader(
@@ -126,6 +145,7 @@ fun DashboardScreen(
                 }
             }
 
+            // Quick Access hanya di Normal
             if (currentMode == "Normal") {
                 item {
                     ModernSectionHeader(
@@ -161,7 +181,55 @@ fun DashboardScreen(
     }
 }
 
-// --- PERBAIKAN TAMPILAN AKSES CEPAT ---
+// KOMPONEN BARU: Kartu Penjepit Kertas
+@Composable
+fun ModernPaperclipCard(
+    count: Int,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.height(180.dp), // Samakan tinggi visual dengan Points Card
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("📎", style = MaterialTheme.typography.titleMedium)
+            }
+
+            Column {
+                Text(
+                    text = "$count",
+                    style = MaterialTheme.typography.displayMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Klip Fokus",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+        }
+    }
+}
+
+// ... Sisanya (ModernPointsCard, QuickAccess, dll) tetap sama, hanya ModernPointsCard perlu sedikit penyesuaian tinggi jika ingin sejajar sempurna,
+// tapi saya biarkan flexibel dulu.
+
+// --- PERBAIKAN TAMPILAN AKSES CEPAT (Sama seperti sebelumnya) ---
 
 @Composable
 fun ModernQuickAccessGrid(
@@ -220,7 +288,7 @@ fun ModernQuickAccessCard(
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier.height(72.dp), // Tinggi sedikit dikurangi agar lebih compact
+        modifier = modifier.height(72.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -234,13 +302,10 @@ fun ModernQuickAccessCard(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                // PERBAIKAN: Padding dikurangi dari 16.dp menjadi 10.dp untuk memberi ruang teks
                 .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            // PERBAIKAN: Spacing antar elemen dikurangi dari 16.dp menjadi 10.dp
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // PERBAIKAN: Ukuran Ikon dikurangi dari 48.dp menjadi 40.dp
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -252,7 +317,7 @@ fun ModernQuickAccessCard(
                     icon,
                     contentDescription = null,
                     tint = color,
-                    modifier = Modifier.size(20.dp) // Icon dalam box juga sedikit mengecil
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
@@ -262,7 +327,6 @@ fun ModernQuickAccessCard(
             ) {
                 Text(
                     title,
-                    // PERBAIKAN: Menggunakan titleSmall agar muat, tapi tetap Bold
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -271,7 +335,7 @@ fun ModernQuickAccessCard(
                 )
                 Text(
                     subtitle,
-                    style = MaterialTheme.typography.labelSmall, // Font lebih kecil untuk subtitle
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -287,8 +351,6 @@ fun ModernQuickAccessCard(
         }
     }
 }
-
-// --- COMPONENT LAINNYA TETAP SAMA (AnimatedGradientBackground, Header, dll) ---
 
 @Composable
 fun AnimatedGradientBackground() {
@@ -413,8 +475,9 @@ fun ModernPointsCard(
         label = "points"
     )
 
+    // Ubah tinggi menjadi 180.dp agar sejajar dengan card paperclip
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.height(180.dp),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary
@@ -437,7 +500,7 @@ fun ModernPointsCard(
             Box(
                 modifier = Modifier
                     .size(200.dp)
-                    .offset(x = 220.dp, y = (-50).dp)
+                    .offset(x = 100.dp, y = (-50).dp) // Sesuaikan offset agar fit di card yang lebih sempit
                     .scale(scale)
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.08f))
@@ -446,85 +509,41 @@ fun ModernPointsCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(32.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                            "Summa Points",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.White.copy(alpha = 0.9f),
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            animatedPoints.toString(),
-                            style = MaterialTheme.typography.displayLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(100.dp)
-                    ) {
-                        CircularProgressIndicator(
-                            progress = { 1f },
-                            modifier = Modifier.fillMaxSize(),
-                            color = Color.White.copy(alpha = 0.15f),
-                            strokeWidth = 10.dp,
-                            trackColor = Color.Transparent,
-                            strokeCap = StrokeCap.Round
-                        )
-                        CircularProgressIndicator(
-                            progress = { animatedProgress },
-                            modifier = Modifier.fillMaxSize(),
-                            color = GoldAccent,
-                            strokeWidth = 10.dp,
-                            trackColor = Color.Transparent,
-                            strokeCap = StrokeCap.Round
-                        )
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Text(
-                                "${(animatedProgress * 100).toInt()}%",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                "hari ini",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
+                    Text(
+                        "Summa Points",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        animatedPoints.toString(),
+                        style = MaterialTheme.typography.displayLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Mini Progress Bar
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            "Target Harian",
-                            style = MaterialTheme.typography.bodyMedium,
+                            "Target",
+                            style = MaterialTheme.typography.labelMedium,
                             color = Color.White.copy(alpha = 0.9f)
                         )
                         Text(
-                            "${(animatedProgress * 100).toInt()}% selesai",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
+                            "${(animatedProgress * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
                             color = GoldAccent
                         )
                     }
@@ -533,8 +552,8 @@ fun ModernPointsCard(
                         progress = { animatedProgress },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(12.dp)
-                            .clip(RoundedCornerShape(6.dp)),
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
                         color = GoldAccent,
                         trackColor = Color.White.copy(alpha = 0.2f),
                         strokeCap = StrokeCap.Round

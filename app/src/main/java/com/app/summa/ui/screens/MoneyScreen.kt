@@ -1,7 +1,11 @@
 package com.app.summa.ui.screens
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,11 +21,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale // PERBAIKAN: Import scale
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.*
 import com.app.summa.ui.components.*
@@ -36,15 +42,23 @@ fun MoneyScreen(
     viewModel: MoneyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var showTransferDialog by remember { mutableStateOf(false) }
-    var showAddAccountDialog by remember { mutableStateOf(false) }
-    var showAddTransactionDialog by remember { mutableStateOf(false) }
+    var showTransactionSheet by remember { mutableStateOf(false) } // Hanya ini yang utama
+    var showAddAccountDialog by remember { mutableStateOf(false) } // Akun jarang dibuat, dialog masih oke, atau bisa diganti sheet juga nanti
 
+    val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
+
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             snackbarHostState.showSnackbar(it)
             viewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(uiState.showRewardAnimation) {
+        if (uiState.showRewardAnimation) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         }
     }
 
@@ -52,101 +66,66 @@ fun MoneyScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        "Keuangan",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
+                title = { Text("Keuangan", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = { showAddAccountDialog = true }) {
                         Icon(Icons.Default.Add, contentDescription = "Tambah Akun")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showTransactionSheet = true },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Default.Add, "Tambah Transaksi")
+            }
         }
     ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (uiState.showRewardAnimation) {
+                CoinExplosionAnimation(
+                    modifier = Modifier.fillMaxSize().zIndex(10f),
+                    trigger = true,
+                    onFinished = { viewModel.dismissRewardAnimation() }
+                )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(bottom = 100.dp, top = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                // Net Worth Card
-                item {
-                    CleanNetWorthCard(
-                        totalNetWorth = uiState.totalNetWorth,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                }
 
-                // Quick Actions
-                item {
-                    CleanQuickActions(
-                        onIncomeClick = { showAddTransactionDialog = true },
-                        onExpenseClick = { showAddTransactionDialog = true },
-                        onTransferClick = { showTransferDialog = true },
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                }
-
-                // Accounts Section
-                item {
-                    Text(
-                        "Akun Anda",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                }
-
-                item {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp)
-                    ) {
-                        items(uiState.accounts) { account ->
-                            CleanAccountCard(account = account)
+            if (uiState.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentPadding = PaddingValues(bottom = 100.dp, top = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    item { CleanNetWorthCard(totalNetWorth = uiState.totalNetWorth, modifier = Modifier.padding(horizontal = 16.dp)) }
+                    item {
+                        Text("Akun Anda", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
+                    }
+                    item {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(horizontal = 16.dp)) {
+                            items(uiState.accounts) { account -> CleanAccountCard(account = account) }
                         }
                     }
-                }
-
-                // Recent Transactions
-                item {
-                    Text(
-                        "Transaksi Terakhir",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                }
-
-                item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    ) {
-                        Column {
-                            uiState.recentTransactions.forEachIndexed { index, transaction ->
-                                CleanTransactionItem(transaction = transaction)
-                                if (index < uiState.recentTransactions.lastIndex) {
-                                    HorizontalDivider(
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                    )
+                    item {
+                        Text("Transaksi Terakhir", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
+                    }
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Column {
+                                uiState.recentTransactions.forEachIndexed { index, transaction ->
+                                    CleanTransactionItem(transaction = transaction)
+                                    if (index < uiState.recentTransactions.lastIndex) {
+                                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    }
                                 }
                             }
                         }
@@ -154,18 +133,6 @@ fun MoneyScreen(
                 }
             }
         }
-    }
-
-    // Dialogs
-    if (showTransferDialog) {
-        TransferDialog(
-            accounts = uiState.accounts,
-            onDismiss = { showTransferDialog = false },
-            onConfirm = { fromAccount, toAccount, amount ->
-                viewModel.transferMoney(fromAccount, toAccount, amount)
-                showTransferDialog = false
-            }
-        )
     }
 
     if (showAddAccountDialog) {
@@ -178,24 +145,16 @@ fun MoneyScreen(
         )
     }
 
-    if (showAddTransactionDialog) {
-        AddTransactionDialog(
+    // INPUT SHEET TRANSAKSI BARU (Menggantikan Dialog Transaksi dan Transfer)
+    if (showTransactionSheet) {
+        TransactionInputSheet(
             accounts = uiState.accounts,
-            onDismiss = { showAddTransactionDialog = false },
-            onAdd = { account, type, amount, category, note ->
-                viewModel.addTransaction(account.id, type, amount, category, note)
-                showAddTransactionDialog = false
+            onDismiss = { showTransactionSheet = false },
+            onSave = { accountId, type, amount, category, note ->
+                viewModel.addTransaction(accountId, type, amount, category, note)
+                showTransactionSheet = false
             }
         )
-    }
-
-    // Reward Animation
-    AnimatedVisibility(
-        visible = uiState.showRewardAnimation,
-        enter = scaleIn() + fadeIn(),
-        exit = scaleOut() + fadeOut()
-    ) {
-        CleanRewardAnimation(onDismiss = { viewModel.dismissRewardAnimation() })
     }
 }
 

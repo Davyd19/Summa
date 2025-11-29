@@ -27,6 +27,8 @@ import com.app.summa.data.model.KnowledgeNote
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.KnowledgeViewModel
 import kotlinx.coroutines.launch
+import com.app.summa.ui.components.KnowledgeGraphView
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -36,11 +38,12 @@ fun KnowledgeBaseScreen(
     onAddNoteClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val pagerState = rememberPagerState(pageCount = { 2 })
+    // UPDATE: Tab Count jadi 3
+    val pagerState = rememberPagerState(pageCount = { 3 })
     val scope = rememberCoroutineScope()
-    val tabTitles = listOf("Inbox", "Pustaka")
+    // UPDATE: Judul Tab
+    val tabTitles = listOf("Inbox", "Pustaka", "Graph")
 
-    // State untuk pencarian
     var searchQuery by remember { mutableStateOf("") }
 
     Scaffold(
@@ -71,7 +74,6 @@ fun KnowledgeBaseScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Search Bar Baru
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -88,7 +90,6 @@ fun KnowledgeBaseScreen(
                 singleLine = true
             )
 
-            // Modern Tab Selector
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -138,7 +139,6 @@ fun KnowledgeBaseScreen(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
-                // Filter catatan berdasarkan query pencarian
                 val filteredInbox = uiState.inboxNotes.filter {
                     it.title.contains(searchQuery, ignoreCase = true) ||
                             it.content.contains(searchQuery, ignoreCase = true) ||
@@ -166,6 +166,21 @@ fun KnowledgeBaseScreen(
                         emptyTitle = if(searchQuery.isEmpty()) "Pustaka Kosong" else "Tidak Ditemukan",
                         emptyText = if(searchQuery.isEmpty()) "Arsipkan catatan dari Inbox ke sini" else "Coba kata kunci lain"
                     )
+                    // TAB BARU: GRAPH VIEW
+                    2 -> {
+                        val allNotes = filteredInbox + filteredPermanent
+                        if (allNotes.isEmpty()) {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("Tidak ada data untuk grafik", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        } else {
+                            KnowledgeGraphView(
+                                notes = allNotes,
+                                links = uiState.allLinks,
+                                onNodeClick = onNoteClick
+                            )
+                        }
+                    }
                 }
             }
         }

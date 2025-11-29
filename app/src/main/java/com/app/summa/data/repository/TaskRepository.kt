@@ -16,13 +16,12 @@ interface TaskRepository {
     suspend fun updateTask(task: Task)
     suspend fun deleteTask(task: Task)
     suspend fun completeTask(taskId: Long)
-
-    // Fungsi pintar untuk memindahkan aspirasi yang tertunda
     suspend fun processDailyWrapUp()
 }
 
 class TaskRepositoryImpl @Inject constructor(
-    private val taskDao: TaskDao
+    private val taskDao: TaskDao,
+    private val identityRepository: IdentityRepository
 ) : TaskRepository {
 
     override fun getActiveTasks(): Flow<List<Task>> {
@@ -50,21 +49,48 @@ class TaskRepositoryImpl @Inject constructor(
     }
 
     override suspend fun completeTask(taskId: Long) {
-        taskDao.completeTask(taskId, System.currentTimeMillis())
+        withContext(Dispatchers.IO) {
+            val task = taskDao.getTaskById(taskId)
+            taskDao.completeTask(taskId, System.currentTimeMillis())
+
+            if (task != null && task.relatedIdentityId != null) {
+                val points = if (task.isCommitment) 10 else 5
+                identityRepository.addVoteToIdentity(
+                    identityId = task.relatedIdentityId,
+                    points = points,
+                    note = "Menelesaikan tugas: ${task.title}"
+                )
+            }
+        }
     }
 
-    // --- IMPLEMENTASI PLANNER CERDAS (REAL APP OPTIMIZED) ---
+    // UPDATE: Logika Wrap-Up Harian
     override suspend fun processDailyWrapUp() {
         withContext(Dispatchers.IO) {
             val today = LocalDate.now().toString()
 
-            // 1. Ambil tugas aspirasi yang terlewat menggunakan query spesifik (Sangat Efisien)
-            val overdueAspirationTasks = taskDao.getOverdueAspirationTasks(today)
+            // 1. Tangani Aspirasi (Pindah otomatis, tanpa penalti)
+            val overdueAspirations = taskDao.getOverdueAspirationTasks(today)
+            overdueAspirations.forEach { task ->
+                taskDao.updateTask(task.copy(scheduledDate = today))
+            }
 
-            // 2. Pindahkan tanggalnya ke hari ini secara otomatis
-            // Dalam aplikasi skala besar, ini bisa dilakukan dengan @Query UPDATE batch,
-            // tapi loop updateTask ini sudah cukup baik untuk penggunaan personal (ratusan task).
-            overdueAspirationTasks.forEach { task ->
+            // 2. Tangani Komitmen (Tidak dipindah, tapi diberi penalti)
+            val overdueCommitments = taskDao.getOverdueCommitmentTasks(today)
+            overdueCommitments.forEach { task ->
+                // Jika tugas ini belum pernah diproses penaltinya (opsional: bisa tambah field flag di DB)
+                // Untuk sekarang, kita asumsi sistem ini jalan sekali sehari.
+
+                if (task.relatedIdentityId != null) {
+                    // HUKUMAN: Kurangi 5 poin karena melanggar komitmen
+                    identityRepository.addVoteToIdentity(
+                        identityId = task.relatedIdentityId,
+                        points = -5,
+                        note = "Terlewat komitmen: ${task.title}"
+                    )
+                }
+
+                // Pindahkan ke hari ini agar user tetap melihatnya (sebagai hutang)
                 taskDao.updateTask(task.copy(scheduledDate = today))
             }
         }
