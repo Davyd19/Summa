@@ -50,7 +50,6 @@ class KnowledgeViewModel @Inject constructor(
 
     private fun loadAllNotes() {
         viewModelScope.launch {
-            // PERBAIKAN: Menggunakan repository.getAllLinks() yang asli
             combine(
                 repository.getInboxNotes(),
                 repository.getPermanentNotes(),
@@ -143,9 +142,17 @@ class KnowledgeViewModel @Inject constructor(
         }
     }
 
+    // Fungsi lama untuk detail screen
     fun convertToPermanent() {
         viewModelScope.launch {
             _uiState.value.selectedNote?.let { repository.convertToPermanent(it) }
+        }
+    }
+
+    // FUNGSI BARU: Untuk Quick Promote dari List Screen
+    fun promoteNote(note: KnowledgeNote) {
+        viewModelScope.launch {
+            repository.convertToPermanent(note)
         }
     }
 }

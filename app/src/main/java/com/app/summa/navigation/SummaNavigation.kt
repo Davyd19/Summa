@@ -17,6 +17,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.app.summa.ui.screens.*
+import com.app.summa.ui.components.MorningBriefingDialog
+import com.app.summa.ui.components.LevelUpDialog // Import Komponen Baru
 import com.app.summa.ui.viewmodel.MainViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import java.net.URLEncoder
@@ -24,16 +26,30 @@ import java.net.URLEncoder
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Dashboard : Screen("dashboard", "Dasbor", Icons.Default.Home)
     object Planner : Screen("planner?noteTitle={noteTitle}&noteContent={noteContent}", "Planner", Icons.Default.CalendarToday)
-    object Habits : Screen("habits?habitId={habitId}", "Habits", Icons.Default.CheckCircle)
+    object Habits : Screen("habits", "Habits", Icons.Default.CheckCircle)
     object Money : Screen("money", "Money", Icons.Default.AccountBalanceWallet)
     object Knowledge : Screen("knowledge", "Pustaka", Icons.Default.Book)
     object Reflections : Screen("reflections", "Refleksi", Icons.Default.RateReview)
+
     object IdentityProfile : Screen("identity_profile", "Profil", Icons.Default.Person)
+    object HabitDetail : Screen("habit_detail/{habitId}", "Detail Kebiasaan", Icons.Default.Edit) {
+        fun createRoute(habitId: Long) = "habit_detail/$habitId"
+    }
 }
 
 object KnowledgeDetailRoute {
     const val route = "knowledge_detail/{noteId}"
     fun createRoute(noteId: Long) = "knowledge_detail/$noteId"
+}
+
+fun NavHostController.navigateToTab(route: String) {
+    navigate(route) {
+        popUpTo(graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
+    }
 }
 
 @Composable
@@ -43,6 +59,25 @@ fun SummaApp() {
 
     val mainViewModel: MainViewModel = hiltViewModel()
     val mainUiState by mainViewModel.uiState.collectAsState()
+
+    // --- DIALOG GLOBAL (SYSTEM EVENTS) ---
+
+    // 1. Level Up Celebration (Prioritas Visual Tinggi)
+    if (mainUiState.levelUpEvent != null) {
+        LevelUpDialog(
+            event = mainUiState.levelUpEvent!!,
+            onDismiss = { mainViewModel.dismissLevelUp() }
+        )
+    }
+
+    // 2. Morning Briefing (Laporan Harian)
+    if (mainUiState.morningBriefing != null) {
+        MorningBriefingDialog(
+            data = mainUiState.morningBriefing!!,
+            onDismiss = { mainViewModel.dismissBriefing() }
+        )
+    }
+    // -------------------------------------
 
     Scaffold(
         bottomBar = {
@@ -103,30 +138,34 @@ fun BottomNavigationBar(
         tonalElevation = 8.dp
     ) {
         finalItems.forEach { screen ->
-            // Logika seleksi: Cek apakah route dasar cocok (mengabaikan parameter "?...")
-            val isSelected = currentRoute?.substringBefore("?") == screen.route.substringBefore("?")
+            val screenBaseRoute = screen.route.substringBefore("?")
+            val currentBaseRoute = currentRoute?.substringBefore("?")
+
+            val isSelected = currentBaseRoute == screenBaseRoute
 
             NavigationBarItem(
                 icon = { Icon(screen.icon, contentDescription = screen.title) },
                 label = { Text(screen.title) },
                 selected = isSelected,
                 onClick = {
-                    // PERBAIKAN LOGIKA NAVIGASI:
-                    // 1. Ambil route dasar (misal "habits" dari "habits?habitId=...")
                     val targetRoute = screen.route.substringBefore("?")
 
-                    navController.navigate(targetRoute) {
-                        // Pop up ke Start Destination (Dashboard) untuk membersihkan stack
-                        // Ini penting agar tombol Back di Android berfungsi normal (keluar aplikasi di Dashboard)
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
+                    if (isSelected) {
+                        navController.popBackStack(targetRoute, false)
+                    } else {
+                        navController.navigate(targetRoute) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                val isDetailScreen = currentRoute?.let { route ->
+                                    route.contains("detail") ||
+                                            route.contains("profile") ||
+                                            route.contains("settings")
+                                } == true
+
+                                saveState = !isDetailScreen
+                            }
+                            launchSingleTop = true
+                            restoreState = true
                         }
-
-                        // Hindari menumpuk halaman yang sama jika diklik berkali-kali
-                        launchSingleTop = true
-
-                        // Restore state (posisi scroll, dll) jika ada
-                        restoreState = true
                     }
                 },
                 colors = NavigationBarItemDefaults.colors(
@@ -157,15 +196,14 @@ fun NavigationGraph(
             DashboardScreen(
                 currentMode = currentMode,
                 onModeSelected = onModeSelected,
-                onNavigateToPlanner = { navController.navigate("planner") },
-                onNavigateToMoney = { navController.navigate(Screen.Money.route) },
-                onNavigateToNotes = { navController.navigate(Screen.Knowledge.route) },
-                onNavigateToReflections = { navController.navigate(Screen.Reflections.route) },
+                onNavigateToPlanner = { navController.navigateToTab("planner") },
+                onNavigateToMoney = { navController.navigateToTab(Screen.Money.route) },
+                onNavigateToNotes = { navController.navigateToTab(Screen.Knowledge.route) },
+                onNavigateToReflections = { navController.navigateToTab(Screen.Reflections.route) },
                 onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) },
                 onNavigateToSettings = { navController.navigate("settings") },
                 onNavigateToHabitDetail = { habit ->
-                    // Navigasi ke detail habit dengan argumen
-                    navController.navigate("habits?habitId=${habit.id}")
+                    navController.navigate(Screen.HabitDetail.createRoute(habit.id))
                 }
             )
         }
@@ -178,17 +216,26 @@ fun NavigationGraph(
             )
         ) {
             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-            PlannerScreen()
+            PlannerScreen(currentMode = currentMode)
+        }
+
+        composable(route = Screen.Habits.route) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            HabitsScreen(
+                onNavigateToDetail = { habitId ->
+                    navController.navigate(Screen.HabitDetail.createRoute(habitId))
+                },
+                onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) }
+            )
         }
 
         composable(
-            route = Screen.Habits.route,
-            arguments = listOf(
-                navArgument("habitId") { type = NavType.LongType; defaultValue = -1L }
-            )
+            route = Screen.HabitDetail.route,
+            arguments = listOf(navArgument("habitId") { type = NavType.LongType })
         ) {
             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-            HabitsScreen(
+            HabitDetailScreenDestination(
+                onBack = { navController.popBackStack() },
                 onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) }
             )
         }
@@ -212,7 +259,6 @@ fun NavigationGraph(
             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
             IdentityProfileScreen(onBack = { navController.popBackStack() })
         }
-        // Tambahkan Route Settings
         composable("settings") {
             SettingsScreen(onNavigateBack = { navController.popBackStack() })
         }
@@ -227,7 +273,11 @@ fun NavigationGraph(
                     val encodedTitle = URLEncoder.encode(title, "UTF-8")
                     val encodedContent = URLEncoder.encode(content, "UTF-8")
                     navController.popBackStack()
-                    navController.navigate("planner?noteTitle=$encodedTitle&noteContent=$encodedContent")
+                    navController.navigate("planner?noteTitle=$encodedTitle&noteContent=$encodedContent") {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                 }
             )
         }

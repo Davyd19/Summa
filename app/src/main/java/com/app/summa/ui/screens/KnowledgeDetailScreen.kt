@@ -16,7 +16,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.KnowledgeNote
@@ -35,23 +37,26 @@ fun KnowledgeDetailScreen(
     val searchResults by viewModel.searchResults.collectAsState()
 
     var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
+    // Gunakan TextFieldValue untuk kontrol kursor saat insert [[ ]]
+    var contentState by remember { mutableStateOf(TextFieldValue("")) }
     var showLinkDialog by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
 
+    // Init data saat load
     LaunchedEffect(uiState.selectedNote) {
         uiState.selectedNote?.let {
-            title = it.title
-            content = it.content
+            if (title.isEmpty()) title = it.title
+            if (contentState.text.isEmpty()) contentState = TextFieldValue(it.content)
         }
     }
 
+    // Auto-save saat keluar
     DisposableEffect(Unit) {
         onDispose {
             scope.launch {
-                if (content.isNotBlank() && (title != uiState.selectedNote?.title || content != uiState.selectedNote?.content)) {
-                    viewModel.saveNote(title, content)
+                if (contentState.text.isNotBlank()) {
+                    viewModel.saveNote(title, contentState.text)
                 }
             }
         }
@@ -70,16 +75,40 @@ fun KnowledgeDetailScreen(
                     }
                 },
                 actions = {
+                    // TOMBOL BARU: Insert Wiki Link
+                    IconButton(onClick = {
+                        val currentText = contentState.text
+                        val selection = contentState.selection
+                        val newText = StringBuilder(currentText)
+                            .insert(selection.max, "]]")
+                            .insert(selection.min, "[[")
+                            .toString()
+
+                        // Pindahkan kursor ke tengah kurung
+                        val newCursorPos = selection.min + 2
+                        contentState = TextFieldValue(
+                            text = newText,
+                            selection = TextRange(newCursorPos)
+                        )
+                    }) {
+                        Icon(
+                            Icons.Default.DataArray, // Icon kurung siku
+                            contentDescription = "Insert Link",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    // Tombol Link Manual (Search)
                     IconButton(onClick = { showLinkDialog = true }) {
                         Icon(
                             Icons.Default.Link,
-                            contentDescription = "Hubungkan",
+                            contentDescription = "Cari Link",
                             tint = PurpleAccent
                         )
                     }
                     TextButton(
-                        onClick = { viewModel.saveNote(title, content); onBack() },
-                        enabled = content.isNotBlank()
+                        onClick = { viewModel.saveNote(title, contentState.text); onBack() },
+                        enabled = contentState.text.isNotBlank()
                     ) {
                         Text("Simpan")
                     }
@@ -99,7 +128,7 @@ fun KnowledgeDetailScreen(
                     IconButton(onClick = {
                         onConvertToTask(
                             uiState.selectedNote?.title ?: title,
-                            uiState.selectedNote?.content ?: content
+                            uiState.selectedNote?.content ?: contentState.text
                         )
                     }) {
                         Icon(Icons.Default.TaskAlt, contentDescription = "Jadikan Tugas")
@@ -143,10 +172,10 @@ fun KnowledgeDetailScreen(
 
             // --- ZETTELKASTEN: LINKS & BACKLINKS ---
 
-            // 1. Mentions (Catatan ini merujuk ke...)
+            // 1. Mentions (Links Out)
             if (uiState.forwardLinks.isNotEmpty()) {
                 Text(
-                    "Mentions (Links Out):",
+                    "Terhubung ke:",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
@@ -164,11 +193,11 @@ fun KnowledgeDetailScreen(
                 }
             }
 
-            // 2. Mentioned In (Backlinks - Siapa yang merujuk ke sini?)
+            // 2. Mentioned In (Backlinks)
             if (uiState.backlinks.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Mentioned In (Backlinks):",
+                    "Dihubungkan oleh (Backlinks):",
                     style = MaterialTheme.typography.labelSmall,
                     color = PurpleAccent,
                     fontWeight = FontWeight.Bold
@@ -182,19 +211,27 @@ fun KnowledgeDetailScreen(
                             note = link,
                             isBacklink = true,
                             onRemove = null
-                        ) // Backlink tidak bisa dihapus dari sini (read-only relationship)
+                        )
                     }
                 }
             }
 
-            Divider(Modifier
-                .padding(vertical = 8.dp)
-                .alpha(0.5f))
+            Divider(Modifier.padding(vertical = 8.dp).alpha(0.5f))
+
+            // Hint kecil untuk fitur baru
+            if (contentState.text.isEmpty()) {
+                Text(
+                    "Tip: Ketik [[Judul Catatan]] untuk menghubungkan otomatis.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
 
             OutlinedTextField(
-                value = content,
-                onValueChange = { content = it },
-                placeholder = { Text("Tulis ide Anda...") },
+                value = contentState,
+                onValueChange = { contentState = it },
+                placeholder = { Text("Mulai menulis...") },
                 modifier = Modifier.fillMaxSize(),
                 textStyle = MaterialTheme.typography.bodyLarge,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -205,6 +242,7 @@ fun KnowledgeDetailScreen(
         }
     }
 
+    // Dialog Search Link Manual (Fitur lama, tetap dipertahankan)
     if (showLinkDialog) {
         var searchQuery by remember { mutableStateOf("") }
         AlertDialog(
@@ -235,9 +273,7 @@ fun KnowledgeDetailScreen(
                                 onClick = { viewModel.addLink(note); showLinkDialog = false },
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
-                                Column(Modifier
-                                    .padding(12.dp)
-                                    .fillMaxWidth()) {
+                                Column(Modifier.padding(12.dp).fillMaxWidth()) {
                                     Text(
                                         note.title.ifBlank { "Tanpa Judul" },
                                         fontWeight = FontWeight.Bold
@@ -262,7 +298,7 @@ fun KnowledgeDetailScreen(
 fun NoteLinkChip(note: KnowledgeNote, isBacklink: Boolean, onRemove: (() -> Unit)?) {
     InputChip(
         selected = true,
-        onClick = { /* Navigate to note */ },
+        onClick = { /* Navigate to note feature could be added here */ },
         label = { Text(note.title.ifBlank { "Tanpa Judul" }) },
         leadingIcon = {
             Icon(
@@ -272,9 +308,7 @@ fun NoteLinkChip(note: KnowledgeNote, isBacklink: Boolean, onRemove: (() -> Unit
             )
         },
         trailingIcon = if (onRemove != null) {
-            { Icon(Icons.Default.Close, null, Modifier
-                .size(16.dp)
-                .clickable { onRemove() }) }
+            { Icon(Icons.Default.Close, null, Modifier.size(16.dp).clickable { onRemove() }) }
         } else null,
         colors = InputChipDefaults.inputChipColors(
             selectedContainerColor = if (isBacklink) PurpleAccent.copy(alpha = 0.1f) else MaterialTheme.colorScheme.primaryContainer,

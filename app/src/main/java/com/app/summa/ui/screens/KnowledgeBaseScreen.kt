@@ -28,7 +28,6 @@ import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.KnowledgeViewModel
 import kotlinx.coroutines.launch
 import com.app.summa.ui.components.KnowledgeGraphView
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -38,10 +37,8 @@ fun KnowledgeBaseScreen(
     onAddNoteClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    // UPDATE: Tab Count jadi 3
     val pagerState = rememberPagerState(pageCount = { 3 })
     val scope = rememberCoroutineScope()
-    // UPDATE: Judul Tab
     val tabTitles = listOf("Inbox", "Pustaka", "Graph")
 
     var searchQuery by remember { mutableStateOf("") }
@@ -157,7 +154,9 @@ fun KnowledgeBaseScreen(
                         onNoteClick = onNoteClick,
                         emptyIcon = "📥",
                         emptyTitle = if(searchQuery.isEmpty()) "Inbox Kosong" else "Tidak Ditemukan",
-                        emptyText = if(searchQuery.isEmpty()) "Tekan tombol '+' untuk mencatat ide baru" else "Coba kata kunci lain"
+                        emptyText = if(searchQuery.isEmpty()) "Tekan tombol '+' untuk mencatat ide baru" else "Coba kata kunci lain",
+                        // PERBAIKAN: Menambahkan callback untuk Quick Promote
+                        onQuickPromote = { viewModel.promoteNote(it) }
                     )
                     1 -> EnhancedNoteList(
                         notes = filteredPermanent,
@@ -166,7 +165,6 @@ fun KnowledgeBaseScreen(
                         emptyTitle = if(searchQuery.isEmpty()) "Pustaka Kosong" else "Tidak Ditemukan",
                         emptyText = if(searchQuery.isEmpty()) "Arsipkan catatan dari Inbox ke sini" else "Coba kata kunci lain"
                     )
-                    // TAB BARU: GRAPH VIEW
                     2 -> {
                         val allNotes = filteredInbox + filteredPermanent
                         if (allNotes.isEmpty()) {
@@ -193,7 +191,9 @@ fun EnhancedNoteList(
     onNoteClick: (Long) -> Unit,
     emptyIcon: String,
     emptyTitle: String,
-    emptyText: String
+    emptyText: String,
+    // Callback opsional
+    onQuickPromote: ((KnowledgeNote) -> Unit)? = null
 ) {
     if (notes.isEmpty()) {
         Column(
@@ -241,10 +241,11 @@ fun EnhancedNoteList(
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(notes) { note ->
+            items(notes, key = { it.id }) { note ->
                 EnhancedNoteCard(
                     note = note,
-                    onClick = { onNoteClick(note.id) }
+                    onClick = { onNoteClick(note.id) },
+                    onPromote = onQuickPromote
                 )
             }
         }
@@ -254,7 +255,8 @@ fun EnhancedNoteList(
 @Composable
 fun EnhancedNoteCard(
     note: KnowledgeNote,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onPromote: ((KnowledgeNote) -> Unit)? = null
 ) {
     Card(
         onClick = onClick,
@@ -299,6 +301,7 @@ fun EnhancedNoteCard(
                     )
                 }
 
+                // Bagian Kanan: Indikator atau Tombol Aksi
                 if (note.isPermanent) {
                     Surface(
                         shape = CircleShape,
@@ -311,6 +314,21 @@ fun EnhancedNoteCard(
                                 .padding(8.dp)
                                 .size(20.dp),
                             tint = PurpleAccent
+                        )
+                    }
+                } else if (onPromote != null) {
+                    // TOMBOL QUICK PROMOTE UNTUK INBOX
+                    IconButton(
+                        onClick = { onPromote(note) },
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                            .size(40.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.DriveFileMove, // Icon pindah/arsip
+                            contentDescription = "Simpan ke Pustaka",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }

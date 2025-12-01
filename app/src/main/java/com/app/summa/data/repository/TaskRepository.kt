@@ -1,6 +1,7 @@
 package com.app.summa.data.repository
 
 import com.app.summa.data.local.TaskDao
+import com.app.summa.data.model.DailyWrapUpResult
 import com.app.summa.data.model.Task
 import com.app.summa.util.NotificationScheduler
 import kotlinx.coroutines.Dispatchers
@@ -17,13 +18,14 @@ interface TaskRepository {
     suspend fun updateTask(task: Task)
     suspend fun deleteTask(task: Task)
     suspend fun completeTask(taskId: Long)
-    suspend fun processDailyWrapUp()
+
+    // UPDATE: Sekarang mengembalikan DailyWrapUpResult? (Null jika tidak ada kejadian penting)
+    suspend fun processDailyWrapUp(): DailyWrapUpResult?
 }
 
 class TaskRepositoryImpl @Inject constructor(
     private val taskDao: TaskDao,
     private val identityRepository: IdentityRepository,
-    // PERBAIKAN: Inject NotificationScheduler untuk notifikasi hukuman
     private val notificationScheduler: NotificationScheduler
 ) : TaskRepository {
 
@@ -50,42 +52,58 @@ class TaskRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun processDailyWrapUp() {
-        withContext(Dispatchers.IO) {
+    /**
+     * Logika Inti "Sistem Operasi":
+     * Mengecek tugas kemarin yang belum selesai.
+     * - Aspirasi: Digeser ke hari ini (Rollover).
+     * - Komitmen: Dihukum (XP Penalti) & Digeser (Nagging).
+     * Mengembalikan laporan untuk ditampilkan di UI.
+     */
+    override suspend fun processDailyWrapUp(): DailyWrapUpResult? {
+        return withContext(Dispatchers.IO) {
             val today = LocalDate.now().toString()
 
-            // 1. Rollover Aspirasi (Tanpa Penalti)
+            // Cek tugas yang jadwalnya < hari ini DAN belum selesai
+            // (Diasumsikan query DAO getOverdue... sudah memfilter scheduledDate < today)
             val overdueAspirations = taskDao.getOverdueAspirationTasks(today)
+            val overdueCommitments = taskDao.getOverdueCommitmentTasks(today)
+
+            // Jika tidak ada tunggakan, tidak perlu briefing
+            if (overdueAspirations.isEmpty() && overdueCommitments.isEmpty()) {
+                return@withContext null
+            }
+
+            // 1. Proses Rollover Aspirasi (Tanpa Penalti)
             overdueAspirations.forEach { task ->
+                // Geser tanggal ke hari ini
                 taskDao.updateTask(task.copy(scheduledDate = today))
             }
 
-            // 2. Hukuman Komitmen (Penalti XP)
-            val overdueCommitments = taskDao.getOverdueCommitmentTasks(today)
+            // 2. Proses Hukuman Komitmen (Penalti XP)
             var totalPenalty = 0
-
             overdueCommitments.forEach { task ->
                 if (task.relatedIdentityId != null) {
                     val penalty = -5
-                    totalPenalty += 5 // Track positive value for display
+                    totalPenalty += 5 // Kita track angka positif untuk display di UI
 
+                    // Kurangi XP Identitas
                     identityRepository.addVoteToIdentity(
                         identityId = task.relatedIdentityId,
                         points = penalty,
                         note = "Terlewat komitmen: ${task.title}"
                     )
                 }
-                // Pindahkan tugas agar tetap terlihat (Nagging)
+                // Tetap geser tugas agar "menghantui" pengguna (Nagging)
                 taskDao.updateTask(task.copy(scheduledDate = today))
             }
 
-            // 3. Notifikasi Pengguna jika ada penalti
-            if (totalPenalty > 0) {
-                notificationScheduler.showImmediateNotification(
-                    title = "Komitmen Terlewat ⚠️",
-                    message = "Anda kehilangan $totalPenalty poin identitas hari ini."
-                )
-            }
+            // 3. Kembalikan Hasil Laporan
+            return@withContext DailyWrapUpResult(
+                processedDate = LocalDate.now().minusDays(1).toString(),
+                rolledOverAspirations = overdueAspirations,
+                missedCommitments = overdueCommitments,
+                totalPenalty = totalPenalty
+            )
         }
     }
 }

@@ -36,11 +36,10 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 
-// --- 1. HABIT INPUT SHEET (UPDATED FOR EDITING) ---
+// --- 1. HABIT INPUT SHEET (UPDATED WITH TIME PICKER) ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HabitInputSheet(
-    // Parameter Baru untuk Edit Mode
     initialName: String = "",
     initialIcon: String = "🎯",
     initialTarget: Int = 1,
@@ -52,39 +51,40 @@ fun HabitInputSheet(
     onDismiss: () -> Unit,
     onSave: (name: String, icon: String, target: Int, identityId: Long?, cue: String, reminder: String) -> Unit
 ) {
-    // Inisialisasi state dengan nilai awal (jika ada)
     var name by remember { mutableStateOf(initialName) }
     var icon by remember { mutableStateOf(initialIcon) }
     var targetStr by remember { mutableStateOf(initialTarget.toString()) }
-    // Cari object identity berdasarkan ID awal
     var selectedIdentity by remember {
         mutableStateOf(identities.find { it.id == initialIdentityId })
     }
     var cue by remember { mutableStateOf(initialCue) }
 
-    // Parse reminders string ke list
     val reminders = remember {
         mutableStateListOf<String>().apply {
             if (initialReminders.isNotBlank()) {
                 addAll(initialReminders.split(","))
             } else {
-                add("") // Default 1 kosong
+                add("")
             }
         }
     }
 
+    // STATE UNTUK TIME PICKER
+    var showTimePicker by remember { mutableStateOf(false) }
+    var editingReminderIndex by remember { mutableStateOf(-1) }
+    val timePickerState = rememberTimePickerState(is24Hour = true)
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val focusManager = LocalFocusManager.current
-    val isEditMode = initialName.isNotBlank() // Cek apakah ini mode edit
+    val isEditMode = initialName.isNotBlank()
 
     LaunchedEffect(targetStr) {
         val targetCount = targetStr.toIntOrNull() ?: 1
-        // Adjust reminder slots based on target
         if (targetCount > reminders.size) {
             repeat(targetCount - reminders.size) { reminders.add("") }
         } else if (targetCount < reminders.size && targetCount > 0) {
-            // Optional: Don't remove reminders immediately to prevent data loss while typing
-            // but for simple logic we can keep list size synced or just let user add manually
+            // Optional: Hapus yang berlebih jika diinginkan
+            // repeat(reminders.size - targetCount) { reminders.removeLast() }
         }
     }
 
@@ -212,17 +212,37 @@ fun HabitInputSheet(
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     reminders.forEachIndexed { index, time ->
-                        // Simple Time Input (Bisa diganti Picker jika perlu)
-                        OutlinedTextField(
-                            value = time,
-                            onValueChange = { newTime -> reminders[index] = newTime },
-                            placeholder = { Text("00:00") },
-                            label = { Text("Sesi ${index + 1}") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            singleLine = true,
-                            trailingIcon = { Icon(Icons.Default.Alarm, null, Modifier.size(16.dp)) }
-                        )
+                        // WRAPPER AGAR BISA DIKLIK UNTUK MEMBUKA PICKER
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = time,
+                                onValueChange = { }, // Read Only
+                                placeholder = { Text("00:00") },
+                                label = { Text("Sesi ${index + 1}") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                singleLine = true,
+                                readOnly = true, // KUNCI KEYBOARD
+                                trailingIcon = {
+                                    Icon(
+                                        Icons.Default.Alarm,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            )
+                            // TRANSPARENT CLICKABLE OVERLAY
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        editingReminderIndex = index
+                                        showTimePicker = true
+                                    }
+                            )
+                        }
                     }
                 }
             }
@@ -244,9 +264,34 @@ fun HabitInputSheet(
             }
         }
     }
+
+    // DIALOG TIME PICKER
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val cal = Calendar.getInstance()
+                    cal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                    cal.set(Calendar.MINUTE, timePickerState.minute)
+                    val formatter = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                    if (editingReminderIndex in reminders.indices) {
+                        reminders[editingReminderIndex] = formatter.format(cal.time)
+                    }
+                    showTimePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("Batal") }
+            },
+            text = {
+                TimePicker(state = timePickerState)
+            }
+        )
+    }
 }
 
-// --- 2. TASK INPUT SHEET (FIXED: Time Picker & Layout) ---
+// --- 2. TASK INPUT SHEET ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskInputSheet(
@@ -261,7 +306,6 @@ fun TaskInputSheet(
     var selectedIdentity by remember { mutableStateOf<Identity?>(null) }
     var twoMinAction by remember { mutableStateOf("") }
 
-    // Picker State
     var showTimePicker by remember { mutableStateOf(false) }
     val timePickerState = rememberTimePickerState(
         initialHour = LocalTime.now().hour,
@@ -269,7 +313,6 @@ fun TaskInputSheet(
         is24Hour = true
     )
 
-    // Fix: Sheet State untuk mencegah jump
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val focusManager = LocalFocusManager.current
 
@@ -281,11 +324,10 @@ fun TaskInputSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .imePadding() // Handle keyboard
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 48.dp)
         ) {
-            // Header Input
             TextField(
                 value = title,
                 onValueChange = { title = it },
@@ -302,9 +344,7 @@ fun TaskInputSheet(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Chips Bar (Time & Type)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Time Chip (Clickable)
                 AssistChip(
                     onClick = { showTimePicker = true },
                     label = { Text(time) },
@@ -317,7 +357,6 @@ fun TaskInputSheet(
 
                 Spacer(Modifier.width(8.dp))
 
-                // Commitment Chip
                 FilterChip(
                     selected = isCommitment,
                     onClick = { isCommitment = !isCommitment },
@@ -340,7 +379,6 @@ fun TaskInputSheet(
             Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
             Spacer(Modifier.height(24.dp))
 
-            // Identity Selection
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
@@ -370,7 +408,6 @@ fun TaskInputSheet(
 
             Spacer(Modifier.height(24.dp))
 
-            // Description
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
@@ -385,7 +422,6 @@ fun TaskInputSheet(
 
             Spacer(Modifier.height(24.dp))
 
-            // 2-Minute Rule Card
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f)),
                 shape = RoundedCornerShape(16.dp),
@@ -427,7 +463,6 @@ fun TaskInputSheet(
         }
     }
 
-    // TIME PICKER DIALOG
     if (showTimePicker) {
         AlertDialog(
             onDismissRequest = { showTimePicker = false },

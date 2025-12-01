@@ -96,3 +96,12 @@ val SurfaceTintPrimary = Color(0xFF0D9488).copy(alpha = 0.05f)
 val SurfaceTintSecondary = Color(0xFFFBBF24).copy(alpha = 0.05f)
 val SurfaceTintSuccess = Color(0xFF10B981).copy(alpha = 0.05f)
 val SurfaceTintError = Color(0xFFEF4444).copy(alpha = 0.05f)
+
+// === PLANNER SPECIFIC (BARU) ===
+// Komitmen: Gelap, Solid, Berat (Jangkar)
+val CommitmentColor = Color(0xFF2C3E50)
+val CommitmentContainer = Color(0xFF34495E)
+
+// Aspirasi: Terang, Ringan, Putus-putus (Awan)
+val AspirationColor = Color(0xFF95A5A6)
+val AspirationContainer = Color.Transparent // Biar terlihat ringan

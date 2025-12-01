@@ -3,11 +3,14 @@ package com.app.summa.ui.screens
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -50,6 +53,16 @@ fun IdentityProfileScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
 
+    // Jika ada identitas terpilih, tampilkan Detail Sheet
+    if (uiState.selectedIdentity != null) {
+        IdentityDetailSheet(
+            identity = uiState.selectedIdentity!!,
+            xpToNext = uiState.xpToNextLevel,
+            logs = uiState.selectedIdentityLogs,
+            onDismiss = { viewModel.clearSelection() }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -79,14 +92,14 @@ fun IdentityProfileScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                contentPadding = PaddingValues(bottom = 80.dp) // Tambah padding bawah untuk FAB
+                contentPadding = PaddingValues(bottom = 80.dp)
             ) {
                 // 1. Header Level
                 item {
                     ProfileHeader(totalLevel = uiState.totalLevel)
                 }
 
-                // 2. Radar Chart (Visualisasi Skill)
+                // 2. Radar Chart
                 item {
                     if (uiState.identities.isNotEmpty()) {
                         Box(
@@ -106,7 +119,7 @@ fun IdentityProfileScreen(
                     }
                 }
 
-                // 3. Daftar Detail Identitas (Stats)
+                // 3. Daftar Identitas (Sekarang Clickable)
                 item {
                     Text(
                         "Atribut Identitas",
@@ -117,10 +130,13 @@ fun IdentityProfileScreen(
                 }
 
                 items(uiState.identities) { identity ->
-                    IdentityStatCard(identity)
+                    IdentityStatCard(
+                        identity = identity,
+                        onClick = { viewModel.selectIdentity(identity) } // KLIK UNTUK DETAIL
+                    )
                 }
 
-                // 4. BUKTI IDENTITAS (PROOF OF IDENTITY)
+                // 4. Jejak Bukti Global
                 item {
                     Spacer(Modifier.height(24.dp))
                     Row(
@@ -129,25 +145,10 @@ fun IdentityProfileScreen(
                             .padding(horizontal = 20.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            Icons.Default.HistoryEdu,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        Icon(Icons.Default.HistoryEdu, null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(8.dp))
-                        Text(
-                            "Jejak Bukti (Evidence)",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("Aktivitas Terbaru", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     }
-                    Text(
-                        "Setiap tindakan adalah suara untuk tipe orang yang Anda inginkan.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-                    )
-                    Spacer(Modifier.height(8.dp))
                 }
 
                 if (uiState.recentActivityLogs.isEmpty()) {
@@ -160,33 +161,12 @@ fun IdentityProfileScreen(
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                "Belum ada bukti tercatat.\nLakukan 'Refleksi' atau selesaikan kebiasaan.",
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Text("Belum ada aktivitas.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 } else {
-                    // Group log by date
-                    val logsByDate = uiState.recentActivityLogs.groupBy {
-                        SimpleDateFormat("dd MMM yyyy", Locale("id", "ID")).format(Date(it.createdAt ?: System.currentTimeMillis()))
-                    }
-
-                    logsByDate.forEach { (date, logs) ->
-                        item {
-                            Text(
-                                date,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-                            )
-                        }
-                        items(logs) { log ->
-                            EvidenceTimelineItem(log)
-                        }
+                    items(uiState.recentActivityLogs) { log ->
+                        EvidenceTimelineItem(log)
                     }
                 }
             }
@@ -201,6 +181,127 @@ fun IdentityProfileScreen(
                 showAddDialog = false
             }
         )
+    }
+}
+
+// --- SHEET DETAIL IDENTITAS (CHARACTER SHEET) ---
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun IdentityDetailSheet(
+    identity: Identity,
+    xpToNext: Int,
+    logs: List<KnowledgeNote>,
+    onDismiss: () -> Unit
+) {
+    val level = identity.progress / 100
+    val currentXp = identity.progress % 100
+    val progress = currentXp / 100f
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Header: Icon Besar & Nama
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    identity.name.take(1).uppercase(),
+                    style = MaterialTheme.typography.displayMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(identity.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            if (identity.description.isNotBlank()) {
+                Text(
+                    identity.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+
+            Spacer(Modifier.height(32.dp))
+
+            // Level & Progress Bar Besar
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            ) {
+                Column(Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Text("LEVEL $level", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = GoldDark)
+                        Text("${currentXp}/100 XP", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        color = GoldAccent,
+                        trackColor = MaterialTheme.colorScheme.surface
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "$xpToNext XP lagi untuk naik level",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // Riwayat Bukti Spesifik
+            Text(
+                "Riwayat Bukti (Evidence)",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.Start)
+            )
+            Spacer(Modifier.height(12.dp))
+
+            if (logs.isEmpty()) {
+                Text(
+                    "Belum ada bukti spesifik untuk identitas ini.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                )
+            } else {
+                LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                    items(logs) { log ->
+                        EvidenceTimelineItem(log)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -470,12 +571,16 @@ fun RadarChart(identities: List<Identity>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun IdentityStatCard(identity: Identity) {
+fun IdentityStatCard(
+    identity: Identity,
+    onClick: () -> Unit // Parameter Baru
+) {
     val level = identity.progress / 100
     val currentXp = identity.progress % 100
     val progress = currentXp / 100f
 
     Card(
+        onClick = onClick, // Enable Click
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 6.dp),

@@ -1,7 +1,12 @@
 package com.app.summa.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,11 +32,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -43,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.Identity
@@ -66,7 +76,9 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlannerScreen(
-    viewModel: PlannerViewModel = hiltViewModel()
+    viewModel: PlannerViewModel = hiltViewModel(),
+    // PARAMETER BARU: Menerima mode dari navigasi
+    currentMode: String = "Normal"
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var viewMode by remember { mutableStateOf("day") }
@@ -76,6 +88,16 @@ fun PlannerScreen(
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = uiState.selectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
     )
+
+    // Filter Tasks Berdasarkan Mode
+    val filteredTasksForDay = remember(uiState.tasksForDay, currentMode) {
+        if (currentMode == "Fokus") {
+            // Di Mode Fokus, hanya tampilkan Komitmen (Beban Berat)
+            uiState.tasksForDay.filter { it.isCommitment }
+        } else {
+            uiState.tasksForDay
+        }
+    }
 
     LaunchedEffect(uiState.initialTaskTitle) {
         if (uiState.initialTaskTitle != null) showAddTaskSheet = true
@@ -98,7 +120,24 @@ fun PlannerScreen(
                 TopAppBar(
                     title = {
                         Column {
-                            Text("Planner", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Planner", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                                if (currentMode == "Fokus") {
+                                    Spacer(Modifier.width(8.dp))
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text(
+                                            "MODE FOKUS",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                }
+                            }
                             Text(uiState.selectedDate.format(DateTimeFormatter.ofPattern("EEEE, dd MMM", Locale("id"))), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                         }
                     },
@@ -130,12 +169,13 @@ fun PlannerScreen(
                 } else {
                     when (viewMode) {
                         "day" -> InteractiveDailyView(
-                            tasks = uiState.tasksForDay,
+                            tasks = filteredTasksForDay, // Gunakan list yang sudah difilter
+                            identities = uiState.availableIdentities,
                             onTaskClick = { selectedTask = it },
                             onTaskMoved = { task, newHour -> viewModel.moveTaskToTime(task, newHour) }
                         )
-                        "week" -> CleanWeeklyView(viewModel = viewModel, uiState = uiState, onTaskClick = { selectedTask = it })
-                        "month" -> CleanMonthlyView(viewModel = viewModel, uiState = uiState, onTaskClick = { selectedTask = it })
+                        "week" -> CleanWeeklyView(viewModel = viewModel, uiState = uiState, onTaskClick = { selectedTask = it }, currentMode = currentMode)
+                        "month" -> CleanMonthlyView(viewModel = viewModel, uiState = uiState, onTaskClick = { selectedTask = it }, currentMode = currentMode)
                     }
                 }
             }
@@ -166,73 +206,60 @@ fun PlannerScreen(
     }
 }
 
-// --- INTERACTIVE DRAG & DROP IMPLEMENTATION ---
+// --- INTERACTIVE DAILY VIEW (UPDATED) ---
 
 @Composable
 fun InteractiveDailyView(
     tasks: List<Task>,
+    identities: List<Identity>, // Parameter Baru
     onTaskClick: (Task) -> Unit,
     onTaskMoved: (Task, Int) -> Unit
 ) {
-    // Group tasks by hour
     val tasksByHour = remember(tasks) {
         tasks.groupBy { try { LocalTime.parse(it.scheduledTime ?: "00:00").hour } catch (e: Exception) { 0 } }
     }
 
-    // Drag & Drop State
     var draggingTask by remember { mutableStateOf<Task?>(null) }
     var dragOffset by remember { mutableStateOf(Offset.Zero) }
-    var dragStartOffset by remember { mutableStateOf(Offset.Zero) }
 
-    // Map untuk menyimpan koordinat setiap slot waktu (Hour -> Rect Bounds)
     val dropZones = remember { mutableStateMapOf<Int, Rect>() }
     var activeDropZone by remember { mutableStateOf<Int?>(null) }
 
     val haptic = LocalHapticFeedback.current
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Scrollable List of Hours
-        // Menggunakan Column + verticalScroll agar semua slot jam dirender dan punya koordinat
-        // LazyColumn akan me-recycle item sehingga drop zone yang off-screen tidak terdeteksi
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(1.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             repeat(24) { hour ->
-                // Drop Target Container
                 Box(
-                    modifier = Modifier
-                        .onGloballyPositioned { coordinates ->
-                            // Simpan koordinat slot ini
-                            dropZones[hour] = coordinates.boundsInWindow()
-                        }
+                    modifier = Modifier.onGloballyPositioned { coordinates ->
+                        dropZones[hour] = coordinates.boundsInWindow()
+                    }
                 ) {
                     CleanTimeSlot(
                         hour = hour,
                         tasks = tasksByHour[hour] ?: emptyList(),
+                        identities = identities,
                         isDropTarget = activeDropZone == hour,
                         onTaskClick = onTaskClick,
                         onDragStart = { task, offset ->
                             draggingTask = task
-                            dragStartOffset = offset
                             dragOffset = offset
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         },
-                        // Sembunyikan task asli saat sedang di-drag
                         hiddenTask = draggingTask
                     )
                 }
             }
-            // Spacer extra di bawah agar mudah drag ke jam malam
             Spacer(Modifier.height(100.dp))
         }
 
-        // --- DRAG OVERLAY LAYER ---
         if (draggingTask != null) {
-            // Deteksi Drag global di atas seluruh layar
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -241,14 +268,6 @@ fun InteractiveDailyView(
                             onDrag = { change, dragAmount ->
                                 change.consume()
                                 dragOffset += dragAmount
-
-                                // Cek drop zone mana yang aktif
-                                val currentWindowPos = change.position
-                                // Konversi local position ke window position itu tricky di overlay
-                                // Simplifikasi: gunakan posisi absolut change.position + offset awal relatif
-                                // Namun detectDragGestures change.position adalah relatif ke Box overlay ini (fullscreen).
-                                // Jadi change.position kurang lebih == window position jika Box fullscreen.
-
                                 val pointerWindowPos = change.position
                                 activeDropZone = dropZones.entries.firstOrNull { (_, rect) ->
                                     rect.contains(pointerWindowPos)
@@ -262,20 +281,17 @@ fun InteractiveDailyView(
                                 draggingTask = null
                                 activeDropZone = null
                             },
-                            onDragCancel = {
-                                draggingTask = null
-                                activeDropZone = null
-                            }
+                            onDragCancel = { draggingTask = null; activeDropZone = null }
                         )
                     }
             ) {
-                // Gambar "Ghost Task" yang mengikuti jari
                 CleanTaskCard(
                     task = draggingTask!!,
+                    identity = identities.find { it.id == draggingTask!!.relatedIdentityId },
                     onClick = {},
                     modifier = Modifier
-                        .offset { IntOffset(dragOffset.x.roundToInt() - 50, dragOffset.y.roundToInt() - 50) } // Offset agar jari ada di tengah
-                        .width(300.dp) // Fixed width saat dragging
+                        .offset { IntOffset(dragOffset.x.roundToInt() - 50, dragOffset.y.roundToInt() - 50) }
+                        .width(300.dp)
                         .shadow(16.dp, RoundedCornerShape(12.dp))
                         .alpha(0.9f)
                         .zIndex(10f),
@@ -290,6 +306,7 @@ fun InteractiveDailyView(
 fun CleanTimeSlot(
     hour: Int,
     tasks: List<Task>,
+    identities: List<Identity>, // Param
     isDropTarget: Boolean,
     onTaskClick: (Task) -> Unit,
     onDragStart: (Task, Offset) -> Unit,
@@ -301,12 +318,11 @@ fun CleanTimeSlot(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 72.dp) // Lebih tinggi agar mudah di-drop
+            .heightIn(min = 72.dp)
             .scale(animatedScale)
             .background(animatedColor, RoundedCornerShape(8.dp))
             .padding(vertical = 4.dp)
     ) {
-        // Kolom Jam
         Box(modifier = Modifier.width(60.dp).padding(top = 8.dp)) {
             Text(
                 String.format("%02d:00", hour),
@@ -316,359 +332,252 @@ fun CleanTimeSlot(
             )
         }
 
-        // Area Tugas
         Column(
             modifier = Modifier
                 .weight(1f)
-                .border(
-                    1.dp,
-                    if(isDropTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                    RoundedCornerShape(8.dp)
-                )
-                .padding(8.dp),
+                .drawBehind {
+                    drawLine(color = Color.Gray.copy(alpha = 0.1f), start = Offset(0f, 0f), end = Offset(size.width, 0f), strokeWidth = 1.dp.toPx())
+                }
+                .padding(start = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (tasks.isEmpty() && isDropTarget) {
-                Text(
-                    "Lepaskan di sini",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 8.dp)
-                )
+                Text("Pindahkan ke sini", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 8.dp))
             }
 
             tasks.forEach { task ->
                 if (task.id != hiddenTask?.id) {
                     CleanTaskCard(
                         task = task,
+                        // Lookup Identity
+                        identity = identities.find { it.id == task.relatedIdentityId },
                         onClick = { onTaskClick(task) },
                         onLongClick = { offset -> onDragStart(task, offset) }
                     )
                 } else {
-                    // Placeholder space untuk task yang sedang dipindahkan
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                    )
+                    Box(modifier = Modifier.fillMaxWidth().height(50.dp).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp)).border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)))
                 }
             }
         }
     }
 }
 
+// --- TASK CARD TERBARU DENGAN IDENTITAS ---
 @Composable
 fun CleanTaskCard(
     task: Task,
+    identity: Identity? = null, // PARAMETER BARU
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    onLongClick: ((Offset) -> Unit)? = null, // Tambahan untuk deteksi drag
+    onLongClick: ((Offset) -> Unit)? = null,
     isDragging: Boolean = false
 ) {
     var itemPosition by remember { mutableStateOf(Offset.Zero) }
+
+    val containerColor = when {
+        isDragging -> MaterialTheme.colorScheme.primaryContainer
+        task.isCompleted -> SuccessGreenBg.copy(alpha = 0.5f)
+        task.isCommitment -> CommitmentContainer
+        else -> MaterialTheme.colorScheme.surface
+    }
+
+    val contentColor = when {
+        task.isCompleted -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        task.isCommitment -> Color.White
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+
+    val borderModifier = if (!task.isCommitment && !task.isCompleted && !isDragging) {
+        Modifier.drawBehind {
+            val stroke = Stroke(width = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 15f), 0f))
+            drawRoundRect(color = AspirationColor, style = stroke, cornerRadius = CornerRadius(12.dp.toPx()))
+        }
+    } else Modifier
 
     Card(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .onGloballyPositioned { coordinates ->
-                itemPosition = coordinates.positionInRoot()
-            }
+            .onGloballyPositioned { coordinates -> itemPosition = coordinates.positionInRoot() }
             .pointerInput(Unit) {
                 if (onLongClick != null) {
                     detectDragGesturesAfterLongPress(
-                        onDragStart = {
-                            // Kirim posisi global kartu saat ini sebagai titik awal drag
-                            onLongClick(itemPosition)
-                        },
-                        onDrag = { _, _ -> }, // Handled by parent
+                        onDragStart = { onLongClick(itemPosition) },
+                        onDrag = { _, _ -> },
                         onDragEnd = { },
                         onDragCancel = { }
                     )
                 }
-            },
+            }
+            .then(borderModifier),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isDragging) MaterialTheme.colorScheme.primaryContainer
-            else if (task.isCommitment) DeepTeal.copy(alpha = 0.1f)
-            else MaterialTheme.colorScheme.surfaceVariant
-        ),
-        border = BorderStroke(
-            if (isDragging) 2.dp else 1.dp,
-            if (isDragging) MaterialTheme.colorScheme.primary
-            else if (task.isCommitment) DeepTeal.copy(alpha = 0.3f)
-            else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 0.dp)
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else if (task.isCommitment) 4.dp else 0.dp),
+        border = if (task.isCommitment || task.isCompleted || isDragging) null else null
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            // Drag Handle Indication
             if (!task.isCompleted) {
-                Icon(
-                    Icons.Default.DragHandle,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                    modifier = Modifier.size(16.dp).padding(end = 4.dp)
-                )
+                Icon(Icons.Default.DragHandle, null, tint = contentColor.copy(alpha = 0.3f), modifier = Modifier.size(16.dp).padding(end = 4.dp))
             }
 
             Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (task.isCompleted) SuccessGreen
-                        else if (task.isCommitment) DeepTeal
-                        else MaterialTheme.colorScheme.outline
-                    )
+                modifier = Modifier.size(8.dp).clip(CircleShape).background(if (task.isCompleted) SuccessGreen else if (task.isCommitment) GoldAccent else AspirationColor)
             )
+
             Spacer(Modifier.width(12.dp))
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     task.title,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1
+                    fontWeight = if (task.isCommitment) FontWeight.Bold else FontWeight.Normal,
+                    maxLines = 1,
+                    color = contentColor,
+                    textDecoration = if (task.isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
                 )
-                if (task.scheduledTime != null && !isDragging) {
-                    Text(
-                        task.scheduledTime,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-            }
-            Icon(
-                if (task.isCompleted) Icons.Default.CheckCircle else Icons.Default.ArrowForward,
-                null,
-                tint = if (task.isCompleted) SuccessGreen else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
 
-// ... (Rest of the file: PhysicalFocusModeScreen, CleanWeeklyView, CleanMonthlyView, CleanCalendarCell, etc. remain unchanged)
-// Sisa kode di bawah ini adalah salinan dari kode sebelumnya agar file tetap lengkap dan bisa dicompile
-// Saya sertakan PhysicalFocusModeScreen dll.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (task.scheduledTime != null && !isDragging) {
+                        Text(task.scheduledTime, style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.7f))
+                        Spacer(Modifier.width(8.dp))
+                    }
 
-@Composable
-fun PhysicalFocusModeScreen(
-    task: Task,
-    onComplete: (Int, Long) -> Unit,
-    onCancel: () -> Unit
-) {
-    // ... (Keep existing implementation)
-    var timeRemaining by rememberSaveable { mutableIntStateOf(60 * 25) }
-    var paperclipsLeft by rememberSaveable { mutableIntStateOf(10) }
-    var paperclipsMoved by rememberSaveable { mutableIntStateOf(0) }
-    var isRunning by rememberSaveable { mutableStateOf(false) }
-    val startTime by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
+                    // LABEL TIPE & IDENTITAS
+                    if (!task.isCompleted) {
+                        Surface(
+                            color = if(task.isCommitment) Color.Black.copy(alpha=0.2f) else MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(if (task.isCommitment) "KOMITMEN" else "ASPIRASI", style = MaterialTheme.typography.labelSmall, fontSize = 8.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp), color = if(task.isCommitment) Color.White.copy(alpha=0.8f) else MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
 
-    // ... (Simplified for brevity, assume implementation is same as before)
-    // To ensure compilation, I will just provide the scaffold, but in real update I would paste full code.
-    // Since I must provide FULL code for replacement:
-
-    // ... [RE-PASTING PHYSICAL FOCUS MODE FOR COMPLETENESS] ...
-
-    var dragOffset by remember { mutableStateOf(Offset.Zero) }
-    var isDragging by remember { mutableStateOf(false) }
-    val animatedOffsetX = remember { Animatable(0f) }
-    val animatedOffsetY = remember { Animatable(0f) }
-    val scope = rememberCoroutineScope()
-    val haptic = LocalHapticFeedback.current
-
-    LaunchedEffect(isRunning, timeRemaining) {
-        if (isRunning && timeRemaining > 0) {
-            kotlinx.coroutines.delay(1000)
-            timeRemaining--
-        } else if (timeRemaining == 0) {
-            isRunning = false
-        }
-    }
-
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            IconButton(onClick = onCancel) { Icon(Icons.Default.Close, contentDescription = "Tutup") }
-            Text(task.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, maxLines = 1)
-            TextButton(onClick = { onComplete(paperclipsMoved, startTime) }) { Text("Selesai") }
-        }
-
-        Spacer(Modifier.height(32.dp))
-
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.size(220.dp).border(4.dp, DeepTeal.copy(alpha = 0.2f), CircleShape)
-        ) {
-            Text(
-                String.format("%02d:%02d", timeRemaining / 60, timeRemaining % 60),
-                style = MaterialTheme.typography.displayLarge,
-                fontWeight = FontWeight.Bold,
-                color = DeepTeal
-            )
-        }
-
-        Spacer(Modifier.height(24.dp))
-
-        IconButton(onClick = { isRunning = !isRunning }, modifier = Modifier.size(64.dp)) {
-            Icon(if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
-        }
-
-        Spacer(Modifier.weight(1f))
-        Text("Tarik Klip ke Kanan untuk Fokus ->", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-        Spacer(Modifier.height(24.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(100.dp).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(24.dp))
-            ) {
-                if (paperclipsLeft > 0) {
-                    Text(
-                        "📎",
-                        style = MaterialTheme.typography.displayMedium,
-                        modifier = Modifier
-                            .offset { IntOffset(animatedOffsetX.value.roundToInt() + dragOffset.x.roundToInt(), animatedOffsetY.value.roundToInt() + dragOffset.y.roundToInt()) }
-                            .pointerInput(Unit) {
-                                detectDragGestures(
-                                    onDragStart = {
-                                        isDragging = true
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        if(!isRunning) isRunning = true
-                                    },
-                                    onDragEnd = {
-                                        isDragging = false
-                                        if (dragOffset.x > 150) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            paperclipsLeft--
-                                            paperclipsMoved++
-                                            scope.launch {
-                                                animatedOffsetX.snapTo(0f)
-                                                animatedOffsetY.snapTo(0f)
-                                            }
-                                            dragOffset = Offset.Zero
-                                            if(paperclipsLeft == 0) onComplete(paperclipsMoved, startTime)
-                                        } else {
-                                            scope.launch {
-                                                val endX = dragOffset.x
-                                                val endY = dragOffset.y
-                                                animatedOffsetX.snapTo(endX)
-                                                animatedOffsetY.snapTo(endY)
-                                                dragOffset = Offset.Zero
-                                                launch { animatedOffsetX.animateTo(0f) }
-                                                launch { animatedOffsetY.animateTo(0f) }
-                                            }
-                                        }
-                                    }
-                                ) { change, dragAmount ->
-                                    change.consume()
-                                    dragOffset += dragAmount
-                                }
+                    // --- BADGE IDENTITAS ---
+                    if (identity != null) {
+                        Spacer(Modifier.width(6.dp))
+                        Surface(
+                            color = if(task.isCommitment) GoldAccent.copy(alpha=0.3f) else MaterialTheme.colorScheme.secondaryContainer.copy(alpha=0.5f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)) {
+                                Icon(Icons.Default.Person, null, modifier = Modifier.size(8.dp), tint = if(task.isCommitment) GoldLight else MaterialTheme.colorScheme.onSecondaryContainer)
+                                Spacer(Modifier.width(2.dp))
+                                Text(
+                                    identity.name,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 8.sp,
+                                    color = if(task.isCommitment) GoldLight else MaterialTheme.colorScheme.onSecondaryContainer,
+                                    maxLines = 1
+                                )
                             }
-                    )
-                } else {
-                    Text("Selesai!", style = MaterialTheme.typography.labelMedium)
-                }
-                Box(modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
-                    Surface(color = MaterialTheme.colorScheme.surface, shape = CircleShape, shadowElevation = 2.dp) {
-                        Text("$paperclipsLeft", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        }
                     }
                 }
             }
 
-            Icon(Icons.Default.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(100.dp).background(SuccessGreen.copy(alpha = 0.1f), RoundedCornerShape(24.dp)).border(2.dp, SuccessGreen.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📎", style = MaterialTheme.typography.displayMedium, color = SuccessGreen.copy(alpha = 0.5f))
-                    Text("$paperclipsMoved", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = SuccessGreen)
-                }
-            }
+            Icon(if (task.isCompleted) Icons.Default.CheckCircle else Icons.Default.ArrowForward, null, tint = if (task.isCompleted) SuccessGreen else contentColor.copy(alpha = 0.4f), modifier = Modifier.size(20.dp))
         }
-        Spacer(Modifier.height(48.dp))
     }
 }
+
+// ... (Weekly & Monthly views also updated to support new params)
 
 @Composable
 fun CleanWeeklyView(
     viewModel: PlannerViewModel,
     uiState: PlannerUiState,
-    onTaskClick: (Task) -> Unit
+    onTaskClick: (Task) -> Unit,
+    currentMode: String
 ) {
+    // Filter juga untuk tampilan mingguan
+    val tasksForDay = if (currentMode == "Fokus") {
+        uiState.tasksForDay.filter { it.isCommitment }
+    } else uiState.tasksForDay
+
     val selectedDate = uiState.selectedDate
     val firstDayOfWeek = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
     val weekDays = remember(firstDayOfWeek) { (0..6).map { firstDayOfWeek.plusDays(it.toLong()) } }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { viewModel.selectDate(firstDayOfWeek.minusWeeks(1)) }) {
-                Icon(Icons.Default.ChevronLeft, contentDescription = "Minggu Sebelumnya")
-            }
-            Text(
-                "${firstDayOfWeek.format(DateTimeFormatter.ofPattern("d MMM"))} - ${weekDays.last().format(DateTimeFormatter.ofPattern("d MMM"))}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            IconButton(onClick = { viewModel.selectDate(firstDayOfWeek.plusWeeks(1)) }) {
-                Icon(Icons.Default.ChevronRight, contentDescription = "Minggu Berikutnya")
-            }
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { viewModel.selectDate(firstDayOfWeek.minusWeeks(1)) }) { Icon(Icons.Default.ChevronLeft, "Prev") }
+            Text("${firstDayOfWeek.format(DateTimeFormatter.ofPattern("d MMM"))} - ${weekDays.last().format(DateTimeFormatter.ofPattern("d MMM"))}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            IconButton(onClick = { viewModel.selectDate(firstDayOfWeek.plusWeeks(1)) }) { Icon(Icons.Default.ChevronRight, "Next") }
         }
 
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        LazyRow(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(weekDays.size) { index ->
-                CleanDayCell(
-                    date = weekDays[index],
-                    isSelected = weekDays[index].isEqual(selectedDate),
-                    isToday = weekDays[index].isEqual(LocalDate.now()),
-                    onClick = { viewModel.selectDate(weekDays[index]) }
-                )
+                CleanDayCell(date = weekDays[index], isSelected = weekDays[index].isEqual(selectedDate), isToday = weekDays[index].isEqual(LocalDate.now()), onClick = { viewModel.selectDate(weekDays[index]) })
             }
         }
 
         Spacer(Modifier.height(16.dp))
         Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-        LazyColumn(
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (uiState.tasksForDay.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "Tidak ada tugas untuk tanggal ini",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
+        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (tasksForDay.isEmpty()) {
+                item { Box(modifier = Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) { Text(if(currentMode == "Fokus") "Tidak ada Komitmen hari ini" else "Tidak ada tugas", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) } }
             } else {
-                items(uiState.tasksForDay) { task ->
-                    CleanTaskCard(task = task, onClick = { onTaskClick(task) })
+                items(tasksForDay) { task ->
+                    CleanTaskCard(
+                        task = task,
+                        identity = uiState.availableIdentities.find { it.id == task.relatedIdentityId },
+                        onClick = { onTaskClick(task) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CleanMonthlyView(
+    viewModel: PlannerViewModel,
+    uiState: PlannerUiState,
+    onTaskClick: (Task) -> Unit,
+    currentMode: String
+) {
+    // Logic bulanan tetap sama, hanya tampilan list bawah difilter
+    val tasksForDay = if (currentMode == "Fokus") {
+        uiState.tasksForDay.filter { it.isCommitment }
+    } else uiState.tasksForDay
+
+    val tasksByDate = remember(uiState.tasksForMonth) { uiState.tasksForMonth.groupBy { try { LocalDate.parse(it.scheduledDate) } catch (e: Exception) { null } } }
+    val firstDayOfMonth = uiState.selectedDate.with(TemporalAdjusters.firstDayOfMonth())
+    val paddingDays = (firstDayOfMonth.dayOfWeek.value - DayOfWeek.MONDAY.value + 7) % 7
+    val daysInMonth = firstDayOfMonth.lengthOfMonth()
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { viewModel.selectDate(firstDayOfMonth.minusMonths(1)) }) { Icon(Icons.Default.ChevronLeft, "Prev") }
+            Text(firstDayOfMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale("id"))), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            IconButton(onClick = { viewModel.selectDate(firstDayOfMonth.plusMonths(1)) }) { Icon(Icons.Default.ChevronRight, "Next") }
+        }
+
+        LazyVerticalGrid(columns = GridCells.Fixed(7), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(7) { index -> Text(DayOfWeek.of(index + 1).getDisplayName(TextStyle.SHORT, Locale("id")), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) }
+            items(paddingDays) { Box(modifier = Modifier.aspectRatio(1f)) }
+            items(daysInMonth) { dayIndex ->
+                val currentDate = firstDayOfMonth.plusDays(dayIndex.toLong())
+                val tasksOnDay = tasksByDate[currentDate] ?: emptyList()
+                CleanCalendarCell(day = dayIndex + 1, taskCount = tasksOnDay.size, isToday = currentDate.isEqual(LocalDate.now()), isSelected = currentDate.isEqual(uiState.selectedDate), onClick = { viewModel.selectDate(currentDate) })
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        Text("Tugas pada ${uiState.selectedDate.format(DateTimeFormatter.ofPattern("dd MMMM", Locale("id")))}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+
+        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (tasksForDay.isEmpty()) {
+                item { Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), contentAlignment = Alignment.Center) { Text(if(currentMode=="Fokus") "Fokus terjaga. Tidak ada komitmen." else "Tidak ada tugas", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) } }
+            } else {
+                items(tasksForDay) { task ->
+                    CleanTaskCard(
+                        task = task,
+                        identity = uiState.availableIdentities.find { it.id == task.relatedIdentityId },
+                        onClick = { onTaskClick(task) }
+                    )
                 }
             }
         }

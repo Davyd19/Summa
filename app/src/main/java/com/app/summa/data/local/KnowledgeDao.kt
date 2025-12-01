@@ -29,6 +29,10 @@ interface KnowledgeDao {
     @Query("SELECT * FROM knowledge_notes WHERE id = :id")
     fun getNoteById(id: Long): Flow<KnowledgeNote?> // Ubah ke Flow
 
+    // QUERY BARU: Mencari catatan berdasarkan judul persis (Case Insensitive untuk kenyamanan)
+    @Query("SELECT * FROM knowledge_notes WHERE title LIKE :title LIMIT 1")
+    suspend fun getNoteByTitle(title: String): KnowledgeNote?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertNote(note: KnowledgeNote): Long
 

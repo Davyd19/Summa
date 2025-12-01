@@ -18,7 +18,7 @@ import com.app.summa.data.model.*
         // ENTITY BARU: Tambahkan NoteLink
         NoteLink::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

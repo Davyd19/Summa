@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,24 +42,19 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 
+// --- 1. SCREEN DAFTAR HABIT (LIST ONLY) ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HabitsScreen(
     viewModel: HabitViewModel = hiltViewModel(),
+    onNavigateToDetail: (Long) -> Unit, // Callback baru
     onNavigateToIdentityProfile: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showAddSheet by remember { mutableStateOf(false) }
-    var showEditSheet by remember { mutableStateOf(false) }
     var focusedHabit by remember { mutableStateOf<HabitItem?>(null) }
-    val haptic = LocalHapticFeedback.current
 
-    LaunchedEffect(uiState.showRewardAnimation) {
-        if (uiState.showRewardAnimation) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        }
-    }
-
+    // Focus Mode Overlay
     if (focusedHabit != null) {
         UniversalFocusModeScreen(
             title = focusedHabit!!.name,
@@ -73,66 +67,50 @@ fun HabitsScreen(
             onCancel = { focusedHabit = null }
         )
     } else {
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (uiState.showRewardAnimation) {
-                CoinExplosionAnimation(
-                    modifier = Modifier.fillMaxSize().zIndex(10f),
-                    trigger = true,
-                    onFinished = { viewModel.dismissRewardAnimation() }
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text("Kebiasaan", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
+                            Text("Bangun identitas melalui konsistensi", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                        }
+                    },
+                    actions = {
+                        FilledTonalButton(onClick = { showAddSheet = true }, modifier = Modifier.padding(end = 12.dp), shape = RoundedCornerShape(16.dp)) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Tambah", fontWeight = FontWeight.SemiBold)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
             }
-
-            Crossfade(targetState = uiState.selectedHabit, label = "HabitScreen") { selectedHabit ->
-                if (selectedHabit != null) {
-                    val relatedIdentity = remember(selectedHabit, uiState.availableIdentities) {
-                        uiState.availableIdentities.find { it.id == selectedHabit.originalModel.relatedIdentityId }
-                    }
-
-                    ModernHabitDetailScreen(
-                        habit = selectedHabit,
-                        relatedIdentity = relatedIdentity,
-                        onBack = { viewModel.onBackFromDetail() },
-                        onEditClick = { showEditSheet = true },
-                        onIdentityClick = onNavigateToIdentityProfile,
-                        logs = uiState.habitLogs
+        ) { paddingValues ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (uiState.showRewardAnimation) {
+                    CoinExplosionAnimation(
+                        modifier = Modifier.fillMaxSize().zIndex(10f),
+                        trigger = true,
+                        onFinished = { viewModel.dismissRewardAnimation() }
                     )
+                }
+
+                if (uiState.isLoading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                } else if (uiState.habits.isEmpty()) {
+                    EmptyHabitState(Modifier.padding(paddingValues), onAddClick = { showAddSheet = true })
                 } else {
-                    Scaffold(
-                        topBar = {
-                            TopAppBar(
-                                title = {
-                                    Column {
-                                        Text("Kebiasaan", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-                                        Text("Bangun identitas melalui konsistensi", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                                    }
-                                },
-                                actions = {
-                                    FilledTonalButton(onClick = { showAddSheet = true }, modifier = Modifier.padding(end = 12.dp), shape = RoundedCornerShape(16.dp)) {
-                                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
-                                        Spacer(Modifier.width(6.dp))
-                                        Text("Tambah", fontWeight = FontWeight.SemiBold)
-                                    }
-                                },
-                                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    LazyColumn(modifier = Modifier.fillMaxSize().padding(paddingValues), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                        items(uiState.habits) { habit ->
+                            EnhancedHabitItem(
+                                habit = habit,
+                                // KLIK ITEM -> NAVIGASI KE ROUTE DETAIL
+                                onClick = { onNavigateToDetail(habit.id) },
+                                onIncrement = { viewModel.incrementHabit(habit) },
+                                onDecrement = { viewModel.decrementHabit(habit) },
+                                onFocusClick = { focusedHabit = habit }
                             )
-                        }
-                    ) { paddingValues ->
-                        if (uiState.isLoading) {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                        } else if (uiState.habits.isEmpty()) {
-                            EmptyHabitState(Modifier.padding(paddingValues), onAddClick = { showAddSheet = true })
-                        } else {
-                            LazyColumn(modifier = Modifier.fillMaxSize().padding(paddingValues), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                                items(uiState.habits) { habit ->
-                                    EnhancedHabitItem(
-                                        habit = habit,
-                                        onClick = { viewModel.selectHabit(habit) },
-                                        onIncrement = { viewModel.incrementHabit(habit) },
-                                        onDecrement = { viewModel.decrementHabit(habit) },
-                                        onFocusClick = { focusedHabit = habit }
-                                    )
-                                }
-                            }
                         }
                     }
                 }
@@ -150,27 +128,61 @@ fun HabitsScreen(
             }
         )
     }
+}
 
-    if (showEditSheet && uiState.selectedHabit != null) {
+// --- 2. DESTINATION WRAPPER UNTUK DETAIL SCREEN ---
+@Composable
+fun HabitDetailScreenDestination(
+    viewModel: HabitViewModel = hiltViewModel(),
+    onBack: () -> Unit,
+    onNavigateToIdentityProfile: () -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    var showEditSheet by remember { mutableStateOf(false) }
+
+    // Hilt akan meng-inject HabitViewModel baru yang scoped ke screen detail ini.
+    // Init block di VM akan membaca habitId dari argument navigasi dan memuat selectedHabit.
+
+    if (uiState.selectedHabit != null) {
         val habit = uiState.selectedHabit!!
-        HabitInputSheet(
-            initialName = habit.name,
-            initialIcon = habit.icon,
-            initialTarget = habit.targetCount,
-            initialIdentityId = habit.originalModel.relatedIdentityId,
-            initialCue = habit.originalModel.cue,
-            initialReminders = habit.originalModel.reminderTime,
-            identities = uiState.availableIdentities,
-            onDismiss = { showEditSheet = false },
-            onSave = { name, icon, target, identityId, cue, reminder ->
-                viewModel.updateHabitDetails(habit.originalModel, name, icon, target, identityId, cue, reminder)
-                showEditSheet = false
-            }
+        val relatedIdentity = remember(habit, uiState.availableIdentities) {
+            uiState.availableIdentities.find { it.id == habit.originalModel.relatedIdentityId }
+        }
+
+        ModernHabitDetailScreen(
+            habit = habit,
+            relatedIdentity = relatedIdentity,
+            onBack = onBack,
+            onEditClick = { showEditSheet = true },
+            onIdentityClick = onNavigateToIdentityProfile,
+            logs = uiState.habitLogs
         )
+
+        if (showEditSheet) {
+            HabitInputSheet(
+                initialName = habit.name,
+                initialIcon = habit.icon,
+                initialTarget = habit.targetCount,
+                initialIdentityId = habit.originalModel.relatedIdentityId,
+                initialCue = habit.originalModel.cue,
+                initialReminders = habit.originalModel.reminderTime,
+                identities = uiState.availableIdentities,
+                onDismiss = { showEditSheet = false },
+                onSave = { name, icon, target, identityId, cue, reminder ->
+                    viewModel.updateHabitDetails(habit.originalModel, name, icon, target, identityId, cue, reminder)
+                    showEditSheet = false
+                }
+            )
+        }
+    } else {
+        // Loading state atau Error jika ID tidak valid
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
     }
 }
 
-// === KOMPONEN UTAMA DETAIL ===
+// === KOMPONEN DETAIL UI (REUSABLE) ===
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -178,8 +190,8 @@ fun ModernHabitDetailScreen(
     habit: HabitItem,
     relatedIdentity: Identity?,
     onBack: () -> Unit,
-    onEditClick: () -> Unit,
-    onIdentityClick: () -> Unit,
+    onEditClick: () -> Unit, // Tambahkan callback ini
+    onIdentityClick: () -> Unit, // Tambahkan callback ini
     logs: List<HabitLog>
 ) {
     Scaffold(
@@ -201,7 +213,6 @@ fun ModernHabitDetailScreen(
             contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // 1. Header (Icon + Name)
             item {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
                     Box(modifier = Modifier.size(100.dp).clip(CircleShape).background(Brush.linearGradient(colors = listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)))), contentAlignment = Alignment.Center) {
@@ -211,59 +222,32 @@ fun ModernHabitDetailScreen(
                 }
             }
 
-            // 2. Identity Card
             if (relatedIdentity != null) {
                 item {
                     IdentityContributionCard(
                         identity = relatedIdentity,
-                        onClick = onIdentityClick
+                        onClick = onIdentityClick // Panggil callback, bukan hanya param
                     )
                 }
             }
 
-            // 3. Stats Grid (DESAIN BARU YANG LEBIH BERSIH)
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    EnhancedStatCard(
-                        title = "Total Points",
-                        value = "${habit.totalSum}",
-                        subtitle = "XP Terkumpul",
-                        icon = "⭐",
-                        color = GoldAccent,
-                        modifier = Modifier.weight(1f)
-                    )
-                    EnhancedStatCard(
-                        title = "Konsistensi",
-                        value = "${habit.currentStreak}",
-                        subtitle = "Hari Berturut",
-                        icon = "🔥",
-                        color = StreakOrange,
-                        modifier = Modifier.weight(1f)
-                    )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    EnhancedStatCard(title = "Total Points", value = "${habit.totalSum}", subtitle = "XP Terkumpul", icon = "⭐", color = GoldAccent, modifier = Modifier.weight(1f))
+                    EnhancedStatCard(title = "Konsistensi", value = "${habit.currentStreak}", subtitle = "Hari Berturut", icon = "🔥", color = StreakOrange, modifier = Modifier.weight(1f))
                 }
             }
 
             item {
                 EnhancedStatCard(
-                    title = "Streak Sempurna",
-                    value = "${habit.perfectStreak}",
-                    subtitle = "Hari tanpa putus sama sekali",
-                    icon = "👑",
-                    color = if (habit.perfectStreak > 0) GoldAccent else MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.fillMaxWidth().height(100.dp),
-                    isHorizontal = true
+                    title = "Streak Sempurna", value = "${habit.perfectStreak}", subtitle = "Hari tanpa putus sama sekali",
+                    icon = "👑", color = if (habit.perfectStreak > 0) GoldAccent else MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth().height(100.dp), isHorizontal = true
                 )
             }
 
-            item {
-                Text("Riwayat Aktivitas", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            }
-            item {
-                EnhancedHeatmap(logs = logs, targetCount = habit.targetCount)
-            }
+            item { Text("Riwayat Aktivitas", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+            item { EnhancedHeatmap(logs = logs, targetCount = habit.targetCount) }
         }
     }
 }
