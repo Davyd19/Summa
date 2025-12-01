@@ -2,6 +2,7 @@ package com.app.summa.di
 
 import com.app.summa.data.local.*
 import com.app.summa.data.repository.*
+import com.app.summa.util.NotificationScheduler
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,10 +26,11 @@ object RepositoryModule {
     @Singleton
     fun provideTaskRepository(
         taskDao: TaskDao,
-        // TaskRepo sekarang butuh IdentityRepo untuk memberi poin
-        identityRepository: IdentityRepository
+        identityRepository: IdentityRepository,
+        // PERBAIKAN: Inject NotificationScheduler
+        notificationScheduler: NotificationScheduler
     ): TaskRepository {
-        return TaskRepositoryImpl(taskDao, identityRepository)
+        return TaskRepositoryImpl(taskDao, identityRepository, notificationScheduler)
     }
 
     @Provides
@@ -43,7 +45,6 @@ object RepositoryModule {
     @Singleton
     fun provideKnowledgeRepository(
         dao: KnowledgeDao,
-        // KnowledgeRepo sekarang butuh NoteLinkDao untuk Zettelkasten
         linkDao: NoteLinkDao
     ): KnowledgeRepository {
         return KnowledgeRepositoryImpl(dao, linkDao)

@@ -2,6 +2,7 @@ package com.app.summa.data.repository
 
 import com.app.summa.data.local.TaskDao
 import com.app.summa.data.model.Task
+import com.app.summa.util.NotificationScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -21,39 +22,24 @@ interface TaskRepository {
 
 class TaskRepositoryImpl @Inject constructor(
     private val taskDao: TaskDao,
-    private val identityRepository: IdentityRepository
+    private val identityRepository: IdentityRepository,
+    // PERBAIKAN: Inject NotificationScheduler untuk notifikasi hukuman
+    private val notificationScheduler: NotificationScheduler
 ) : TaskRepository {
 
-    override fun getActiveTasks(): Flow<List<Task>> {
-        return taskDao.getActiveTasks()
-    }
-
-    override fun getTasksByDate(date: LocalDate): Flow<List<Task>> {
-        return taskDao.getTasksByDate(date.toString())
-    }
-
-    override fun getTasksForDateRange(startDate: LocalDate, endDate: LocalDate): Flow<List<Task>> {
-        return taskDao.getTasksForDateRange(startDate.toString(), endDate.toString())
-    }
-
-    override suspend fun insertTask(task: Task): Long {
-        return taskDao.insertTask(task)
-    }
-
-    override suspend fun updateTask(task: Task) {
-        taskDao.updateTask(task)
-    }
-
-    override suspend fun deleteTask(task: Task) {
-        taskDao.deleteTask(task)
-    }
+    override fun getActiveTasks(): Flow<List<Task>> = taskDao.getActiveTasks()
+    override fun getTasksByDate(date: LocalDate): Flow<List<Task>> = taskDao.getTasksByDate(date.toString())
+    override fun getTasksForDateRange(startDate: LocalDate, endDate: LocalDate): Flow<List<Task>> = taskDao.getTasksForDateRange(startDate.toString(), endDate.toString())
+    override suspend fun insertTask(task: Task): Long = taskDao.insertTask(task)
+    override suspend fun updateTask(task: Task) = taskDao.updateTask(task)
+    override suspend fun deleteTask(task: Task) = taskDao.deleteTask(task)
 
     override suspend fun completeTask(taskId: Long) {
         withContext(Dispatchers.IO) {
-            val task = taskDao.getTaskById(taskId)
+            val task = taskDao.getTaskById(taskId) ?: return@withContext
             taskDao.completeTask(taskId, System.currentTimeMillis())
 
-            if (task != null && task.relatedIdentityId != null) {
+            if (task.relatedIdentityId != null) {
                 val points = if (task.isCommitment) 10 else 5
                 identityRepository.addVoteToIdentity(
                     identityId = task.relatedIdentityId,
@@ -64,34 +50,41 @@ class TaskRepositoryImpl @Inject constructor(
         }
     }
 
-    // UPDATE: Logika Wrap-Up Harian
     override suspend fun processDailyWrapUp() {
         withContext(Dispatchers.IO) {
             val today = LocalDate.now().toString()
 
-            // 1. Tangani Aspirasi (Pindah otomatis, tanpa penalti)
+            // 1. Rollover Aspirasi (Tanpa Penalti)
             val overdueAspirations = taskDao.getOverdueAspirationTasks(today)
             overdueAspirations.forEach { task ->
                 taskDao.updateTask(task.copy(scheduledDate = today))
             }
 
-            // 2. Tangani Komitmen (Tidak dipindah, tapi diberi penalti)
+            // 2. Hukuman Komitmen (Penalti XP)
             val overdueCommitments = taskDao.getOverdueCommitmentTasks(today)
-            overdueCommitments.forEach { task ->
-                // Jika tugas ini belum pernah diproses penaltinya (opsional: bisa tambah field flag di DB)
-                // Untuk sekarang, kita asumsi sistem ini jalan sekali sehari.
+            var totalPenalty = 0
 
+            overdueCommitments.forEach { task ->
                 if (task.relatedIdentityId != null) {
-                    // HUKUMAN: Kurangi 5 poin karena melanggar komitmen
+                    val penalty = -5
+                    totalPenalty += 5 // Track positive value for display
+
                     identityRepository.addVoteToIdentity(
                         identityId = task.relatedIdentityId,
-                        points = -5,
+                        points = penalty,
                         note = "Terlewat komitmen: ${task.title}"
                     )
                 }
-
-                // Pindahkan ke hari ini agar user tetap melihatnya (sebagai hutang)
+                // Pindahkan tugas agar tetap terlihat (Nagging)
                 taskDao.updateTask(task.copy(scheduledDate = today))
+            }
+
+            // 3. Notifikasi Pengguna jika ada penalti
+            if (totalPenalty > 0) {
+                notificationScheduler.showImmediateNotification(
+                    title = "Komitmen Terlewat ⚠️",
+                    message = "Anda kehilangan $totalPenalty poin identitas hari ini."
+                )
             }
         }
     }

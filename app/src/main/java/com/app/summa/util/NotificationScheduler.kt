@@ -10,6 +10,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.util.Calendar
+import kotlin.math.absoluteValue
 
 class NotificationScheduler(private val context: Context) {
 
@@ -44,13 +45,13 @@ class NotificationScheduler(private val context: Context) {
             val intent = Intent(context, NotificationReceiver::class.java).apply {
                 putExtra("TITLE", "Waktunya Kebiasaan 🎯")
                 putExtra("MESSAGE", "Saatnya melakukan: $habitName")
-                // Kirim ID sebagai Int ke Receiver agar konsisten
-                putExtra("ID", habitId.toInt())
+                // PERBAIKAN: Gunakan ID yang aman (Range 0 - 999,999 untuk Habit)
+                val safeId = (habitId % 1000000).toInt().absoluteValue
+                putExtra("ID", safeId)
             }
 
-            // Gunakan ID unik untuk PendingIntent (Long -> Int)
-            // hashCode() bisa jadi alternatif jika ID sangat besar, tapi toInt() aman untuk auto-inc < 2 milyar
-            val pendingIntentId = habitId.toInt()
+            // Gunakan ID unik untuk PendingIntent
+            val pendingIntentId = (habitId % 1000000).toInt().absoluteValue
 
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
@@ -67,7 +68,7 @@ class NotificationScheduler(private val context: Context) {
                 pendingIntent
             )
 
-            Log.d("SummaNotification", "Habit scheduled: $habitName (ID: $habitId) at $timeString")
+            Log.d("SummaNotification", "Habit scheduled: $habitName (ID: $habitId -> $pendingIntentId) at $timeString")
 
         } catch (e: Exception) {
             e.printStackTrace()
@@ -90,29 +91,19 @@ class NotificationScheduler(private val context: Context) {
 
             if (triggerTime <= System.currentTimeMillis()) return // Jangan jadwalkan masa lalu
 
-            // Offset ID agar tidak bentrok dengan Habit. Habit ID range 0-MaxInt, Task kita geser.
-            // Strategi lebih aman: Gunakan ID negatif untuk Task atau range berbeda.
-            // Di sini kita gunakan ID asli taskId.toInt() tapi kita tambahkan flag/beda request code logika
-            // Agar aman dan sederhana: Task ID kita XOR dengan mask atau semacamnya,
-            // tapi cara paling mudah: Task ID pakai request code negatif (jika memungkinkan) atau offset besar.
-            // Mari gunakan offset 1000000 seperti sebelumnya tapi pastikan taskId tidak null.
-
-            val notificationId = taskId.toInt()
-            // Kita pakai request code yang berbeda range.
-            // Asumsi Habit ID < 1.000.000. Task ID kita mulai dr range berbeda di PendingIntent?
-            // Tidak perlu, asalkan unik per alarm.
-            // Kita gunakan taskId.toInt() + 1000000 untuk requestCode
-            val requestCode = taskId.toInt() + 1000000
+            // PERBAIKAN: Gunakan ID yang aman (Range 1,000,000+ untuk Task)
+            // Menggunakan hashCode() dari kombinasi ID agar unik tapi tetap konsisten
+            val safeId = (taskId.hashCode().absoluteValue % 1000000) + 1000000
 
             val intent = Intent(context, NotificationReceiver::class.java).apply {
                 putExtra("TITLE", "Pengingat Tugas 📝")
                 putExtra("MESSAGE", taskTitle)
-                putExtra("ID", notificationId)
+                putExtra("ID", safeId)
             }
 
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
-                requestCode,
+                safeId, // RequestCode unik
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -124,8 +115,23 @@ class NotificationScheduler(private val context: Context) {
                 pendingIntent
             )
 
-            Log.d("SummaNotification", "Task scheduled: $taskTitle at $date $time")
+            Log.d("SummaNotification", "Task scheduled: $taskTitle (ID: $taskId -> $safeId) at $date $time")
 
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    // FITUR BARU: Notifikasi Sistem (untuk Hukuman/Level Up)
+    fun showImmediateNotification(title: String, message: String) {
+        try {
+            val id = System.currentTimeMillis().toInt() // ID unik sementara
+            val intent = Intent(context, NotificationReceiver::class.java).apply {
+                putExtra("TITLE", title)
+                putExtra("MESSAGE", message)
+                putExtra("ID", id)
+            }
+            context.sendBroadcast(intent)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -133,10 +139,11 @@ class NotificationScheduler(private val context: Context) {
 
     fun cancelHabitReminder(habitId: Long) {
         try {
+            val pendingIntentId = (habitId % 1000000).toInt().absoluteValue
             val intent = Intent(context, NotificationReceiver::class.java)
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
-                habitId.toInt(),
+                pendingIntentId,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -148,10 +155,11 @@ class NotificationScheduler(private val context: Context) {
 
     fun cancelTaskReminder(taskId: Long) {
         try {
+            val safeId = (taskId.hashCode().absoluteValue % 1000000) + 1000000
             val intent = Intent(context, NotificationReceiver::class.java)
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
-                taskId.toInt() + 1000000,
+                safeId,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
