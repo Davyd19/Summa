@@ -162,6 +162,7 @@ fun NavigationGraph(
                 onNavigateToNotes = { navController.navigate(Screen.Knowledge.route) },
                 onNavigateToReflections = { navController.navigate(Screen.Reflections.route) },
                 onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) },
+                onNavigateToSettings = { navController.navigate("settings") },
                 onNavigateToHabitDetail = { habit ->
                     // Navigasi ke detail habit dengan argumen
                     navController.navigate("habits?habitId=${habit.id}")
@@ -211,7 +212,10 @@ fun NavigationGraph(
             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
             IdentityProfileScreen(onBack = { navController.popBackStack() })
         }
-
+        // Tambahkan Route Settings
+        composable("settings") {
+            SettingsScreen(onNavigateBack = { navController.popBackStack() })
+        }
         composable(
             route = KnowledgeDetailRoute.route,
             arguments = listOf(navArgument("noteId") { type = NavType.LongType })

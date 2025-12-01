@@ -1,9 +1,8 @@
-package com.app.summa.ui.model
+package com.app.summa.data.model // SEBELUMNYA MUNGKIN: com.app.summa.ui.model
 
 import com.app.summa.data.model.Habit
 
-// Ini adalah model UI yang kita pindahkan dari HabitsScreen
-// agar bisa digunakan bersama oleh DashboardViewModel dan HabitsViewModel
+// Ini adalah model UI yang kita gunakan
 data class HabitItem(
     val id: Long,
     val name: String,
@@ -13,5 +12,5 @@ data class HabitItem(
     val totalSum: Int,
     val currentStreak: Int,
     val perfectStreak: Int,
-    val originalModel: Habit // Referensi ke model database
+    val originalModel: Habit
 )

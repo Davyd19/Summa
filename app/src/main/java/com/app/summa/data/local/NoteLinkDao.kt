@@ -10,6 +10,12 @@ interface NoteLinkDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLink(link: NoteLink)
 
+    @Query("SELECT * FROM note_links")
+    fun getAllLinksSync(): List<NoteLink> // Untuk Backup
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertLinks(tasks: List<NoteLink>) // Untuk Restore
+
     @Query("DELETE FROM note_links WHERE sourceNoteId = :sourceId AND targetNoteId = :targetId")
     suspend fun deleteLink(sourceId: Long, targetId: Long)
 

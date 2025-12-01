@@ -10,7 +10,7 @@ import com.app.summa.data.model.Identity
 import com.app.summa.data.repository.FocusRepository
 import com.app.summa.data.repository.HabitRepository
 import com.app.summa.data.repository.IdentityRepository
-import com.app.summa.ui.model.HabitItem
+import com.app.summa.data.model.HabitItem
 import com.app.summa.util.NotificationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*

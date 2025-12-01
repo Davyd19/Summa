@@ -1,8 +1,12 @@
 package com.app.summa.data.local
 
-import androidx.room.*
-// PENAMBAHAN: Import yang hilang untuk anotasi @Transaction
-import androidx.room.Transaction as RoomTransaction
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Update
+// Hapus import androidx.room.* dan alias Transaction agar tidak bingung
+
 import kotlinx.coroutines.flow.Flow
 import com.app.summa.data.model.Account
 import com.app.summa.data.model.Transaction
@@ -13,6 +17,19 @@ import java.time.LocalDate
 interface AccountDao {
     @Query("SELECT * FROM accounts ORDER BY updatedAt DESC")
     fun getAllAccounts(): Flow<List<Account>>
+
+    @Query("SELECT * FROM accounts")
+    fun getAllAccountsSync(): List<Account> // Untuk Backup
+
+    // PERBAIKAN 1: Query harus ke tabel 'transactions', bukan 'accounts'
+    @Query("SELECT * FROM transactions")
+    fun getAllTransactionsSync(): List<Transaction> // Untuk Backup
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertAccounts(accounts: List<Account>) // Ubah nama param jadi accounts
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertTransactions(transactions: List<Transaction>) // Untuk Restore
 
     @Query("SELECT SUM(balance) FROM accounts")
     fun getTotalNetWorth(): Flow<Double?>
@@ -38,8 +55,9 @@ interface AccountDao {
     @Insert
     suspend fun insertTransaction(transaction: Transaction): Long
 
-    // PERBAIKAN: Menggunakan alias 'RoomTransaction' untuk anotasi
-    @RoomTransaction
+    // PERBAIKAN 2: Gunakan @androidx.room.Transaction secara eksplisit
+    // Ini mencegah konflik dengan class model 'Transaction'
+    @androidx.room.Transaction
     suspend fun performTransfer(
         fromAccountId: Long,
         toAccountId: Long,

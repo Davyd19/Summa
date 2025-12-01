@@ -36,7 +36,7 @@ import com.app.summa.data.model.HabitLog
 import com.app.summa.data.model.Identity
 import com.app.summa.ui.components.HabitInputSheet
 import com.app.summa.ui.components.CoinExplosionAnimation
-import com.app.summa.ui.model.HabitItem
+import com.app.summa.data.model.HabitItem
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.HabitViewModel
 import java.time.LocalDate

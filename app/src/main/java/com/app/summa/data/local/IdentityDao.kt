@@ -6,12 +6,19 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.app.summa.data.model.Identity
+import com.app.summa.data.model.Task
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface IdentityDao {
     @Query("SELECT * FROM identities ORDER BY progress DESC")
     fun getAllIdentities(): Flow<List<Identity>>
+
+    @Query("SELECT * FROM identities")
+    fun getAllIdentitiesSync(): List<Identity> // Untuk Backup
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertAll(tasks: List<Identity>) // Untuk Restore
 
     // PENAMBAHAN: Query untuk mengambil satu identitas berdasarkan ID
     @Query("SELECT * FROM identities WHERE id = :id")

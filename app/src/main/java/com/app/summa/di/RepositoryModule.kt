@@ -27,7 +27,6 @@ object RepositoryModule {
     fun provideTaskRepository(
         taskDao: TaskDao,
         identityRepository: IdentityRepository,
-        // PERBAIKAN: Inject NotificationScheduler
         notificationScheduler: NotificationScheduler
     ): TaskRepository {
         return TaskRepositoryImpl(taskDao, identityRepository, notificationScheduler)
@@ -65,5 +64,14 @@ object RepositoryModule {
         dao: FocusSessionDao
     ): FocusRepository {
         return FocusRepositoryImpl(dao)
+    }
+
+    // --- TAMBAHAN UNTUK FITUR BACKUP ---
+    @Provides
+    @Singleton
+    fun provideBackupRepository(
+        database: SummaDatabase
+    ): BackupRepository {
+        return BackupRepositoryImpl(database)
     }
 }

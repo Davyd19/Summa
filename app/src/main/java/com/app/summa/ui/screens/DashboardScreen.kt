@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.app.summa.ui.model.HabitItem
+import com.app.summa.data.model.HabitItem
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.DashboardViewModel
 import java.text.NumberFormat
@@ -42,7 +43,8 @@ fun DashboardScreen(
     onNavigateToMoney: () -> Unit = {},
     onNavigateToNotes: () -> Unit = {},
     onNavigateToReflections: () -> Unit = {},
-    onNavigateToIdentityProfile: () -> Unit = {}
+    onNavigateToIdentityProfile: () -> Unit = {},
+    onNavigateToSettings: () -> Unit // Parameter ini dihubungkan ke UI
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showModeDialog by remember { mutableStateOf(false) }
@@ -59,7 +61,8 @@ fun DashboardScreen(
                 ModernHeader(
                     greeting = uiState.greeting,
                     currentMode = currentMode,
-                    onModeClick = { showModeDialog = true }
+                    onModeClick = { showModeDialog = true },
+                    onSettingsClick = onNavigateToSettings // Pass fungsi navigasi
                 )
             }
 
@@ -87,8 +90,7 @@ fun DashboardScreen(
                 }
             }
 
-            // PERBAIKAN: Tampilkan Next Action CARD bahkan di Mode Fokus!
-            // Ini inti dari fokus: mengetahui "apa selanjutnya".
+            // Next Action Card
             item {
                 ModernNextActionCard(
                     task = uiState.nextTask,
@@ -98,7 +100,7 @@ fun DashboardScreen(
                 )
             }
 
-            // Habit hanya muncul jika bukan mode Fokus (agar tidak distraksi)
+            // Habit hanya muncul jika bukan mode Fokus
             if (currentMode != "Fokus") {
                 item {
                     ModernSectionHeader(
@@ -181,14 +183,114 @@ fun DashboardScreen(
     }
 }
 
-// KOMPONEN BARU: Kartu Penjepit Kertas
+// --- KOMPONEN UI ---
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ModernHeader(
+    greeting: String,
+    currentMode: String,
+    onModeClick: () -> Unit,
+    onSettingsClick: () -> Unit // Parameter Baru
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 32.dp)
+    ) {
+        var visible by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) { visible = true }
+
+        androidx.compose.animation.AnimatedVisibility(
+            visible = visible,
+            enter = androidx.compose.animation.fadeIn(tween(800)) +
+                    androidx.compose.animation.slideInVertically(tween(800)) { -20 }
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Baris Atas: Sapaan + Tombol Settings
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "$greeting 👋",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+
+                    // Tombol Settings yang menyatu dengan desain
+                    IconButton(
+                        onClick = onSettingsClick,
+                        modifier = Modifier
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                CircleShape
+                            )
+                            .size(48.dp)
+                    ) {
+                        Icon(
+                            Icons.Outlined.Settings,
+                            contentDescription = "Pengaturan",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Baris Bawah: Subtitle + Mode Selector
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Mari mulai hari produktif",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+
+                    Surface(
+                        onClick = onModeClick,
+                        shape = RoundedCornerShape(24.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        tonalElevation = 2.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Tune,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                currentMode,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ... Sisa komponen (ModernPaperclipCard, ModernPointsCard, dll) sama persis dengan kode Anda sebelumnya ...
+// Saya menyertakan mereka di bawah agar file ini lengkap dan bisa langsung di-copy paste.
+
 @Composable
 fun ModernPaperclipCard(
     count: Int,
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.height(180.dp), // Samakan tinggi visual dengan Points Card
+        modifier = modifier.height(180.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -225,11 +327,6 @@ fun ModernPaperclipCard(
         }
     }
 }
-
-// ... Sisanya (ModernPointsCard, QuickAccess, dll) tetap sama, hanya ModernPointsCard perlu sedikit penyesuaian tinggi jika ingin sejajar sempurna,
-// tapi saya biarkan flexibel dulu.
-
-// --- PERBAIKAN TAMPILAN AKSES CEPAT (Sama seperti sebelumnya) ---
 
 @Composable
 fun ModernQuickAccessGrid(
@@ -381,76 +478,6 @@ fun AnimatedGradientBackground() {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ModernHeader(
-    greeting: String,
-    currentMode: String,
-    onModeClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 32.dp)
-    ) {
-        var visible by remember { mutableStateOf(false) }
-        LaunchedEffect(Unit) { visible = true }
-
-        androidx.compose.animation.AnimatedVisibility(
-            visible = visible,
-            enter = androidx.compose.animation.fadeIn(tween(800)) +
-                    androidx.compose.animation.slideInVertically(tween(800)) { -20 }
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = "$greeting 👋",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Mari mulai hari produktif",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-
-                    Surface(
-                        onClick = onModeClick,
-                        shape = RoundedCornerShape(24.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        tonalElevation = 2.dp
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Tune,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Text(
-                                currentMode,
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 @Composable
 fun ModernPointsCard(
     progress: Float,
@@ -475,7 +502,6 @@ fun ModernPointsCard(
         label = "points"
     )
 
-    // Ubah tinggi menjadi 180.dp agar sejajar dengan card paperclip
     Card(
         modifier = modifier.height(180.dp),
         shape = RoundedCornerShape(28.dp),
@@ -500,7 +526,7 @@ fun ModernPointsCard(
             Box(
                 modifier = Modifier
                     .size(200.dp)
-                    .offset(x = 100.dp, y = (-50).dp) // Sesuaikan offset agar fit di card yang lebih sempit
+                    .offset(x = 100.dp, y = (-50).dp)
                     .scale(scale)
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.08f))
@@ -529,7 +555,6 @@ fun ModernPointsCard(
                     )
                 }
 
-                // Mini Progress Bar
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),

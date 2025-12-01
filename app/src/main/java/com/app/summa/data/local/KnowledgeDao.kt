@@ -15,6 +15,12 @@ interface KnowledgeDao {
     @Query("SELECT * FROM knowledge_notes WHERE isPermanent = 0 ORDER BY updatedAt DESC")
     fun getInboxNotes(): Flow<List<KnowledgeNote>>
 
+    @Query("SELECT * FROM knowledge_notes")
+    fun getAllNotesSync(): List<KnowledgeNote> // Untuk Backup
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertNotes(tasks: List<KnowledgeNote>) // Untuk Restore
+
     // Query untuk "Pustaka" (Catatan Permanen)
     @Query("SELECT * FROM knowledge_notes WHERE isPermanent = 1 ORDER BY updatedAt DESC")
     fun getPermanentNotes(): Flow<List<KnowledgeNote>>

@@ -8,7 +8,7 @@ import com.app.summa.data.repository.AccountRepository
 import com.app.summa.data.repository.FocusRepository
 import com.app.summa.data.repository.HabitRepository
 import com.app.summa.data.repository.TaskRepository
-import com.app.summa.ui.model.HabitItem
+import com.app.summa.data.model.HabitItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

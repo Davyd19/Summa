@@ -10,6 +10,18 @@ interface HabitDao {
     @Query("SELECT * FROM habits ORDER BY createdAt DESC")
     fun getAllHabits(): Flow<List<Habit>>
 
+    @Query("SELECT * FROM habits")
+    fun getAllHabitsSync(): List<Habit> // Untuk Backup
+
+    @Query("SELECT * FROM habit_logs")
+    fun getAllHabitLogsSync(): List<HabitLog>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertHabits(habits: List<Habit>) // Untuk Restore
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertHabitLogs(logs: List<HabitLog>)
+
     @Query("SELECT * FROM habits WHERE id = :id")
     fun getHabitById(id: Long): Flow<Habit?>
 

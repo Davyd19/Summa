@@ -9,6 +9,12 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE isCompleted = 0 ORDER BY scheduledDate, scheduledTime")
     fun getActiveTasks(): Flow<List<Task>>
 
+    @Query("SELECT * FROM tasks")
+    fun getAllTasksSync(): List<Task> // Untuk Backup
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertTasks(tasks: List<Task>) // Untuk Restore
+
     @Query("SELECT * FROM tasks WHERE scheduledDate = :date ORDER BY scheduledTime")
     fun getTasksByDate(date: String): Flow<List<Task>>
 

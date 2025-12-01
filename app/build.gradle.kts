@@ -2,8 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("kotlin-kapt")
-    id("com.google.dagger.hilt.android")
+    // HAPUS: id("kotlin-kapt")
+    // GANTI DENGAN KSP:
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt) // Gunakan alias dari TOML
     id("com.google.gms.google-services")
 }
 
@@ -44,7 +46,8 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
+        // HAPUS BARIS INI: kotlinCompilerExtensionVersion = "1.5.15"
+        // (Alasannya: Plugin kotlin-compose otomatis menangani versi compiler di Kotlin 2.0)
     }
     packaging {
         resources {
@@ -53,39 +56,39 @@ android {
     }
 }
 
-// Kapt configuration untuk Hilt
-kapt {
-    correctErrorTypes = true
-}
+// HAPUS BLOK KAPT:
+// kapt { correctErrorTypes = true }
 
 dependencies {
-    // Core Android
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-    implementation("androidx.activity:activity-compose:1.8.2")
+    // Core Android (Gunakan libs. dari TOML agar rapi, atau biarkan hardcode tapi konsisten)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-    // PENAMBAHAN: Ini adalah baris yang hilang untuk memperbaiki error ikon
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
     implementation("androidx.compose.material:material-icons-extended")
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.6")
 
-    // Room
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
+    // --- ROOM (MIGRASI KE KSP & TOML) ---
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    // GANTI kapt JADI ksp
+    ksp(libs.androidx.room.compiler)
 
-    // Hilt
-    implementation("com.google.dagger:hilt-android:2.48")
-    kapt("com.google.dagger:hilt-compiler:2.48")
-    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
+    // --- HILT (MIGRASI KE KSP & TOML) ---
+    // Pastikan menggunakan versi dari TOML (2.51.1) bukan hardcode 2.48
+    implementation(libs.hilt.android)
+    // GANTI kapt JADI ksp
+    ksp(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
 
     // Datastore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
@@ -96,14 +99,17 @@ dependencies {
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
+    // Gson
+    implementation("com.google.code.gson:gson:2.10.1")
+
     // Testing
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation(platform("androidx.compose:compose-bom:2024.01.00"))
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+    debugImplementation(libs.androidx.ui.tooling)
+    debugImplementation(libs.androidx.ui.test.manifest)
 
     implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
     implementation("com.google.firebase:firebase-analytics")
