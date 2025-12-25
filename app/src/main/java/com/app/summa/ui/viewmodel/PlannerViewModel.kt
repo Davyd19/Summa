@@ -1,195 +1,198 @@
 package com.app.summa.ui.viewmodel
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.app.summa.data.model.DailyWrapUpResult
 import com.app.summa.data.model.FocusSession
 import com.app.summa.data.model.Identity
 import com.app.summa.data.model.Task
 import com.app.summa.data.repository.FocusRepository
 import com.app.summa.data.repository.IdentityRepository
 import com.app.summa.data.repository.TaskRepository
-import com.app.summa.util.NotificationScheduler // Import Scheduler
+import com.app.summa.util.NotificationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.net.URLDecoder
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import javax.inject.Inject
 
 data class PlannerUiState(
+    // Memuat tugas sebulan penuh untuk keperluan kalender
+    val tasks: List<Task> = emptyList(),
+    val identities: List<Identity> = emptyList(),
     val selectedDate: LocalDate = LocalDate.now(),
-    val tasksForDay: List<Task> = emptyList(),
-    val tasksForWeek: List<Task> = emptyList(),
-    val tasksForMonth: List<Task> = emptyList(),
-    val availableIdentities: List<Identity> = emptyList(),
-    val isLoading: Boolean = true,
-    val error: String? = null,
-    val initialTaskTitle: String? = null,
-    val initialTaskContent: String? = null
+    val isLoading: Boolean = false,
+    val morningBriefing: DailyWrapUpResult? = null
 )
 
 @HiltViewModel
 class PlannerViewModel @Inject constructor(
     private val taskRepository: TaskRepository,
-    private val focusRepository: FocusRepository,
     private val identityRepository: IdentityRepository,
-    private val savedStateHandle: SavedStateHandle,
-    // INJECT SCHEDULER
+    private val focusRepository: FocusRepository,
     private val notificationScheduler: NotificationScheduler
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(PlannerUiState())
+    private val _uiState = MutableStateFlow(PlannerUiState(isLoading = true))
     val uiState: StateFlow<PlannerUiState> = _uiState.asStateFlow()
 
     init {
-        val noteTitle: String? = savedStateHandle.get<String>("noteTitle")
-        val noteContent: String? = savedStateHandle.get<String>("noteContent")
-
-        if (noteTitle != null || noteContent != null) {
-            _uiState.update {
-                it.copy(
-                    initialTaskTitle = noteTitle?.let { URLDecoder.decode(it, "UTF-8") },
-                    initialTaskContent = noteContent?.let { URLDecoder.decode(it, "UTF-8") }
-                )
-            }
-        }
-
-        loadAllTasksForDate(_uiState.value.selectedDate)
-        loadIdentities()
-    }
-
-    private fun loadIdentities() {
+        // Load data: Trigger ulang setiap kali bulan dari selectedDate berubah
         viewModelScope.launch {
-            identityRepository.getAllIdentities().collect { identities ->
-                _uiState.update { it.copy(availableIdentities = identities) }
-            }
-        }
-    }
+            _uiState.map { it.selectedDate }
+                .distinctUntilChanged { old, new ->
+                    old.year == new.year && old.month == new.month
+                } // Hanya refresh jika bulan berubah
+                .flatMapLatest { date ->
+                    val startOfMonth = date.with(TemporalAdjusters.firstDayOfMonth())
+                    val endOfMonth = date.with(TemporalAdjusters.lastDayOfMonth())
 
-    private fun loadAllTasksForDate(date: LocalDate) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            val firstDayOfWeek = date.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
-            val lastDayOfWeek = firstDayOfWeek.plusDays(6)
-            val firstDayOfMonth = date.with(TemporalAdjusters.firstDayOfMonth())
-            val lastDayOfMonth = date.with(TemporalAdjusters.lastDayOfMonth())
-
-            combine(
-                taskRepository.getTasksByDate(date),
-                taskRepository.getTasksForDateRange(firstDayOfWeek, lastDayOfWeek),
-                taskRepository.getTasksForDateRange(firstDayOfMonth, lastDayOfMonth)
-            ) { dayTasks, weekTasks, monthTasks ->
-                _uiState.update {
-                    it.copy(
-                        tasksForDay = dayTasks,
-                        tasksForWeek = weekTasks,
-                        tasksForMonth = monthTasks,
-                        isLoading = false,
-                        error = null
-                    )
+                    combine(
+                        taskRepository.getTasksForDateRange(startOfMonth, endOfMonth),
+                        identityRepository.getAllIdentities()
+                    ) { tasks, identities ->
+                        Pair(tasks, identities)
+                    }
+                }.collect { (tasks, identities) ->
+                    _uiState.update {
+                        it.copy(
+                            tasks = tasks,
+                            identities = identities,
+                            isLoading = false
+                        )
+                    }
                 }
-            }.catch { e ->
-                _uiState.update { it.copy(error = e.message, isLoading = false) }
-            }.collect()
         }
-    }
 
-    fun clearInitialTask() {
-        _uiState.update { it.copy(initialTaskTitle = null, initialTaskContent = null) }
+        checkMorningBriefing()
     }
 
     fun selectDate(date: LocalDate) {
+        // onDateSelected / selectDate alias
         _uiState.update { it.copy(selectedDate = date) }
-        loadAllTasksForDate(date)
     }
 
-    fun addTask(
+    // Alias untuk kompatibilitas
+    fun onDateSelected(date: LocalDate) = selectDate(date)
+
+    fun saveTask(
+        id: Long,
         title: String,
-        description: String = "",
-        scheduledTime: String? = null,
-        isCommitment: Boolean = true,
-        twoMinuteAction: String = "",
-        relatedIdentityId: Long? = null
+        description: String,
+        time: String,
+        isCommitment: Boolean,
+        identityId: Long?,
+        twoMinuteAction: String
     ) {
         viewModelScope.launch {
-            val dateStr = _uiState.value.selectedDate.toString()
-            val newTask = Task(
-                title = title,
-                description = description,
-                twoMinuteAction = twoMinuteAction,
-                isCommitment = isCommitment,
-                relatedIdentityId = relatedIdentityId,
-                scheduledDate = dateStr,
-                scheduledTime = scheduledTime
-            )
-            val newId = taskRepository.insertTask(newTask)
+            val currentDateStr = _uiState.value.selectedDate.toString()
 
-            // JADWALKAN NOTIFIKASI
-            if (scheduledTime != null && scheduledTime.isNotBlank()) {
-                notificationScheduler.scheduleTaskReminder(newId, title, dateStr, scheduledTime)
+            if (id == 0L) {
+                val newTask = Task(
+                    title = title,
+                    description = description,
+                    scheduledDate = currentDateStr,
+                    scheduledTime = time.ifBlank { null },
+                    isCommitment = isCommitment,
+                    relatedIdentityId = identityId,
+                    twoMinuteAction = twoMinuteAction,
+                    createdAt = System.currentTimeMillis()
+                )
+                val newId = taskRepository.insertTask(newTask)
+                notificationScheduler.scheduleTaskNotification(newTask.copy(id = newId))
+            } else {
+                val existingTask = _uiState.value.tasks.find { it.id == id } ?: return@launch
+                val updatedTask = existingTask.copy(
+                    title = title,
+                    description = description,
+                    scheduledDate = currentDateStr,
+                    scheduledTime = time.ifBlank { null },
+                    isCommitment = isCommitment,
+                    relatedIdentityId = identityId,
+                    twoMinuteAction = twoMinuteAction
+                )
+
+                taskRepository.updateTask(updatedTask)
+                notificationScheduler.cancelTaskNotification(existingTask)
+                notificationScheduler.scheduleTaskNotification(updatedTask)
             }
         }
     }
 
-    fun updateTask(task: Task) {
-        viewModelScope.launch {
-            taskRepository.updateTask(task)
-            // UPDATE JADWAL (Cancel lama, set baru jika ada waktu)
-            notificationScheduler.cancelTaskReminder(task.id)
-            if (task.scheduledDate != null && task.scheduledTime != null) {
-                notificationScheduler.scheduleTaskReminder(task.id, task.title, task.scheduledDate, task.scheduledTime)
-            }
-        }
+    // Alias agar sesuai dengan PlannerScreen.kt
+    fun addTask(title: String, description: String, time: String, isCommitment: Boolean, twoMinuteAction: String, identityId: Long?) {
+        saveTask(0L, title, description, time, isCommitment, identityId, twoMinuteAction)
     }
 
-    // Drag & Drop Time Update
-    fun moveTaskToTime(task: Task, newHour: Int) {
+    fun toggleTaskCompletion(task: Task) {
         viewModelScope.launch {
-            val newTimeStr = String.format("%02d:00", newHour)
-            if (task.scheduledTime == newTimeStr) return@launch
-
-            val updatedTask = task.copy(scheduledTime = newTimeStr)
-            taskRepository.updateTask(updatedTask)
-
-            // UPDATE NOTIFIKASI
-            notificationScheduler.cancelTaskReminder(task.id)
-            if (task.scheduledDate != null) {
-                notificationScheduler.scheduleTaskReminder(task.id, task.title, task.scheduledDate, newTimeStr)
+            if (task.isCompleted) {
+                val reopenedTask = task.copy(isCompleted = false, completedAt = null)
+                taskRepository.updateTask(reopenedTask)
+                notificationScheduler.scheduleTaskNotification(reopenedTask)
+            } else {
+                taskRepository.completeTask(task.id)
+                notificationScheduler.cancelTaskNotification(task)
             }
-        }
-    }
-
-    fun completeTask(taskId: Long) {
-        viewModelScope.launch {
-            taskRepository.completeTask(taskId)
-            // Hapus notifikasi jika tugas selesai (agar tidak bunyi jika belum waktunya)
-            notificationScheduler.cancelTaskReminder(taskId)
         }
     }
 
     fun deleteTask(task: Task) {
         viewModelScope.launch {
             taskRepository.deleteTask(task)
-            // Hapus notifikasi
-            notificationScheduler.cancelTaskReminder(task.id)
+            notificationScheduler.cancelTaskNotification(task)
         }
     }
 
-    fun saveFocusSession(taskId: Long, paperclips: Int, startTime: Long) {
+    // Fitur Drag & Drop Time Slot
+    fun moveTaskToTime(task: Task, hour: Int) {
         viewModelScope.launch {
-            val endTime = System.currentTimeMillis()
+            // Format jam "08:00", "14:00"
+            val newTime = LocalTime.of(hour, 0).format(DateTimeFormatter.ofPattern("HH:mm"))
+            val updatedTask = task.copy(scheduledTime = newTime)
+
+            taskRepository.updateTask(updatedTask)
+
+            notificationScheduler.cancelTaskNotification(task)
+            notificationScheduler.scheduleTaskNotification(updatedTask)
+        }
+    }
+
+    fun saveFocusSession(taskId: Long, clips: Int, startTime: Long) {
+        viewModelScope.launch {
             val session = FocusSession(
                 taskId = taskId,
-                habitId = null,
                 startTime = startTime,
-                endTime = endTime,
-                paperclipsCollected = paperclips,
-                createdAt = endTime
+                endTime = System.currentTimeMillis(),
+                paperclipsCollected = clips,
+                createdAt = System.currentTimeMillis()
             )
             focusRepository.saveSession(session)
         }
     }
+
+    fun completeTask(taskId: Long) {
+        viewModelScope.launch {
+            taskRepository.completeTask(taskId)
+        }
+    }
+
+    private fun checkMorningBriefing() {
+        viewModelScope.launch {
+            val result = taskRepository.processDailyWrapUp()
+            if (result != null) {
+                _uiState.update { it.copy(morningBriefing = result) }
+            }
+        }
+    }
+
+    fun dismissBriefing() {
+        _uiState.update { it.copy(morningBriefing = null) }
+    }
+
+    // Placeholder agar PlannerScreen tidak error (logic sudah dipindah ke Screen via LaunchedEffect)
+    fun clearInitialTask() { }
 }

@@ -4,13 +4,13 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.summa.data.model.FocusSession
-import com.app.summa.data.model.Habit as HabitModel
-import com.app.summa.data.model.HabitLog as HabitLogModel
+import com.app.summa.data.model.Habit
+import com.app.summa.data.model.HabitItem
+import com.app.summa.data.model.HabitLog
 import com.app.summa.data.model.Identity
 import com.app.summa.data.repository.FocusRepository
 import com.app.summa.data.repository.HabitRepository
 import com.app.summa.data.repository.IdentityRepository
-import com.app.summa.data.model.HabitItem
 import com.app.summa.util.NotificationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -20,12 +20,12 @@ import javax.inject.Inject
 
 data class HabitUiState(
     val habits: List<HabitItem> = emptyList(),
-    val selectedHabit: HabitItem? = null,
-    val habitLogs: List<HabitLogModel> = emptyList(),
+    val todayHabits: List<HabitItem> = emptyList(),
+    val habitLogs: List<HabitLog> = emptyList(),
     val availableIdentities: List<Identity> = emptyList(),
-    val isLoading: Boolean = true,
-    val error: String? = null,
-    val showRewardAnimation: Boolean = false
+    val selectedHabit: HabitItem? = null,
+    val showRewardAnimation: Boolean = false,
+    val isLoading: Boolean = false
 )
 
 @HiltViewModel
@@ -33,186 +33,166 @@ class HabitViewModel @Inject constructor(
     private val habitRepository: HabitRepository,
     private val identityRepository: IdentityRepository,
     private val focusRepository: FocusRepository,
-    private val savedStateHandle: SavedStateHandle,
-    private val notificationScheduler: NotificationScheduler
+    private val notificationScheduler: NotificationScheduler, // Inject Scheduler
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(HabitUiState())
+    private val _uiState = MutableStateFlow(HabitUiState(isLoading = true))
     val uiState: StateFlow<HabitUiState> = _uiState.asStateFlow()
 
-    private val todayLogs = habitRepository.getLogsForDate(LocalDate.now())
-
     init {
-        loadHabits()
-        loadIdentities()
-
-        val habitId = savedStateHandle.get<Long>("habitId")
-        if (habitId != null && habitId != -1L) {
-            viewModelScope.launch {
-                habitRepository.getAllHabits().first().find { it.id == habitId }?.let { habit ->
-                    habitRepository.getHabitLogs(habitId).collect { logs ->
-                        val item = HabitItem(
-                            id = habit.id,
-                            name = habit.name,
-                            icon = habit.icon,
-                            currentCount = 0,
-                            targetCount = habit.targetCount,
-                            totalSum = habit.totalSum,
-                            currentStreak = habit.currentStreak,
-                            perfectStreak = habit.perfectStreak,
-                            originalModel = habit
-                        )
-                        _uiState.update { it.copy(selectedHabit = item, habitLogs = logs) }
-                    }
+        // Load data awal
+        viewModelScope.launch {
+            combine(
+                habitRepository.getAllHabits(),
+                habitRepository.getLogsForDate(LocalDate.now()),
+                identityRepository.getAllIdentities()
+            ) { habits, logs, identities ->
+                Triple(habits, logs, identities)
+            }.collect { (habits, logs, identities) ->
+                val habitItems = habits.map { habit ->
+                    mapToHabitItem(habit, logs)
                 }
-            }
-        }
-    }
 
-    private fun loadIdentities() {
-        viewModelScope.launch {
-            identityRepository.getAllIdentities().collect { identities ->
-                _uiState.update { it.copy(availableIdentities = identities) }
-            }
-        }
-    }
-
-    private fun loadHabits() {
-        viewModelScope.launch {
-            habitRepository.getAllHabits().combine(todayLogs) { habits, logs ->
-                habits.map { habit ->
-                    val todayLog = logs.find { it.habitId == habit.id }
-                    val item = HabitItem(
-                        id = habit.id,
-                        name = habit.name,
-                        icon = habit.icon,
-                        currentCount = todayLog?.count ?: 0,
-                        targetCount = habit.targetCount,
-                        totalSum = habit.totalSum,
-                        currentStreak = habit.currentStreak,
-                        perfectStreak = habit.perfectStreak,
-                        originalModel = habit
+                // Update state list utama
+                _uiState.update {
+                    it.copy(
+                        habits = habitItems,
+                        todayHabits = habitItems, // Bisa difilter jika ada logika jadwal
+                        availableIdentities = identities,
+                        isLoading = false
                     )
-                    if (_uiState.value.selectedHabit?.id == habit.id) {
-                        _uiState.update { it.copy(selectedHabit = item) }
+                }
+
+                // Update detail habit jika sedang dibuka
+                val currentSelectedId = _uiState.value.selectedHabit?.id
+                if (currentSelectedId != null) {
+                    val updatedSelected = habitItems.find { it.id == currentSelectedId }
+                    if (updatedSelected != null) {
+                        _uiState.update { it.copy(selectedHabit = updatedSelected) }
+                        // Load logs historis untuk detail
+                        loadHabitLogs(currentSelectedId)
                     }
-                    item
                 }
             }
-                .catch { e -> _uiState.update { it.copy(error = e.message, isLoading = false) } }
-                .collect { mappedHabits ->
-                    _uiState.update { it.copy(habits = mappedHabits, isLoading = false, error = null) }
-                }
+        }
+
+        // Cek argumen navigasi jika membuka detail
+        val habitId = savedStateHandle.get<Long>("habitId")
+        if (habitId != null) {
+            selectHabit(habitId)
         }
     }
 
-    fun saveFocusSession(habitId: Long, paperclips: Int, startTime: Long) {
+    private fun mapToHabitItem(habit: Habit, logs: List<HabitLog>): HabitItem {
+        val todayLog = logs.find { it.habitId == habit.id }
+        return HabitItem(
+            id = habit.id,
+            name = habit.name,
+            icon = habit.icon,
+            currentCount = todayLog?.count ?: 0,
+            targetCount = habit.targetCount,
+            totalSum = habit.totalSum,
+            currentStreak = habit.currentStreak,
+            perfectStreak = habit.perfectStreak,
+            originalModel = habit
+        )
+    }
+
+    private fun selectHabit(habitId: Long) {
         viewModelScope.launch {
-            val endTime = System.currentTimeMillis()
-            // Perbaiki argumen FocusSession constructor. Pastikan taskId null untuk habit session.
-            val session = FocusSession(
-                taskId = null,
-                habitId = habitId,
-                startTime = startTime,
-                endTime = endTime,
-                paperclipsCollected = paperclips,
-                createdAt = endTime
+            // Kita ambil dari state yang sudah ada saja
+            val habit = _uiState.value.habits.find { it.id == habitId }
+            if (habit != null) {
+                _uiState.update { it.copy(selectedHabit = habit) }
+                loadHabitLogs(habitId)
+            }
+        }
+    }
+
+    private fun loadHabitLogs(habitId: Long) {
+        viewModelScope.launch {
+            habitRepository.getHabitLogs(habitId).collect { logs ->
+                _uiState.update { it.copy(habitLogs = logs) }
+            }
+        }
+    }
+
+    fun addHabit(name: String, icon: String, target: Int, identityId: Long?, cue: String, reminder: String) {
+        viewModelScope.launch {
+            val newHabit = Habit(
+                name = name,
+                icon = icon,
+                targetCount = target,
+                relatedIdentityId = identityId,
+                cue = cue,
+                reminderTime = reminder,
+                createdAt = System.currentTimeMillis()
             )
-            focusRepository.saveSession(session)
+            val id = habitRepository.insertHabit(newHabit)
+
+            // PERBAIKAN: Gunakan objek habit yang baru dibuat dengan ID yang benar
+            val habitWithId = newHabit.copy(id = id)
+            notificationScheduler.scheduleHabitReminder(habitWithId)
         }
     }
 
-    fun selectHabit(habitItem: HabitItem) {
+    fun updateHabitDetails(habit: Habit, name: String, icon: String, target: Int, identityId: Long?, cue: String, reminder: String) {
         viewModelScope.launch {
-            habitRepository.getHabitLogs(habitItem.id).collect { logs ->
-                _uiState.update { it.copy(selectedHabit = habitItem, habitLogs = logs) }
-            }
+            val updatedHabit = habit.copy(
+                name = name,
+                icon = icon,
+                targetCount = target,
+                relatedIdentityId = identityId,
+                cue = cue,
+                reminderTime = reminder
+            )
+            habitRepository.updateHabit(updatedHabit)
+
+            // PERBAIKAN: Cancel alarm lama dan set yang baru
+            notificationScheduler.cancelHabitReminder(habit)
+            notificationScheduler.scheduleHabitReminder(updatedHabit)
         }
     }
 
     fun incrementHabit(habitItem: HabitItem) {
         viewModelScope.launch {
             val newCount = habitItem.currentCount + 1
-            if (habitItem.targetCount > 0 && newCount > habitItem.targetCount) {
+            habitRepository.updateHabitCount(habitItem.originalModel, newCount)
+
+            // Trigger animasi jika target tercapai atau terlampaui
+            if (newCount >= habitItem.targetCount) {
                 _uiState.update { it.copy(showRewardAnimation = true) }
             }
-            habitRepository.updateHabitCount(habitItem.originalModel, newCount)
         }
     }
-
-    fun dismissRewardAnimation() { _uiState.update { it.copy(showRewardAnimation = false) } }
 
     fun decrementHabit(habitItem: HabitItem) {
         if (habitItem.currentCount > 0) {
             viewModelScope.launch {
-                val newCount = habitItem.currentCount - 1
-                habitRepository.updateHabitCount(habitItem.originalModel, newCount)
+                habitRepository.updateHabitCount(habitItem.originalModel, habitItem.currentCount - 1)
             }
         }
     }
 
-    fun addHabit(name: String, icon: String, targetCount: Int, relatedIdentityId: Long? = null, cue: String = "", reminder: String = "") {
+    fun saveFocusSession(habitId: Long, clips: Int, startTime: Long) {
         viewModelScope.launch {
-            val newHabit = HabitModel(
-                name = name,
-                icon = icon,
-                targetCount = targetCount,
-                relatedIdentityId = relatedIdentityId,
-                cue = cue,
-                reminderTime = reminder,
+            val session = FocusSession(
+                habitId = habitId,
+                startTime = startTime,
+                endTime = System.currentTimeMillis(),
+                paperclipsCollected = clips,
                 createdAt = System.currentTimeMillis()
             )
-            // insertHabit mengembalikan Long
-            val newId = habitRepository.insertHabit(newHabit)
-
-            // JADWALKAN NOTIFIKASI
-            if (reminder.isNotBlank()) {
-                // Pastikan tipe data newId adalah Long, scheduleHabitReminder menerima Long
-                notificationScheduler.scheduleHabitReminder(newId, name, reminder)
-            }
+            focusRepository.saveSession(session)
         }
     }
 
-    fun updateHabitDetails(
-        originalHabit: HabitModel,
-        name: String,
-        icon: String,
-        targetCount: Int,
-        relatedIdentityId: Long?,
-        cue: String,
-        reminder: String
-    ) {
-        viewModelScope.launch {
-            val updatedHabit = originalHabit.copy(
-                name = name,
-                icon = icon,
-                targetCount = targetCount,
-                relatedIdentityId = relatedIdentityId,
-                cue = cue,
-                reminderTime = reminder
-            )
-            habitRepository.updateHabit(updatedHabit)
-            _uiState.update { it.copy(selectedHabit = it.selectedHabit?.copy(name = name, icon = icon, targetCount = targetCount, originalModel = updatedHabit)) }
-
-            // UPDATE JADWAL NOTIFIKASI
-            // updatedHabit.id adalah Long
-            notificationScheduler.cancelHabitReminder(updatedHabit.id) // Cancel yang lama
-            if (reminder.isNotBlank()) {
-                notificationScheduler.scheduleHabitReminder(updatedHabit.id, name, reminder)
-            }
-        }
+    fun dismissRewardAnimation() {
+        _uiState.update { it.copy(showRewardAnimation = false) }
     }
 
-    fun updateHabit(habitItem: HabitItem) { viewModelScope.launch { habitRepository.updateHabit(habitItem.originalModel) } }
-
-    fun deleteHabit(habitItem: HabitItem) {
-        viewModelScope.launch {
-            habitRepository.deleteHabit(habitItem.originalModel)
-            // HAPUS NOTIFIKASI
-            // habitItem.id adalah Long
-            notificationScheduler.cancelHabitReminder(habitItem.id)
-        }
+    fun clearSelection() {
+        _uiState.update { it.copy(selectedHabit = null, habitLogs = emptyList()) }
     }
-
-    fun onBackFromDetail() { _uiState.update { it.copy(selectedHabit = null) } }
 }

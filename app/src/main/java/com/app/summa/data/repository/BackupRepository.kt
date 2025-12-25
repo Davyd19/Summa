@@ -3,13 +3,15 @@ package com.app.summa.data.repository
 import com.app.summa.data.local.SummaDatabase
 import com.app.summa.data.model.BackupData
 import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 interface BackupRepository {
     suspend fun createBackupJson(): String
-    suspend fun restoreBackupFromJson(jsonString: String)
+    // Mengembalikan true jika sukses, false jika gagal/data korup
+    suspend fun restoreBackupFromJson(jsonString: String): Boolean
 }
 
 class BackupRepositoryImpl @Inject constructor(
@@ -19,8 +21,8 @@ class BackupRepositoryImpl @Inject constructor(
     private val gson = Gson()
 
     override suspend fun createBackupJson(): String = withContext(Dispatchers.IO) {
-        // 1. Ambil semua data dari database
-        val habits = database.habitDao().getAllHabitsSync() // Perlu method sync atau first() dari flow
+        // 1. Ambil snapshot data saat ini
+        val habits = database.habitDao().getAllHabitsSync()
         val habitLogs = database.habitDao().getAllHabitLogsSync()
         val tasks = database.taskDao().getAllTasksSync()
         val accounts = database.accountDao().getAllAccountsSync()
@@ -32,8 +34,10 @@ class BackupRepositoryImpl @Inject constructor(
 
         // 2. Bungkus dalam object BackupData
         val backupData = BackupData(
+            version = 1, // Versi skema backup
+            timestamp = System.currentTimeMillis(),
             habits = habits,
-            habitLogs = habitLogs, // Masukkan ke field yang benar
+            habitLogs = habitLogs,
             tasks = tasks,
             accounts = accounts,
             transactions = transactions,
@@ -43,29 +47,52 @@ class BackupRepositoryImpl @Inject constructor(
             noteLinks = links
         )
 
-        // 3. Convert ke JSON String
+        // 3. Serialize ke JSON
         return@withContext gson.toJson(backupData)
     }
 
-    override suspend fun restoreBackupFromJson(jsonString: String) = withContext(Dispatchers.IO) {
-        // 1. Parse JSON ke Object
-        val backupData = gson.fromJson(jsonString, BackupData::class.java)
+    override suspend fun restoreBackupFromJson(jsonString: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            // 1. Validasi JSON Parsing
+            if (jsonString.isBlank()) return@withContext false
 
-        // 2. Jalankan dalam transaksi database agar aman (Atomic)
-        database.runInTransaction {
-            // A. Hapus data lama (Nuke)
-            database.clearAllTables()
+            val backupData = try {
+                gson.fromJson(jsonString, BackupData::class.java)
+            } catch (e: JsonSyntaxException) {
+                e.printStackTrace()
+                return@withContext false
+            }
 
-            // B. Masukkan data baru (Restore)
-            if (backupData.identities.isNotEmpty()) database.identityDao().insertAll(backupData.identities)
-            if (backupData.habits.isNotEmpty()) database.habitDao().insertHabits(backupData.habits)
-            if (backupData.habitLogs.isNotEmpty()) database.habitDao().insertHabitLogs(backupData.habitLogs)
-            if (backupData.tasks.isNotEmpty()) database.taskDao().insertTasks(backupData.tasks)
-            if (backupData.accounts.isNotEmpty()) database.accountDao().insertAccounts(backupData.accounts)
-            if (backupData.transactions.isNotEmpty()) database.accountDao().insertTransactions(backupData.transactions)
-            if (backupData.focusSessions.isNotEmpty()) database.focusSessionDao().insertSessions(backupData.focusSessions)
-            if (backupData.knowledgeNotes.isNotEmpty()) database.knowledgeDao().insertNotes(backupData.knowledgeNotes)
-            if (backupData.noteLinks.isNotEmpty()) database.noteLinkDao().insertLinks(backupData.noteLinks)
+            // 2. Validasi Integritas Data Minimal
+            // Minimal harus object valid dan tidak null
+            if (backupData == null) return@withContext false
+
+            // 3. Eksekusi Restore dalam Transaksi Database (Atomic)
+            // Jika ada error di tengah jalan, DB akan rollback otomatis ke kondisi semula
+            database.runInTransaction {
+                // A. Bersihkan tabel lama (Nuke)
+                database.clearAllTables()
+
+                // B. Masukkan data baru (Restore)
+                // Menggunakan safe call (?.) untuk menangani kemungkinan list kosong/null dari JSON lama
+                backupData.identities.let { if (it.isNotEmpty()) database.identityDao().insertAll(it) }
+                backupData.habits.let { if (it.isNotEmpty()) database.habitDao().insertHabits(it) }
+                backupData.habitLogs.let { if (it.isNotEmpty()) database.habitDao().insertHabitLogs(it) }
+                backupData.tasks.let { if (it.isNotEmpty()) database.taskDao().insertTasks(it) }
+                backupData.accounts.let { if (it.isNotEmpty()) database.accountDao().insertAccounts(it) }
+                backupData.transactions.let { if (it.isNotEmpty()) database.accountDao().insertTransactions(it) }
+                backupData.focusSessions.let { if (it.isNotEmpty()) database.focusSessionDao().insertSessions(it) }
+                backupData.knowledgeNotes.let { if (it.isNotEmpty()) database.knowledgeDao().insertNotes(it) }
+                backupData.noteLinks.let { if (it.isNotEmpty()) database.noteLinkDao().insertLinks(it) }
+            }
+
+            return@withContext true
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Jika transaction gagal, Room akan melempar exception
+            // Kita tangkap dan kembalikan false agar UI bisa memberi tahu user
+            return@withContext false
         }
     }
 }

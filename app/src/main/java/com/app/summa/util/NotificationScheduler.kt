@@ -4,165 +4,200 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.util.Log
+import com.app.summa.data.model.Habit
+import com.app.summa.data.model.Task
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 import java.util.Calendar
-import kotlin.math.absoluteValue
 
 class NotificationScheduler(private val context: Context) {
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    fun scheduleHabitReminder(habitId: Long, habitName: String, timeString: String) {
-        if (timeString.isBlank()) return
+    // --- TASK NOTIFICATIONS ---
+
+    fun scheduleTaskNotification(task: Task) {
+        if (task.scheduledTime == null || task.isCompleted) return
 
         try {
-            val timeParts = timeString.split(":").map { it.toInt() }
-            if (timeParts.size < 2) return
+            val date = LocalDate.parse(task.scheduledDate)
+            val time = LocalTime.parse(task.scheduledTime)
+            val scheduleTime = LocalDateTime.of(date, time)
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
 
-            val hour = timeParts[0]
-            val minute = timeParts[1]
-
-            val calendar = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, hour)
-                set(Calendar.MINUTE, minute)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-
-            if (calendar.timeInMillis <= System.currentTimeMillis()) {
-                calendar.add(Calendar.DAY_OF_YEAR, 1)
-            }
-
-            // PERBAIKAN: Gunakan ID Unik.
-            // ID Habit range: 0 - 999,999. Menggunakan toInt() aman untuk database kecil-menengah.
-            val notificationId = (habitId.hashCode().absoluteValue % 1000000)
+            if (scheduleTime <= System.currentTimeMillis()) return
 
             val intent = Intent(context, NotificationReceiver::class.java).apply {
-                putExtra("TITLE", "Waktunya Kebiasaan 🎯")
-                putExtra("MESSAGE", "Saatnya melakukan: $habitName")
-                putExtra("ID", notificationId)
+                putExtra("TYPE", "TASK")
+                putExtra("ID", task.id)
+                putExtra("TITLE", task.title)
+                putExtra("MESSAGE", "Waktunya mengerjakan: ${task.title}")
             }
 
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
-                notificationId,
+                ("TASK_" + task.id).hashCode(), // Unique Request Code
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            alarmManager.setRepeating(
-                AlarmManager.RTC_WAKEUP,
-                calendar.timeInMillis,
-                AlarmManager.INTERVAL_DAY,
-                pendingIntent
-            )
+            scheduleExactAlarm(scheduleTime, pendingIntent)
 
-            Log.d("SummaNotification", "Habit scheduled: $habitName (ID: $notificationId) at $timeString")
-
-        } catch (e: Exception) {
-            Log.e("SummaNotification", "Failed to schedule habit", e)
-        }
-    }
-
-    fun scheduleTaskReminder(taskId: Long, taskTitle: String, date: String, time: String) {
-        if (date.isBlank() || time.isBlank()) return
-
-        try {
-            // PERBAIKAN: Gunakan Formatter yang aman
-            val localDate = try {
-                LocalDate.parse(date)
-            } catch (e: DateTimeParseException) {
-                // Fallback format jika perlu, atau return
-                return
-            }
-
-            val localTime = try {
-                LocalTime.parse(time)
-            } catch (e: DateTimeParseException) {
-                return
-            }
-
-            val dateTime = LocalDateTime.of(localDate, localTime)
-            val triggerTime = dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-
-            if (triggerTime <= System.currentTimeMillis()) return
-
-            // PERBAIKAN: ID Task Offset agar tidak tabrakan dengan Habit
-            // Task ID range start from 1,000,000
-            val notificationId = (taskId.hashCode().absoluteValue % 1000000) + 1000000
-
-            val intent = Intent(context, NotificationReceiver::class.java).apply {
-                putExtra("TITLE", "Pengingat Tugas 📝")
-                putExtra("MESSAGE", taskTitle)
-                putExtra("ID", notificationId)
-            }
-
-            val pendingIntent = PendingIntent.getBroadcast(
-                context,
-                notificationId,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                triggerTime,
-                pendingIntent
-            )
-
-            Log.d("SummaNotification", "Task scheduled: $taskTitle (ID: $notificationId) at $date $time")
-
-        } catch (e: Exception) {
-            Log.e("SummaNotification", "Failed to schedule task", e)
-        }
-    }
-
-    fun showImmediateNotification(title: String, message: String) {
-        try {
-            val id = System.currentTimeMillis().toInt()
-            val intent = Intent(context, NotificationReceiver::class.java).apply {
-                putExtra("TITLE", title)
-                putExtra("MESSAGE", message)
-                putExtra("ID", id)
-            }
-            context.sendBroadcast(intent)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    fun cancelHabitReminder(habitId: Long) {
-        try {
-            val notificationId = (habitId.hashCode().absoluteValue % 1000000)
-            cancelPendingIntent(notificationId)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    fun cancelTaskReminder(taskId: Long) {
-        try {
-            val notificationId = (taskId.hashCode().absoluteValue % 1000000) + 1000000
-            cancelPendingIntent(notificationId)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun cancelPendingIntent(id: Int) {
+    fun cancelTaskNotification(task: Task) {
         val intent = Intent(context, NotificationReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            id,
+            ("TASK_" + task.id).hashCode(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         alarmManager.cancel(pendingIntent)
+    }
+
+    // --- HABIT REMINDERS (Fungsi yang sebelumnya hilang) ---
+
+    fun scheduleHabitReminder(habit: Habit) {
+        if (habit.reminderTime.isBlank()) return
+
+        try {
+            val times = habit.reminderTime.split(",")
+            times.forEachIndexed { index, timeStr ->
+                if (timeStr.isBlank()) return@forEachIndexed
+
+                val time = LocalTime.parse(timeStr)
+                val now = LocalDateTime.now()
+                var scheduleTime = LocalDateTime.of(now.toLocalDate(), time)
+
+                // Jika waktu sudah lewat hari ini, jadwalkan besok
+                if (scheduleTime.isBefore(now)) {
+                    scheduleTime = scheduleTime.plusDays(1)
+                }
+
+                val intent = Intent(context, NotificationReceiver::class.java).apply {
+                    putExtra("TYPE", "HABIT")
+                    putExtra("ID", habit.id)
+                    putExtra("TITLE", "Pengingat Kebiasaan")
+                    putExtra("MESSAGE", "Waktunya untuk: ${habit.name} ${habit.icon}")
+                }
+
+                val uniqueId = ("HABIT_" + habit.id + "_" + index).hashCode()
+                val pendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    uniqueId,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+
+                // Jadwalkan berulang setiap hari
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                    // Fallback jika tidak ada izin exact alarm
+                    alarmManager.setRepeating(
+                        AlarmManager.RTC_WAKEUP,
+                        scheduleTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                        AlarmManager.INTERVAL_DAY,
+                        pendingIntent
+                    )
+                } else {
+                    // Note: setRepeating tidak exact di Android modern (Doze mode).
+                    // Untuk presisi tinggi, harus reschedule manual setiap kali alarm berbunyi.
+                    // Di sini kita gunakan setRepeating standar agar lebih hemat baterai.
+                    alarmManager.setRepeating(
+                        AlarmManager.RTC_WAKEUP,
+                        scheduleTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                        AlarmManager.INTERVAL_DAY,
+                        pendingIntent
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun cancelHabitReminder(habit: Habit) {
+        // Cancel semua kemungkinan slot reminder (misal max 5 slot)
+        for (i in 0 until 5) {
+            val intent = Intent(context, NotificationReceiver::class.java)
+            val uniqueId = ("HABIT_" + habit.id + "_" + i).hashCode()
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                uniqueId,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            alarmManager.cancel(pendingIntent)
+        }
+    }
+
+    // --- DAILY BRIEFING ---
+
+    fun scheduleDailyBriefing() {
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 7) // Jam 7 Pagi
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+        }
+
+        if (calendar.timeInMillis < System.currentTimeMillis()) {
+            calendar.add(Calendar.DAY_OF_YEAR, 1)
+        }
+
+        val intent = Intent(context, NotificationReceiver::class.java).apply {
+            putExtra("TYPE", "BRIEFING")
+            putExtra("TITLE", "Morning Briefing")
+            putExtra("MESSAGE", "Lihat agenda dan progres Anda hari ini!")
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            1001, // ID Khusus Briefing
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        alarmManager.setInexactRepeating(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            AlarmManager.INTERVAL_DAY,
+            pendingIntent
+        )
+    }
+
+    // --- HELPER: SAFE EXACT ALARM ---
+    private fun scheduleExactAlarm(timeInMillis: Long, pendingIntent: PendingIntent) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    timeInMillis,
+                    pendingIntent
+                )
+            } else {
+                Log.w("NotificationScheduler", "Izin Exact Alarm tidak diberikan. Menggunakan setWindow.")
+                alarmManager.setWindow(
+                    AlarmManager.RTC_WAKEUP,
+                    timeInMillis,
+                    10 * 60 * 1000, // Toleransi 10 menit
+                    pendingIntent
+                )
+            }
+        } else {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                timeInMillis,
+                pendingIntent
+            )
+        }
     }
 }

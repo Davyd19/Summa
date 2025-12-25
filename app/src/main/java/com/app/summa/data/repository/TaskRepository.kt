@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import java.time.format.DateTimeParseException
 import javax.inject.Inject
 
 interface TaskRepository {
@@ -61,12 +62,26 @@ class TaskRepositoryImpl @Inject constructor(
      */
     override suspend fun processDailyWrapUp(): DailyWrapUpResult? {
         return withContext(Dispatchers.IO) {
-            val today = LocalDate.now().toString()
+            val todayDate = LocalDate.now()
+            val todayString = todayDate.toString()
 
-            // Cek tugas yang jadwalnya < hari ini DAN belum selesai
-            // (Diasumsikan query DAO getOverdue... sudah memfilter scheduledDate < today)
-            val overdueAspirations = taskDao.getOverdueAspirationTasks(today)
-            val overdueCommitments = taskDao.getOverdueCommitmentTasks(today)
+            // PERBAIKAN 1: Ambil semua tugas aktif dulu, lalu filter tanggal dengan LocalDate di memori
+            // Mengandalkan string comparison di SQL bisa berisiko jika format tanggal tercampur
+            val activeTasks = taskDao.getAllTasksSync().filter { !it.isCompleted } // Pastikan ada method ini atau gunakan getActiveTasks().first()
+
+            val overdueTasks = activeTasks.filter { task ->
+                try {
+                    val taskDate = LocalDate.parse(task.scheduledDate)
+                    taskDate.isBefore(todayDate)
+                } catch (e: DateTimeParseException) {
+                    false // Abaikan jika format tanggal salah
+                } catch (e: NullPointerException) {
+                    false // Abaikan jika tanggal null
+                }
+            }
+
+            val overdueAspirations = overdueTasks.filter { !it.isCommitment }
+            val overdueCommitments = overdueTasks.filter { it.isCommitment }
 
             // Jika tidak ada tunggakan, tidak perlu briefing
             if (overdueAspirations.isEmpty() && overdueCommitments.isEmpty()) {
@@ -76,7 +91,7 @@ class TaskRepositoryImpl @Inject constructor(
             // 1. Proses Rollover Aspirasi (Tanpa Penalti)
             overdueAspirations.forEach { task ->
                 // Geser tanggal ke hari ini
-                taskDao.updateTask(task.copy(scheduledDate = today))
+                taskDao.updateTask(task.copy(scheduledDate = todayString))
             }
 
             // 2. Proses Hukuman Komitmen (Penalti XP)
@@ -94,12 +109,12 @@ class TaskRepositoryImpl @Inject constructor(
                     )
                 }
                 // Tetap geser tugas agar "menghantui" pengguna (Nagging)
-                taskDao.updateTask(task.copy(scheduledDate = today))
+                taskDao.updateTask(task.copy(scheduledDate = todayString))
             }
 
             // 3. Kembalikan Hasil Laporan
             return@withContext DailyWrapUpResult(
-                processedDate = LocalDate.now().minusDays(1).toString(),
+                processedDate = todayDate.minusDays(1).toString(),
                 rolledOverAspirations = overdueAspirations,
                 missedCommitments = overdueCommitments,
                 totalPenalty = totalPenalty

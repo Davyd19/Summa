@@ -104,28 +104,39 @@ class HabitRepositoryImpl @Inject constructor(
             var perfectStreak = 0
             var checkDatePerfect = today
 
+            // PERBAIKAN: Tambahkan safety counter untuk mencegah infinite loop
+            var safetyCounter = 0
+            val maxIterations = 366 // Maksimal cek 1 tahun ke belakang
+
             // 1. Perfect Streak Logic
             val todayLogPerfect = allLogs.find { it.date == checkDatePerfect.toString() }
             if ((todayLogPerfect?.count ?: 0) >= targetCount) {
                 perfectStreak++
                 checkDatePerfect = checkDatePerfect.minusDays(1)
-                while (true) {
+
+                while (safetyCounter < maxIterations) {
                     val currentDateStr = checkDatePerfect.toString()
                     val log = allLogs.find { it.date == currentDateStr }
                     if (log != null && log.count >= targetCount) {
                         perfectStreak++
                         checkDatePerfect = checkDatePerfect.minusDays(1)
-                    } else break
+                    } else {
+                        break
+                    }
+                    safetyCounter++
                 }
             } else {
                 checkDatePerfect = today.minusDays(1)
-                while (true) {
+                while (safetyCounter < maxIterations) {
                     val currentDateStr = checkDatePerfect.toString()
                     val log = allLogs.find { it.date == currentDateStr }
                     if (log != null && log.count >= targetCount) {
                         perfectStreak++
                         checkDatePerfect = checkDatePerfect.minusDays(1)
-                    } else break
+                    } else {
+                        break
+                    }
+                    safetyCounter++
                 }
             }
 
@@ -137,16 +148,21 @@ class HabitRepositoryImpl @Inject constructor(
                 val mostRecentActive = activeLogs[0]
                 val daysSinceLastActive = ChronoUnit.DAYS.between(mostRecentActive, today)
 
+                // Jika aktif hari ini atau kemarin, streak masih hidup
                 if (daysSinceLastActive <= 1) {
                     flexibleStreak = 1
                     var currentDateRef = mostRecentActive
+                    // Loop aman karena dibatasi ukuran list activeLogs
                     for (i in 1 until activeLogs.size) {
                         val prevDate = activeLogs[i]
                         val gap = ChronoUnit.DAYS.between(prevDate, currentDateRef)
+                        // Fleksibel: Boleh bolong 1 hari (gap <= 2 hari)
                         if (gap <= 2) {
                             flexibleStreak++
                             currentDateRef = prevDate
-                        } else break
+                        } else {
+                            break
+                        }
                     }
                 }
             }

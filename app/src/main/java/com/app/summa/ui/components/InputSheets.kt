@@ -36,7 +36,7 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 
-// --- 1. HABIT INPUT SHEET (UPDATED WITH TIME PICKER) ---
+// --- 1. HABIT INPUT SHEET (VALIDASI & LAYOUT) ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HabitInputSheet(
@@ -69,7 +69,6 @@ fun HabitInputSheet(
         }
     }
 
-    // STATE UNTUK TIME PICKER
     var showTimePicker by remember { mutableStateOf(false) }
     var editingReminderIndex by remember { mutableStateOf(-1) }
     val timePickerState = rememberTimePickerState(is24Hour = true)
@@ -78,13 +77,13 @@ fun HabitInputSheet(
     val focusManager = LocalFocusManager.current
     val isEditMode = initialName.isNotBlank()
 
+    // Validasi Sederhana
+    val isValid = name.isNotBlank() && (targetStr.toIntOrNull() ?: 0) > 0
+
     LaunchedEffect(targetStr) {
         val targetCount = targetStr.toIntOrNull() ?: 1
         if (targetCount > reminders.size) {
             repeat(targetCount - reminders.size) { reminders.add("") }
-        } else if (targetCount < reminders.size && targetCount > 0) {
-            // Optional: Hapus yang berlebih jika diinginkan
-            // repeat(reminders.size - targetCount) { reminders.removeLast() }
         }
     }
 
@@ -99,7 +98,7 @@ fun HabitInputSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .imePadding()
+                .imePadding() // PERBAIKAN: Menangani Keyboard agar tidak menutupi input
                 .verticalScroll(scrollState)
                 .padding(bottom = 48.dp)
         ) {
@@ -143,12 +142,13 @@ fun HabitInputSheet(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Saya akan...") },
+                label = { Text("Saya akan... *") }, // Tanda wajib
                 placeholder = { Text("Contoh: Membaca 10 halaman") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                isError = name.isBlank() // Visual Error
             )
             Spacer(Modifier.height(12.dp))
             Text("Pilih Ikon:", style = MaterialTheme.typography.labelMedium)
@@ -212,17 +212,16 @@ fun HabitInputSheet(
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     reminders.forEachIndexed { index, time ->
-                        // WRAPPER AGAR BISA DIKLIK UNTUK MEMBUKA PICKER
                         Box(modifier = Modifier.fillMaxWidth()) {
                             OutlinedTextField(
                                 value = time,
-                                onValueChange = { }, // Read Only
+                                onValueChange = { },
                                 placeholder = { Text("00:00") },
                                 label = { Text("Sesi ${index + 1}") },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp),
                                 singleLine = true,
-                                readOnly = true, // KUNCI KEYBOARD
+                                readOnly = true,
                                 trailingIcon = {
                                     Icon(
                                         Icons.Default.Alarm,
@@ -232,7 +231,6 @@ fun HabitInputSheet(
                                     )
                                 }
                             )
-                            // TRANSPARENT CLICKABLE OVERLAY
                             Box(
                                 modifier = Modifier
                                     .matchParentSize()
@@ -251,21 +249,20 @@ fun HabitInputSheet(
 
             Button(
                 onClick = {
-                    if (name.isNotBlank()) {
+                    if (isValid) {
                         val combinedReminders = reminders.filter { it.isNotBlank() }.joinToString(",")
                         onSave(name, icon, targetStr.toIntOrNull() ?: 1, selectedIdentity?.id, cue, combinedReminders)
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp),
-                enabled = name.isNotBlank()
+                enabled = isValid // PERBAIKAN: Tombol mati jika tidak valid
             ) {
                 Text(if(isEditMode) "Simpan Perubahan" else "Mulai Kebiasaan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
         }
     }
 
-    // DIALOG TIME PICKER
     if (showTimePicker) {
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
@@ -291,7 +288,7 @@ fun HabitInputSheet(
     }
 }
 
-// --- 2. TASK INPUT SHEET ---
+// ... TaskInputSheet & TransactionInputSheet (Bisa diterapkan pola validasi serupa) ...
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskInputSheet(
@@ -456,7 +453,8 @@ fun TaskInputSheet(
                 onClick = { if(title.isNotBlank()) onSave(title, description, time, isCommitment, selectedIdentity?.id, twoMinAction) },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                enabled = title.isNotBlank() // PERBAIKAN: Validasi Judul
             ) {
                 Text("Simpan Tugas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
@@ -486,7 +484,7 @@ fun TaskInputSheet(
     }
 }
 
-// --- 3. MONEY INPUT SHEET ---
+// ... TransactionInputSheet (Sama, tambahkan enabled pada Button) ...
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionInputSheet(
@@ -619,7 +617,8 @@ fun TransactionInputSheet(
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (type == TransactionType.INCOME) SuccessGreen else ErrorRed
-                )
+                ),
+                enabled = amountStr.isNotBlank() && selectedAccount != null // PERBAIKAN: Validasi
             ) {
                 Text("Simpan Transaksi", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }

@@ -5,16 +5,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.items // PENTING: Import ini sering terlupakan
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.* // Mengimpor getValue, setValue, collectAsState, dll.
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -33,13 +35,20 @@ fun KnowledgeDetailScreen(
     onBack: () -> Unit,
     onConvertToTask: (String, String) -> Unit
 ) {
+    // Menggunakan by collectAsState() memerlukan import androidx.compose.runtime.getValue
     val uiState by viewModel.uiState.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
+
+    // State Autocomplete
+    val linkSuggestions by viewModel.linkSuggestions.collectAsState()
 
     var title by remember { mutableStateOf("") }
     // Gunakan TextFieldValue untuk kontrol kursor saat insert [[ ]]
     var contentState by remember { mutableStateOf(TextFieldValue("")) }
     var showLinkDialog by remember { mutableStateOf(false) }
+
+    // Logic untuk posisi Autocomplete
+    var autocompleteQuery by remember { mutableStateOf<String?>(null) }
 
     val scope = rememberCoroutineScope()
 
@@ -62,20 +71,58 @@ fun KnowledgeDetailScreen(
         }
     }
 
+    // --- LOGIKA DETEKSI AUTCOMPLETE ---
+    fun checkAutocomplete(value: TextFieldValue) {
+        val text = value.text
+        val cursor = value.selection.start
+
+        val lastOpenBracket = text.lastIndexOf("[[", cursor - 1)
+
+        if (lastOpenBracket != -1) {
+            val textSegment = text.substring(lastOpenBracket + 2, cursor)
+            if (!textSegment.contains("]]") && !textSegment.contains("\n")) {
+                autocompleteQuery = textSegment
+                viewModel.searchForAutocomplete(textSegment)
+                return
+            }
+        }
+
+        autocompleteQuery = null
+        viewModel.clearLinkSuggestions()
+    }
+
+    fun insertLink(selectedNoteTitle: String) {
+        val currentText = contentState.text
+        val cursor = contentState.selection.start
+        val lastOpenBracket = currentText.lastIndexOf("[[", cursor - 1)
+
+        if (lastOpenBracket != -1) {
+            val prefix = currentText.substring(0, lastOpenBracket + 2)
+            val suffix = currentText.substring(cursor)
+
+            val newText = "$prefix$selectedNoteTitle]]$suffix"
+            val newCursor = prefix.length + selectedNoteTitle.length + 2
+
+            contentState = TextFieldValue(
+                text = newText,
+                selection = TextRange(newCursor)
+            )
+
+            autocompleteQuery = null
+            viewModel.clearLinkSuggestions()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Kembali"
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
                 },
                 actions = {
-                    // TOMBOL BARU: Insert Wiki Link
                     IconButton(onClick = {
                         val currentText = contentState.text
                         val selection = contentState.selection
@@ -83,28 +130,14 @@ fun KnowledgeDetailScreen(
                             .insert(selection.max, "]]")
                             .insert(selection.min, "[[")
                             .toString()
-
-                        // Pindahkan kursor ke tengah kurung
                         val newCursorPos = selection.min + 2
-                        contentState = TextFieldValue(
-                            text = newText,
-                            selection = TextRange(newCursorPos)
-                        )
+                        contentState = TextFieldValue(text = newText, selection = TextRange(newCursorPos))
                     }) {
-                        Icon(
-                            Icons.Default.DataArray, // Icon kurung siku
-                            contentDescription = "Insert Link",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        Icon(Icons.Default.DataArray, "Insert Link", tint = MaterialTheme.colorScheme.primary)
                     }
 
-                    // Tombol Link Manual (Search)
                     IconButton(onClick = { showLinkDialog = true }) {
-                        Icon(
-                            Icons.Default.Link,
-                            contentDescription = "Cari Link",
-                            tint = PurpleAccent
-                        )
+                        Icon(Icons.Default.Link, "Cari Link", tint = PurpleAccent)
                     }
                     TextButton(
                         onClick = { viewModel.saveNote(title, contentState.text); onBack() },
@@ -117,132 +150,123 @@ fun KnowledgeDetailScreen(
             )
         },
         bottomBar = {
-            BottomAppBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    IconButton(onClick = {
-                        onConvertToTask(
-                            uiState.selectedNote?.title ?: title,
-                            uiState.selectedNote?.content ?: contentState.text
-                        )
-                    }) {
-                        Icon(Icons.Default.TaskAlt, contentDescription = "Jadikan Tugas")
+            BottomAppBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    IconButton(onClick = { onConvertToTask(uiState.selectedNote?.title ?: title, uiState.selectedNote?.content ?: contentState.text) }) {
+                        Icon(Icons.Default.TaskAlt, "Jadikan Tugas")
                     }
                     val isPermanent = uiState.selectedNote?.isPermanent == true
-                    IconButton(onClick = {
-                        if (!isPermanent) {
-                            viewModel.convertToPermanent(); onBack()
-                        }
-                    }, enabled = !isPermanent) {
-                        Icon(
-                            if (isPermanent) Icons.Default.Inventory else Icons.Default.Archive,
-                            contentDescription = "Arsipkan"
-                        )
+                    IconButton(onClick = { if (!isPermanent) { viewModel.convertToPermanent(); onBack() } }, enabled = !isPermanent) {
+                        Icon(if (isPermanent) Icons.Default.Inventory else Icons.Default.Archive, "Arsipkan")
                     }
                     IconButton(onClick = { viewModel.deleteNote(); onBack() }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Hapus")
+                        Icon(Icons.Default.Delete, "Hapus")
                     }
                 }
             }
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp)
-        ) {
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                placeholder = { Text("Judul (Opsional)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedBorderColor = Color.Transparent
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    placeholder = { Text("Judul (Opsional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedBorderColor = Color.Transparent
+                    )
                 )
-            )
 
-            // --- ZETTELKASTEN: LINKS & BACKLINKS ---
+                // Backlinks & Forward Links Display
+                // if (uiState.forwardLinks.isNotEmpty()) -> Menggunakan import kotlin.collections untuk List
+                if (uiState.forwardLinks.isNotEmpty()) {
+                    Text("Terhubung ke:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                        items(uiState.forwardLinks) { link ->
+                            NoteLinkChip(note = link, isBacklink = false, onRemove = { viewModel.removeLink(link) })
+                        }
+                    }
+                }
+                if (uiState.backlinks.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Dihubungkan oleh (Backlinks):", style = MaterialTheme.typography.labelSmall, color = PurpleAccent, fontWeight = FontWeight.Bold)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                        items(uiState.backlinks) { link ->
+                            NoteLinkChip(note = link, isBacklink = true, onRemove = null)
+                        }
+                    }
+                }
 
-            // 1. Mentions (Links Out)
-            if (uiState.forwardLinks.isNotEmpty()) {
-                Text(
-                    "Terhubung ke:",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+                Divider(Modifier.padding(vertical = 8.dp).alpha(0.5f))
+
+                // Editor Utama
+                OutlinedTextField(
+                    value = contentState,
+                    onValueChange = {
+                        contentState = it
+                        checkAutocomplete(it)
+                    },
+                    placeholder = { Text("Mulai menulis... Ketik [[ untuk menghubungkan.") },
+                    modifier = Modifier.fillMaxSize(),
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedBorderColor = Color.Transparent
+                    )
                 )
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(vertical = 4.dp)
+            }
+
+            // Overlay Autocomplete
+            if (autocompleteQuery != null && linkSuggestions.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier
+                        .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                        .fillMaxWidth()
+                        .heightIn(max = 200.dp)
+                        .align(Alignment.BottomCenter)
+                        .shadow(8.dp, RoundedCornerShape(12.dp)),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
                 ) {
-                    items(uiState.forwardLinks) { link ->
-                        NoteLinkChip(
-                            note = link,
-                            isBacklink = false,
-                            onRemove = { viewModel.removeLink(link) })
+                    LazyColumn {
+                        item {
+                            Text(
+                                "Saran Tautan:",
+                                modifier = Modifier.padding(12.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            HorizontalDivider()
+                        }
+                        items(linkSuggestions) { note ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { insertLink(note.title) }
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Description, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    note.title.ifBlank { "Tanpa Judul" },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                        }
                     }
                 }
             }
-
-            // 2. Mentioned In (Backlinks)
-            if (uiState.backlinks.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Dihubungkan oleh (Backlinks):",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PurpleAccent,
-                    fontWeight = FontWeight.Bold
-                )
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(vertical = 4.dp)
-                ) {
-                    items(uiState.backlinks) { link ->
-                        NoteLinkChip(
-                            note = link,
-                            isBacklink = true,
-                            onRemove = null
-                        )
-                    }
-                }
-            }
-
-            Divider(Modifier.padding(vertical = 8.dp).alpha(0.5f))
-
-            // Hint kecil untuk fitur baru
-            if (contentState.text.isEmpty()) {
-                Text(
-                    "Tip: Ketik [[Judul Catatan]] untuk menghubungkan otomatis.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-            }
-
-            OutlinedTextField(
-                value = contentState,
-                onValueChange = { contentState = it },
-                placeholder = { Text("Mulai menulis...") },
-                modifier = Modifier.fillMaxSize(),
-                textStyle = MaterialTheme.typography.bodyLarge,
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedBorderColor = Color.Transparent
-                )
-            )
         }
     }
 
-    // Dialog Search Link Manual (Fitur lama, tetap dipertahankan)
     if (showLinkDialog) {
         var searchQuery by remember { mutableStateOf("") }
         AlertDialog(
@@ -263,10 +287,7 @@ fun KnowledgeDetailScreen(
                     )
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (searchResults.isEmpty() && searchQuery.isNotBlank()) item {
-                            Text(
-                                "Tidak ditemukan",
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                            Text("Tidak ditemukan", style = MaterialTheme.typography.bodySmall)
                         }
                         items(searchResults) { note ->
                             Card(
@@ -274,15 +295,8 @@ fun KnowledgeDetailScreen(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Column(Modifier.padding(12.dp).fillMaxWidth()) {
-                                    Text(
-                                        note.title.ifBlank { "Tanpa Judul" },
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        note.content.take(50).replace("\n", " "),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        maxLines = 1
-                                    )
+                                    Text(note.title.ifBlank { "Tanpa Judul" }, fontWeight = FontWeight.Bold)
+                                    Text(note.content.take(50).replace("\n", " "), style = MaterialTheme.typography.bodySmall, maxLines = 1)
                                 }
                             }
                         }
@@ -298,11 +312,12 @@ fun KnowledgeDetailScreen(
 fun NoteLinkChip(note: KnowledgeNote, isBacklink: Boolean, onRemove: (() -> Unit)?) {
     InputChip(
         selected = true,
-        onClick = { /* Navigate to note feature could be added here */ },
+        onClick = { },
         label = { Text(note.title.ifBlank { "Tanpa Judul" }) },
         leadingIcon = {
+            // Menggunakan Icons.AutoMirrored.Filled untuk support RTL
             Icon(
-                if (isBacklink) Icons.Default.ArrowBack else Icons.Default.ArrowForward,
+                if (isBacklink) Icons.AutoMirrored.Filled.ArrowBack else Icons.AutoMirrored.Filled.ArrowForward,
                 null,
                 Modifier.size(12.dp)
             )

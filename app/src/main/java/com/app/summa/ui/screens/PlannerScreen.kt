@@ -1,24 +1,19 @@
 package com.app.summa.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.items // Pastikan import ini ada untuk Grid
+import androidx.compose.foundation.lazy.items // Pastikan import ini ada untuk List
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -41,7 +35,6 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
@@ -61,7 +54,6 @@ import com.app.summa.ui.components.TaskInputSheet
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.PlannerUiState
 import com.app.summa.ui.viewmodel.PlannerViewModel
-import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -76,9 +68,10 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlannerScreen(
-    viewModel: PlannerViewModel = hiltViewModel(),
-    // PARAMETER BARU: Menerima mode dari navigasi
-    currentMode: String = "Normal"
+    currentMode: String = "Normal",
+    noteTitle: String? = null,
+    noteContent: String? = null,
+    viewModel: PlannerViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var viewMode by remember { mutableStateOf("day") }
@@ -89,18 +82,26 @@ fun PlannerScreen(
         initialSelectedDateMillis = uiState.selectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
     )
 
-    // Filter Tasks Berdasarkan Mode
-    val filteredTasksForDay = remember(uiState.tasksForDay, currentMode) {
+    // --- LOGIKA FILTERING DATA ---
+    // Karena ViewModel memuat data sebulan, kita filter manual untuk view harian
+    val tasksForDay = remember(uiState.tasks, uiState.selectedDate) {
+        uiState.tasks.filter { it.scheduledDate == uiState.selectedDate.toString() }
+            .sortedBy { it.scheduledTime }
+    }
+
+    val filteredTasksForDay = remember(tasksForDay, currentMode) {
         if (currentMode == "Fokus") {
-            // Di Mode Fokus, hanya tampilkan Komitmen (Beban Berat)
-            uiState.tasksForDay.filter { it.isCommitment }
+            tasksForDay.filter { it.isCommitment }
         } else {
-            uiState.tasksForDay
+            tasksForDay
         }
     }
 
-    LaunchedEffect(uiState.initialTaskTitle) {
-        if (uiState.initialTaskTitle != null) showAddTaskSheet = true
+    // Menangani argumen navigasi (Create Task from Note)
+    LaunchedEffect(noteTitle, noteContent) {
+        if (!noteTitle.isNullOrBlank() || !noteContent.isNullOrBlank()) {
+            showAddTaskSheet = true
+        }
     }
 
     if (selectedTask != null) {
@@ -169,13 +170,26 @@ fun PlannerScreen(
                 } else {
                     when (viewMode) {
                         "day" -> InteractiveDailyView(
-                            tasks = filteredTasksForDay, // Gunakan list yang sudah difilter
-                            identities = uiState.availableIdentities,
+                            tasks = filteredTasksForDay,
+                            identities = uiState.identities,
                             onTaskClick = { selectedTask = it },
                             onTaskMoved = { task, newHour -> viewModel.moveTaskToTime(task, newHour) }
                         )
-                        "week" -> CleanWeeklyView(viewModel = viewModel, uiState = uiState, onTaskClick = { selectedTask = it }, currentMode = currentMode)
-                        "month" -> CleanMonthlyView(viewModel = viewModel, uiState = uiState, onTaskClick = { selectedTask = it }, currentMode = currentMode)
+                        "week" -> CleanWeeklyView(
+                            viewModel = viewModel,
+                            uiState = uiState,
+                            onTaskClick = { selectedTask = it },
+                            currentMode = currentMode,
+                            // Pass tasks for day logic manual
+                            dailyTasks = filteredTasksForDay
+                        )
+                        "month" -> CleanMonthlyView(
+                            viewModel = viewModel,
+                            uiState = uiState,
+                            onTaskClick = { selectedTask = it },
+                            currentMode = currentMode,
+                            dailyTasks = filteredTasksForDay
+                        )
                     }
                 }
             }
@@ -191,14 +205,26 @@ fun PlannerScreen(
     }
 
     if (showAddTaskSheet) {
+        // Prepare initial values from nav args if any
+        val initTitle = noteTitle ?: ""
+        val initDesc = noteContent ?: ""
+
+        // Note: TaskInputSheet currently handles state internally.
+        // For 'Edit', we would need to pass task object.
+        // Since TaskInputSheet definition isn't fully flexible in previous snippets,
+        // we use it as is for creation.
         TaskInputSheet(
-            identities = uiState.availableIdentities,
+            identities = uiState.identities,
             onDismiss = {
                 showAddTaskSheet = false
                 viewModel.clearInitialTask()
             },
             onSave = { title, desc, time, isCommitment, identityId, twoMin ->
-                viewModel.addTask(title, desc, time, isCommitment, twoMin, identityId)
+                // Jika sedang membuat dari Note, gunakan deskripsi dari note
+                val finalTitle = if (title.isBlank()) initTitle else title
+                val finalDesc = if (desc.isBlank()) initDesc else desc
+
+                viewModel.addTask(finalTitle, finalDesc, time, isCommitment, twoMin, identityId)
                 showAddTaskSheet = false
                 viewModel.clearInitialTask()
             }
@@ -206,12 +232,12 @@ fun PlannerScreen(
     }
 }
 
-// --- INTERACTIVE DAILY VIEW (UPDATED) ---
+// --- INTERACTIVE DAILY VIEW ---
 
 @Composable
 fun InteractiveDailyView(
     tasks: List<Task>,
-    identities: List<Identity>, // Parameter Baru
+    identities: List<Identity>,
     onTaskClick: (Task) -> Unit,
     onTaskMoved: (Task, Int) -> Unit
 ) {
@@ -306,7 +332,7 @@ fun InteractiveDailyView(
 fun CleanTimeSlot(
     hour: Int,
     tasks: List<Task>,
-    identities: List<Identity>, // Param
+    identities: List<Identity>,
     isDropTarget: Boolean,
     onTaskClick: (Task) -> Unit,
     onDragStart: (Task, Offset) -> Unit,
@@ -349,7 +375,6 @@ fun CleanTimeSlot(
                 if (task.id != hiddenTask?.id) {
                     CleanTaskCard(
                         task = task,
-                        // Lookup Identity
                         identity = identities.find { it.id == task.relatedIdentityId },
                         onClick = { onTaskClick(task) },
                         onLongClick = { offset -> onDragStart(task, offset) }
@@ -362,11 +387,11 @@ fun CleanTimeSlot(
     }
 }
 
-// --- TASK CARD TERBARU DENGAN IDENTITAS ---
+// --- TASK CARD ---
 @Composable
 fun CleanTaskCard(
     task: Task,
-    identity: Identity? = null, // PARAMETER BARU
+    identity: Identity? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onLongClick: ((Offset) -> Unit)? = null,
@@ -413,7 +438,7 @@ fun CleanTaskCard(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else if (task.isCommitment) 4.dp else 0.dp),
-        border = if (task.isCommitment || task.isCompleted || isDragging) null else null
+        border = null
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!task.isCompleted) {
@@ -442,7 +467,6 @@ fun CleanTaskCard(
                         Spacer(Modifier.width(8.dp))
                     }
 
-                    // LABEL TIPE & IDENTITAS
                     if (!task.isCompleted) {
                         Surface(
                             color = if(task.isCommitment) Color.Black.copy(alpha=0.2f) else MaterialTheme.colorScheme.surfaceVariant,
@@ -452,7 +476,6 @@ fun CleanTaskCard(
                         }
                     }
 
-                    // --- BADGE IDENTITAS ---
                     if (identity != null) {
                         Spacer(Modifier.width(6.dp))
                         Surface(
@@ -480,20 +503,16 @@ fun CleanTaskCard(
     }
 }
 
-// ... (Weekly & Monthly views also updated to support new params)
+// --- WEEKLY & MONTHLY VIEW ---
 
 @Composable
 fun CleanWeeklyView(
     viewModel: PlannerViewModel,
     uiState: PlannerUiState,
     onTaskClick: (Task) -> Unit,
-    currentMode: String
+    currentMode: String,
+    dailyTasks: List<Task> // Tugas untuk hari yang dipilih
 ) {
-    // Filter juga untuk tampilan mingguan
-    val tasksForDay = if (currentMode == "Fokus") {
-        uiState.tasksForDay.filter { it.isCommitment }
-    } else uiState.tasksForDay
-
     val selectedDate = uiState.selectedDate
     val firstDayOfWeek = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
     val weekDays = remember(firstDayOfWeek) { (0..6).map { firstDayOfWeek.plusDays(it.toLong()) } }
@@ -515,13 +534,13 @@ fun CleanWeeklyView(
         Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (tasksForDay.isEmpty()) {
+            if (dailyTasks.isEmpty()) {
                 item { Box(modifier = Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) { Text(if(currentMode == "Fokus") "Tidak ada Komitmen hari ini" else "Tidak ada tugas", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) } }
             } else {
-                items(tasksForDay) { task ->
+                items(dailyTasks) { task ->
                     CleanTaskCard(
                         task = task,
-                        identity = uiState.availableIdentities.find { it.id == task.relatedIdentityId },
+                        identity = uiState.identities.find { it.id == task.relatedIdentityId },
                         onClick = { onTaskClick(task) }
                     )
                 }
@@ -535,14 +554,14 @@ fun CleanMonthlyView(
     viewModel: PlannerViewModel,
     uiState: PlannerUiState,
     onTaskClick: (Task) -> Unit,
-    currentMode: String
+    currentMode: String,
+    dailyTasks: List<Task>
 ) {
-    // Logic bulanan tetap sama, hanya tampilan list bawah difilter
-    val tasksForDay = if (currentMode == "Fokus") {
-        uiState.tasksForDay.filter { it.isCommitment }
-    } else uiState.tasksForDay
+    // Kelompokkan tugas bulanan berdasarkan tanggal
+    val tasksByDate = remember(uiState.tasks) {
+        uiState.tasks.groupBy { try { LocalDate.parse(it.scheduledDate) } catch (e: Exception) { null } }
+    }
 
-    val tasksByDate = remember(uiState.tasksForMonth) { uiState.tasksForMonth.groupBy { try { LocalDate.parse(it.scheduledDate) } catch (e: Exception) { null } } }
     val firstDayOfMonth = uiState.selectedDate.with(TemporalAdjusters.firstDayOfMonth())
     val paddingDays = (firstDayOfMonth.dayOfWeek.value - DayOfWeek.MONDAY.value + 7) % 7
     val daysInMonth = firstDayOfMonth.lengthOfMonth()
@@ -560,7 +579,14 @@ fun CleanMonthlyView(
             items(daysInMonth) { dayIndex ->
                 val currentDate = firstDayOfMonth.plusDays(dayIndex.toLong())
                 val tasksOnDay = tasksByDate[currentDate] ?: emptyList()
-                CleanCalendarCell(day = dayIndex + 1, taskCount = tasksOnDay.size, isToday = currentDate.isEqual(LocalDate.now()), isSelected = currentDate.isEqual(uiState.selectedDate), onClick = { viewModel.selectDate(currentDate) })
+
+                CleanCalendarCell(
+                    day = dayIndex + 1,
+                    taskCount = tasksOnDay.size,
+                    isToday = currentDate.isEqual(LocalDate.now()),
+                    isSelected = currentDate.isEqual(uiState.selectedDate),
+                    onClick = { viewModel.selectDate(currentDate) }
+                )
             }
         }
 
@@ -569,13 +595,13 @@ fun CleanMonthlyView(
         Text("Tugas pada ${uiState.selectedDate.format(DateTimeFormatter.ofPattern("dd MMMM", Locale("id")))}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
 
         LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (tasksForDay.isEmpty()) {
+            if (dailyTasks.isEmpty()) {
                 item { Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), contentAlignment = Alignment.Center) { Text(if(currentMode=="Fokus") "Fokus terjaga. Tidak ada komitmen." else "Tidak ada tugas", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) } }
             } else {
-                items(tasksForDay) { task ->
+                items(dailyTasks) { task ->
                     CleanTaskCard(
                         task = task,
-                        identity = uiState.availableIdentities.find { it.id == task.relatedIdentityId },
+                        identity = uiState.identities.find { it.id == task.relatedIdentityId },
                         onClick = { onTaskClick(task) }
                     )
                 }
@@ -605,105 +631,6 @@ fun CleanDayCell(date: LocalDate, isSelected: Boolean, isToday: Boolean, onClick
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(dayName, style = MaterialTheme.typography.labelSmall, color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
             Text(dayNumber, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface)
-        }
-    }
-}
-
-@Composable
-fun CleanMonthlyView(
-    viewModel: PlannerViewModel,
-    uiState: PlannerUiState,
-    onTaskClick: (Task) -> Unit
-) {
-    val tasksByDate = remember(uiState.tasksForMonth) {
-        uiState.tasksForMonth.groupBy { try { LocalDate.parse(it.scheduledDate) } catch (e: Exception) { null } }
-    }
-
-    val firstDayOfMonth = uiState.selectedDate.with(TemporalAdjusters.firstDayOfMonth())
-    val paddingDays = (firstDayOfMonth.dayOfWeek.value - DayOfWeek.MONDAY.value + 7) % 7
-    val daysInMonth = firstDayOfMonth.lengthOfMonth()
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { viewModel.selectDate(firstDayOfMonth.minusMonths(1)) }) {
-                Icon(Icons.Default.ChevronLeft, "Bulan Sebelumnya")
-            }
-            Text(
-                firstDayOfMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale("id"))),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            IconButton(onClick = { viewModel.selectDate(firstDayOfMonth.plusMonths(1)) }) {
-                Icon(Icons.Default.ChevronRight, "Bulan Berikutnya")
-            }
-        }
-
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(7),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            items(7) { index ->
-                Text(
-                    DayOfWeek.of(index + 1).getDisplayName(TextStyle.SHORT, Locale("id")),
-                    style = MaterialTheme.typography.labelSmall,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
-            items(paddingDays) { Box(modifier = Modifier.aspectRatio(1f)) }
-            items(daysInMonth) { dayIndex ->
-                val currentDate = firstDayOfMonth.plusDays(dayIndex.toLong())
-                val tasksOnDay = tasksByDate[currentDate] ?: emptyList()
-
-                CleanCalendarCell(
-                    day = dayIndex + 1,
-                    taskCount = tasksOnDay.size,
-                    isToday = currentDate.isEqual(LocalDate.now()),
-                    isSelected = currentDate.isEqual(uiState.selectedDate),
-                    onClick = { viewModel.selectDate(currentDate) }
-                )
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-        Text(
-            "Tugas pada ${uiState.selectedDate.format(DateTimeFormatter.ofPattern("dd MMMM", Locale("id")))}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-
-        LazyColumn(
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (uiState.tasksForDay.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "Tidak ada tugas",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-            } else {
-                items(uiState.tasksForDay) { task ->
-                    CleanTaskCard(task = task, onClick = { onTaskClick(task) })
-                }
-            }
         }
     }
 }

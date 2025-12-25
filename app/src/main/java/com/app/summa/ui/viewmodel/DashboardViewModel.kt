@@ -2,13 +2,8 @@ package com.app.summa.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.app.summa.data.model.HabitLog
-import com.app.summa.data.model.Task
-import com.app.summa.data.repository.AccountRepository
-import com.app.summa.data.repository.FocusRepository
-import com.app.summa.data.repository.HabitRepository
-import com.app.summa.data.repository.TaskRepository
-import com.app.summa.data.model.HabitItem
+import com.app.summa.data.model.*
+import com.app.summa.data.repository.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -18,110 +13,146 @@ import javax.inject.Inject
 
 data class DashboardUiState(
     val greeting: String = "",
-    val todayProgress: Float = 0f,
+    val currentMode: String = "Normal", // Normal, Fokus, Pagi
     val summaPoints: Int = 0,
-    // FIELD BARU: Total Paperclips
+    val todayProgress: Float = 0f,
     val totalPaperclips: Int = 0,
+    val totalNetWorth: Double = 0.0,
     val nextTask: Task? = null,
     val todayHabits: List<HabitItem> = emptyList(),
-    val totalNetWorth: Double = 0.0,
-    val isLoading: Boolean = true
+    val levelUpEvent: LevelUpEvent? = null,
+    val morningBriefing: DailyWrapUpResult? = null
 )
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val habitRepository: HabitRepository,
     private val taskRepository: TaskRepository,
+    private val habitRepository: HabitRepository,
+    private val identityRepository: IdentityRepository,
     private val accountRepository: AccountRepository,
-    // INJECT FocusRepository
     private val focusRepository: FocusRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(DashboardUiState())
-    val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
+    // Internal State
+    private val _currentMode = MutableStateFlow("Normal")
+    private val _levelUpEvent = MutableStateFlow<LevelUpEvent?>(null)
+    private val _morningBriefing = MutableStateFlow<DailyWrapUpResult?>(null)
 
-    private val today = LocalDate.now()
-    private val todayLogs = habitRepository.getLogsForDate(today)
-    private val todayTasks = taskRepository.getTasksByDate(today)
+    // --- OPTIMASI FLOW: MENGGABUNGKAN SEMUA SUMBER DATA ---
+    // Menggunakan combine memastikan UI hanya recompose jika salah satu data berubah.
+    // Menggunakan stateIn dengan WhileSubscribed(5000) mencegah query berulang saat config change.
+
+    val uiState: StateFlow<DashboardUiState> = combine(
+        _currentMode,
+        habitRepository.getLogsForDate(LocalDate.now()),
+        habitRepository.getAllHabits(),
+        taskRepository.getActiveTasks(),
+        identityRepository.getAllIdentities(),
+        accountRepository.getTotalNetWorth(),
+        focusRepository.getTotalPaperclips(),
+        _levelUpEvent,
+        _morningBriefing
+    ) { inputs ->
+        // Destructuring array inputs agar rapi
+        val mode = inputs[0] as String
+        val todayLogs = inputs[1] as List<HabitLog>
+        val allHabits = inputs[2] as List<Habit>
+        val tasks = inputs[3] as List<Task>
+        val identities = inputs[4] as List<Identity>
+        val netWorth = inputs[5] as Double? ?: 0.0
+        val paperclips = inputs[6] as Int
+        val lvlEvent = inputs[7] as LevelUpEvent?
+        val briefing = inputs[8] as DailyWrapUpResult?
+
+        // 1. Hitung Progress Habit Hari Ini
+        // Transform Habit Entity ke UI Model (HabitItem)
+        val todayHabitItems = allHabits.map { habit ->
+            val log = todayLogs.find { it.habitId == habit.id }
+            val currentCount = log?.count ?: 0
+            HabitItem(
+                id = habit.id,
+                name = habit.name,
+                icon = habit.icon,
+                currentCount = currentCount,
+                targetCount = habit.targetCount,
+                totalSum = habit.totalSum,
+                currentStreak = habit.currentStreak,
+                perfectStreak = habit.perfectStreak,
+                originalModel = habit
+            )
+        }
+
+        // Hitung persentase penyelesaian
+        val totalTargets = todayHabitItems.sumOf { it.targetCount }
+        val currentProgressSum = todayHabitItems.sumOf { it.currentCount.coerceAtMost(it.targetCount) }
+        val progress = if (totalTargets > 0) currentProgressSum.toFloat() / totalTargets else 0f
+
+        // 2. Hitung Total Poin (Summa Points) dari Identitas
+        val totalPoints = identities.sumOf { it.progress }
+
+        // 3. Tentukan Next Task (Tugas Prioritas)
+        val nextTask = tasks
+            .filter { it.scheduledTime != null }
+            .sortedBy { it.scheduledTime }
+            .firstOrNull()
+
+        DashboardUiState(
+            greeting = getGreetingMessage(),
+            currentMode = mode,
+            summaPoints = totalPoints,
+            todayProgress = progress,
+            totalPaperclips = paperclips,
+            totalNetWorth = netWorth,
+            nextTask = nextTask,
+            todayHabits = todayHabitItems,
+            levelUpEvent = lvlEvent,
+            morningBriefing = briefing
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000), // Cache data selama 5 detik setelah UI inactive
+        initialValue = DashboardUiState()
+    )
 
     init {
-        loadDashboardData()
+        // Mendengarkan Event Global
+        viewModelScope.launch {
+            identityRepository.levelUpEvents.collect { event ->
+                _levelUpEvent.value = event
+            }
+        }
+
+        // Cek Morning Briefing saat ViewModel dibuat
+        checkMorningBriefing()
     }
 
-    private fun loadDashboardData() {
+    fun setMode(mode: String) {
+        _currentMode.value = mode
+    }
+
+    fun dismissLevelUp() {
+        _levelUpEvent.value = null
+    }
+
+    fun dismissBriefing() {
+        _morningBriefing.value = null
+    }
+
+    private fun checkMorningBriefing() {
         viewModelScope.launch {
-            combine(
-                habitRepository.getAllHabits(),
-                todayLogs,
-                todayTasks,
-                accountRepository.getTotalNetWorth(),
-                // COMBINE DATA BARU: Total Paperclips
-                focusRepository.getTotalPaperclips()
-            ) { habits, logs, tasks, netWorth, paperclips ->
-
-                val habitItems = habits.map { habit ->
-                    val todayLog = logs.find { it.habitId == habit.id }
-                    HabitItem(
-                        id = habit.id,
-                        name = habit.name,
-                        icon = habit.icon,
-                        currentCount = todayLog?.count ?: 0,
-                        targetCount = habit.targetCount,
-                        totalSum = habit.totalSum,
-                        currentStreak = habit.currentStreak,
-                        perfectStreak = habit.perfectStreak,
-                        originalModel = habit
-                    )
-                }
-
-                val completedHabits = habitItems.count {
-                    it.targetCount > 0 && it.currentCount >= it.targetCount
-                }
-                val totalTargetHabits = habitItems.count { it.targetCount > 0 }
-                val progress = if (totalTargetHabits > 0) {
-                    completedHabits.toFloat() / totalTargetHabits
-                } else 0f
-
-                val nextTask = tasks.filter {
-                    !it.isCompleted &&
-                            try {
-                                LocalTime.parse(it.scheduledTime ?: "00:00").isAfter(LocalTime.now())
-                            } catch (e: Exception) {
-                                true
-                            }
-                }.minByOrNull {
-                    it.scheduledTime ?: "23:59"
-                }
-
-                val summaPoints = habitItems.sumOf { it.totalSum }
-
-                DashboardUiState(
-                    greeting = getGreeting(),
-                    todayProgress = progress,
-                    summaPoints = summaPoints,
-                    // MASUKKAN KE STATE
-                    totalPaperclips = paperclips,
-                    nextTask = nextTask,
-                    todayHabits = habitItems,
-                    totalNetWorth = netWorth ?: 0.0,
-                    isLoading = false
-                )
-            }.catch { e ->
-                _uiState.update { it.copy(isLoading = false) }
-                e.printStackTrace()
+            val result = taskRepository.processDailyWrapUp()
+            if (result != null) {
+                _morningBriefing.value = result
             }
-                .collect { newState ->
-                    _uiState.value = newState
-                }
         }
     }
 
-    private fun getGreeting(): String {
+    private fun getGreetingMessage(): String {
         val hour = LocalTime.now().hour
         return when (hour) {
             in 5..11 -> "Selamat Pagi"
-            in 12..14 -> "Selamat Siang"
-            in 15..18 -> "Selamat Sore"
+            in 12..15 -> "Selamat Siang"
+            in 16..18 -> "Selamat Sore"
             else -> "Selamat Malam"
         }
     }

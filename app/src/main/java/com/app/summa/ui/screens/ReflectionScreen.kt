@@ -19,18 +19,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -39,7 +33,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.Identity
 import com.app.summa.ui.components.CoinExplosionAnimation
@@ -47,6 +40,7 @@ import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.DailySummary
 import com.app.summa.ui.viewmodel.ReflectionViewModel
 import com.app.summa.ui.viewmodel.VoteSuggestion
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -69,7 +63,6 @@ fun ReflectionScreen(
                     }
                 },
                 actions = {
-                    // Indikator Halaman Modern
                     Row(
                         modifier = Modifier.padding(end = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -92,7 +85,6 @@ fun ReflectionScreen(
             )
         },
         bottomBar = {
-            // Footer Navigasi
             Box(modifier = Modifier.padding(20.dp)) {
                 if (pagerState.currentPage < 3) {
                     Button(
@@ -143,16 +135,19 @@ fun ReflectionScreen(
     }
 }
 
-// --- LANGKAH 1: SCORECARD HARIAN (Updated) ---
 @Composable
 fun RitualStepOne(summary: DailySummary?) {
-    if (summary == null) return
+    if (summary == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Data aktivitas hari ini belum tersedia.", color = MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
+        }
+        return
+    }
 
     val score = summary.dailyScore
     val grade = summary.dailyGrade
     val isGreatDay = score >= 80
 
-    // Animasi Confetti jika nilai bagus
     if (isGreatDay) {
         CoinExplosionAnimation(trigger = true) {}
     }
@@ -165,184 +160,60 @@ fun RitualStepOne(summary: DailySummary?) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(10.dp))
-        Text(
-            "Tinjauan Hari Ini",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            "Seberapa konsisten Anda hari ini?",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
+        Text("Tinjauan Hari Ini", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text("Seberapa konsisten Anda hari ini?", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
 
         Spacer(Modifier.height(32.dp))
 
-        // --- GRADE BADGE (Big Visual Impact) ---
         Box(contentAlignment = Alignment.Center) {
-            // Glow Effect
             Box(
                 modifier = Modifier
                     .size(160.dp)
                     .clip(CircleShape)
                     .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                if (isGreatDay) GoldAccent.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant,
-                                Color.Transparent
-                            )
-                        )
+                        Brush.radialGradient(colors = listOf(if (isGreatDay) GoldAccent.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant, Color.Transparent))
                     )
             )
-
-            // Circle Border
             Box(
                 modifier = Modifier
                     .size(120.dp)
-                    .border(
-                        width = 4.dp,
-                        color = if (isGreatDay) GoldAccent else MaterialTheme.colorScheme.outline,
-                        shape = CircleShape
-                    ),
+                    .border(width = 4.dp, color = if (isGreatDay) GoldAccent else MaterialTheme.colorScheme.outline, shape = CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = grade,
-                        style = MaterialTheme.typography.displayLarge,
-                        fontWeight = FontWeight.Black,
-                        color = if (isGreatDay) GoldDark else MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "$score/100",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    )
+                    Text(text = grade, style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Black, color = if (isGreatDay) GoldDark else MaterialTheme.colorScheme.onSurface)
+                    Text(text = "$score/100", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
-            }
-
-            // Bintang jika Great Day
-            if (isGreatDay) {
-                Icon(
-                    Icons.Default.Star, null,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = (-10).dp, y = 10.dp)
-                        .size(32.dp),
-                    tint = GoldAccent
-                )
             }
         }
 
         Spacer(Modifier.height(40.dp))
 
-        // --- STATS GRID ---
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            StatBox(
-                label = "Komitmen",
-                value = "${summary.completedCommitments}/${summary.totalCommitments}",
-                icon = Icons.Default.CheckCircle,
-                color = DeepTeal,
-                modifier = Modifier.weight(1f)
-            )
-            StatBox(
-                label = "Kebiasaan",
-                value = "${summary.completedHabits.size}",
-                icon = Icons.Default.EmojiEvents,
-                color = StreakOrange,
-                modifier = Modifier.weight(1f)
-            )
+            StatBox(label = "Komitmen", value = "${summary.completedCommitments}/${summary.totalCommitments}", icon = Icons.Default.CheckCircle, color = DeepTeal, modifier = Modifier.weight(1f))
+            StatBox(label = "Kebiasaan", value = "${summary.completedHabits.size}", icon = Icons.Default.EmojiEvents, color = StreakOrange, modifier = Modifier.weight(1f))
         }
 
         Spacer(Modifier.height(32.dp))
 
-        // --- WINS LIST ---
-        Text(
-            "Kemenangan Kecil",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.Start)
-        )
+        Text("Kemenangan Kecil", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Start))
         Spacer(Modifier.height(12.dp))
 
         if (summary.completedTasks.isEmpty() && summary.completedHabits.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "Tidak ada aktivitas tercatat hari ini.",
-                    fontStyle = FontStyle.Italic,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
+            Box(modifier = Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
+                Text("Belum ada aktivitas tercatat hari ini.", fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
             }
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                summary.completedHabits.forEach { habit ->
-                    WinCard(text = habit.name, icon = habit.icon, type = "Kebiasaan")
-                }
-                summary.completedTasks.forEach { task ->
-                    WinCard(
-                        text = task.title,
-                        icon = if (task.isCommitment) "🔥" else "✅",
-                        type = if (task.isCommitment) "Komitmen" else "Tugas"
-                    )
-                }
+                summary.completedHabits.forEach { habit -> WinCard(text = habit.name, icon = habit.icon, type = "Kebiasaan") }
+                summary.completedTasks.forEach { task -> WinCard(text = task.title, icon = if (task.isCommitment) "🔥" else "✅", type = if (task.isCommitment) "Komitmen" else "Tugas") }
             }
         }
-
         Spacer(Modifier.height(40.dp))
     }
 }
 
-@Composable
-fun StatBox(label: String, value: String, icon: ImageVector, color: Color, modifier: Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.1f)),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.height(8.dp))
-            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = color)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.8f))
-        }
-    }
-}
-
-@Composable
-fun WinCard(text: String, icon: String, type: String) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(icon, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                Text(type, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-            }
-        }
-    }
-}
-
-// --- LANGKAH 2: VOTING IDENTITAS (Visual Polish) ---
+// --- SLIDE 2: VOTING SARAN (FIXED) ---
 @Composable
 fun RitualStepTwo(suggestions: List<VoteSuggestion>, onVote: (Identity, Int, String) -> Unit) {
     Column(
@@ -361,8 +232,13 @@ fun RitualStepTwo(suggestions: List<VoteSuggestion>, onVote: (Identity, Int, Str
                 Text("Tidak ada saran otomatis.\nLanjut ke manual vote.", textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
             }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                items(suggestions) { suggestion ->
+            // FIX: Tambahkan weight(1f) agar LazyColumn mengisi sisa ruang dengan benar
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // FIX: Tambahkan key agar animasi penghapusan item berjalan mulus
+                items(items = suggestions, key = { "${it.identity.id}_${it.reason.hashCode()}" }) { suggestion ->
                     SuggestionVoteCard(suggestion, onVote)
                 }
             }
@@ -372,11 +248,23 @@ fun RitualStepTwo(suggestions: List<VoteSuggestion>, onVote: (Identity, Int, Str
 
 @Composable
 fun SuggestionVoteCard(suggestion: VoteSuggestion, onVote: (Identity, Int, String) -> Unit) {
-    var voted by remember { mutableStateOf(false) }
+    // FIX: Gunakan state lokal untuk animasi sebelum menghapus data
+    var isVisible by remember { mutableStateOf(true) }
 
-    AnimatedVisibility(visible = !voted, exit = fadeOut() + shrinkVertically()) {
+    // Trigger penghapusan data SETELAH animasi selesai
+    LaunchedEffect(isVisible) {
+        if (!isVisible) {
+            delay(400) // Tunggu animasi selesai
+            onVote(suggestion.identity, suggestion.points, suggestion.reason)
+        }
+    }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(animationSpec = tween(300))
+    ) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = GoldAccent.copy(alpha = 0.1f)),
             border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f))
@@ -393,8 +281,8 @@ fun SuggestionVoteCard(suggestion: VoteSuggestion, onVote: (Identity, Int, Strin
                 }
                 Button(
                     onClick = {
-                        onVote(suggestion.identity, suggestion.points, suggestion.reason)
-                        voted = true
+                        // Mulai animasi exit
+                        isVisible = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = GoldAccent),
                     shape = RoundedCornerShape(12.dp)
@@ -406,7 +294,7 @@ fun SuggestionVoteCard(suggestion: VoteSuggestion, onVote: (Identity, Int, Strin
     }
 }
 
-// --- LANGKAH 3: MANUAL VOTE (Keep Simple) ---
+// --- SLIDE 3: MANUAL VOTE ---
 @Composable
 fun RitualStepThree(identities: List<Identity>, onVote: (Identity, Int, String) -> Unit) {
     Column(
@@ -482,7 +370,7 @@ fun CompactIdentityVoteCard(identity: Identity, onVote: (Identity, Int, String) 
     }
 }
 
-// --- LANGKAH 4: JURNAL PENUTUP ---
+// --- SLIDE 4: JURNAL PENUTUP ---
 @Composable
 fun RitualStepFour(text: String, onTextChange: (String) -> Unit) {
     Column(
@@ -508,5 +396,48 @@ fun RitualStepFour(text: String, onTextChange: (String) -> Unit) {
             ),
             textStyle = MaterialTheme.typography.bodyLarge.copy(lineHeight = 28.sp)
         )
+    }
+}
+
+@Composable
+fun StatBox(label: String, value: String, icon: ImageVector, color: Color, modifier: Modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.1f)),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.height(8.dp))
+            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = color)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.8f))
+        }
+    }
+}
+
+@Composable
+fun WinCard(text: String, icon: String, type: String) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(icon, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Text(type, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            }
+        }
     }
 }

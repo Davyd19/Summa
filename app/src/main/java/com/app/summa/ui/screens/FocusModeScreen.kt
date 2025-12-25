@@ -3,6 +3,7 @@ package com.app.summa.ui.screens
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -20,6 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -36,7 +39,6 @@ fun UniversalFocusModeScreen(
     onComplete: (Int, Long) -> Unit, // Returns: clipsCollected, startTime
     onCancel: () -> Unit
 ) {
-    // Phase: "SETUP" atau "RUNNING"
     var isSetupPhase by remember { mutableStateOf(true) }
     var targetClips by remember { mutableStateOf(initialTarget.toFloat()) }
 
@@ -58,6 +60,7 @@ fun UniversalFocusModeScreen(
     }
 }
 
+// ... FocusSetupScreen (Tidak berubah, dianggap sama seperti sebelumnya) ...
 @Composable
 fun FocusSetupScreen(
     title: String,
@@ -88,8 +91,7 @@ fun FocusSetupScreen(
 
         Spacer(Modifier.height(48.dp))
 
-        // Estimasi Waktu
-        val estimatedTime = targetClips.toInt() * 2 // Asumsi 1 klip ~ 2 menit fokus
+        val estimatedTime = targetClips.toInt() * 2
         Text(
             "$estimatedTime Menit",
             style = MaterialTheme.typography.displayLarge,
@@ -104,7 +106,6 @@ fun FocusSetupScreen(
 
         Spacer(Modifier.height(32.dp))
 
-        // Slider Target Klip
         Text("Target Klip: ${targetClips.toInt()}", style = MaterialTheme.typography.titleMedium)
         Slider(
             value = targetClips,
@@ -149,7 +150,7 @@ fun FocusRunningScreen(
 ) {
     // Timer State
     var elapsedTimeSeconds by remember { mutableStateOf(0) }
-    var isRunning by remember { mutableStateOf(false) } // Start paused or auto-start? Let's auto-start via interaction
+    var isRunning by remember { mutableStateOf(false) }
 
     // Paperclip Logic
     var paperclipsLeft by remember { mutableStateOf(targetClips) }
@@ -163,6 +164,26 @@ fun FocusRunningScreen(
     val animatedOffsetY = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
+
+    // Helper untuk memindahkan klip (digunakan oleh Drag dan Click)
+    fun moveClip() {
+        if (paperclipsLeft > 0) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            paperclipsLeft--
+            paperclipsMoved++
+
+            if (!isRunning) isRunning = true
+
+            // Cek selesai otomatis
+            if (paperclipsLeft == 0) {
+                // Beri jeda sedikit agar user melihat klip terakhir pindah
+                scope.launch {
+                    delay(500)
+                    onComplete(paperclipsMoved, startTime)
+                }
+            }
+        }
+    }
 
     // Timer Logic
     LaunchedEffect(isRunning) {
@@ -199,7 +220,6 @@ fun FocusRunningScreen(
                 textAlign = TextAlign.Center,
                 maxLines = 1
             )
-            // Tombol selesai dini (jika capek sebelum target habis)
             TextButton(
                 onClick = { onComplete(paperclipsMoved, startTime) },
                 enabled = paperclipsMoved > 0
@@ -225,7 +245,7 @@ fun FocusRunningScreen(
                     color = DeepTeal
                 )
                 Text(
-                    if (isRunning) "Fokus..." else "Tarik klip untuk mulai",
+                    if (isRunning) "Fokus..." else "Pindahkan klip untuk mulai",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -246,6 +266,13 @@ fun FocusRunningScreen(
                 modifier = Modifier
                     .size(100.dp)
                     .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(24.dp))
+                    // PERBAIKAN: Klik juga bisa memindahkan klip (Aksesibilitas)
+                    .clickable(
+                        enabled = paperclipsLeft > 0,
+                        onClickLabel = "Ambil klip kertas"
+                    ) {
+                        moveClip()
+                    }
             ) {
                 if (paperclipsLeft > 0) {
                     Text(
@@ -262,29 +289,19 @@ fun FocusRunningScreen(
                                 detectDragGestures(
                                     onDragStart = {
                                         isDragging = true
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        if (!isRunning) isRunning = true // Auto-start timer
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        if (!isRunning) isRunning = true
                                     },
                                     onDragEnd = {
                                         isDragging = false
-                                        if (dragOffset.x > 150) {
-                                            // SUKSES DROP
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            paperclipsLeft--
-                                            paperclipsMoved++
-
+                                        // Jarak drop minimal (misal 100px ke kanan)
+                                        if (dragOffset.x > 100) {
+                                            moveClip()
                                             scope.launch {
                                                 animatedOffsetX.snapTo(0f)
                                                 animatedOffsetY.snapTo(0f)
                                             }
                                             dragOffset = Offset.Zero
-
-                                            // Jika target habis, selesai otomatis?
-                                            // Atau biarkan user menekan "Selesai"?
-                                            // Mari kita auto-finish jika target tercapai agar memuaskan
-                                            if (paperclipsLeft == 0) {
-                                                onComplete(paperclipsMoved, startTime)
-                                            }
                                         } else {
                                             // GAGAL (SNAP BACK)
                                             scope.launch {
@@ -297,11 +314,16 @@ fun FocusRunningScreen(
                                                 launch { animatedOffsetY.animateTo(0f) }
                                             }
                                         }
+                                    },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        dragOffset += dragAmount
                                     }
-                                ) { change, dragAmount ->
-                                    change.consume()
-                                    dragOffset += dragAmount
-                                }
+                                )
+                            }
+                            // Semantic untuk TalkBack
+                            .semantics {
+                                contentDescription = "Tumpukan klip kertas. Geser ke kanan atau ketuk dua kali untuk memindahkan."
                             }
                     )
                 } else {
@@ -337,6 +359,7 @@ fun FocusRunningScreen(
                     .size(100.dp)
                     .background(SuccessGreen.copy(alpha = 0.1f), RoundedCornerShape(24.dp))
                     .border(2.dp, SuccessGreen.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
+                    .semantics { contentDescription = "Target pengumpulan klip" }
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
@@ -354,6 +377,28 @@ fun FocusRunningScreen(
             }
         }
 
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(24.dp))
+
+        // PERBAIKAN: Tombol Alternatif (Aksesibilitas Eksplisit)
+        // Berguna jika pengguna bingung dengan gesture drag
+        if (paperclipsLeft > 0) {
+            FilledTonalButton(
+                onClick = { moveClip() },
+                modifier = Modifier.fillMaxWidth(0.6f)
+            ) {
+                Icon(Icons.Default.TouchApp, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Ambil Klip (Ketuk)")
+            }
+        } else {
+            Text(
+                "Semua klip terkumpul!",
+                style = MaterialTheme.typography.bodyLarge,
+                color = SuccessGreen,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(Modifier.height(24.dp))
     }
 }
