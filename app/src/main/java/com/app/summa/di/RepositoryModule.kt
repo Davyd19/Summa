@@ -17,9 +17,11 @@ object RepositoryModule {
     @Singleton
     fun provideHabitRepository(
         habitDao: HabitDao,
-        identityRepository: IdentityRepository
+        identityRepository: IdentityRepository,
+        database: SummaDatabase // PERBAIKAN: Tambahkan parameter database
     ): HabitRepository {
-        return HabitRepositoryImpl(habitDao, identityRepository)
+        // PERBAIKAN: Pass database ke constructor
+        return HabitRepositoryImpl(habitDao, identityRepository, database)
     }
 
     @Provides

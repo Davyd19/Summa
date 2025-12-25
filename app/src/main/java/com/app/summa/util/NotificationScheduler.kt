@@ -9,6 +9,8 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import java.util.Calendar
 import kotlin.math.absoluteValue
 
@@ -16,10 +18,6 @@ class NotificationScheduler(private val context: Context) {
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    /**
-     * Menjadwalkan pengingat berulang untuk Kebiasaan (Habit)
-     * Format timeString: "HH:mm" (misal "08:00")
-     */
     fun scheduleHabitReminder(habitId: Long, habitName: String, timeString: String) {
         if (timeString.isBlank()) return
 
@@ -37,30 +35,27 @@ class NotificationScheduler(private val context: Context) {
                 set(Calendar.MILLISECOND, 0)
             }
 
-            // Jika waktu sudah lewat hari ini, jadwalkan untuk besok
             if (calendar.timeInMillis <= System.currentTimeMillis()) {
                 calendar.add(Calendar.DAY_OF_YEAR, 1)
             }
 
+            // PERBAIKAN: Gunakan ID Unik.
+            // ID Habit range: 0 - 999,999. Menggunakan toInt() aman untuk database kecil-menengah.
+            val notificationId = (habitId.hashCode().absoluteValue % 1000000)
+
             val intent = Intent(context, NotificationReceiver::class.java).apply {
                 putExtra("TITLE", "Waktunya Kebiasaan 🎯")
                 putExtra("MESSAGE", "Saatnya melakukan: $habitName")
-                // PERBAIKAN: Gunakan ID yang aman (Range 0 - 999,999 untuk Habit)
-                val safeId = (habitId % 1000000).toInt().absoluteValue
-                putExtra("ID", safeId)
+                putExtra("ID", notificationId)
             }
-
-            // Gunakan ID unik untuk PendingIntent
-            val pendingIntentId = (habitId % 1000000).toInt().absoluteValue
 
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
-                pendingIntentId,
+                notificationId,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            // Gunakan setRepeating untuk kebiasaan harian
             alarmManager.setRepeating(
                 AlarmManager.RTC_WAKEUP,
                 calendar.timeInMillis,
@@ -68,64 +63,69 @@ class NotificationScheduler(private val context: Context) {
                 pendingIntent
             )
 
-            Log.d("SummaNotification", "Habit scheduled: $habitName (ID: $habitId -> $pendingIntentId) at $timeString")
+            Log.d("SummaNotification", "Habit scheduled: $habitName (ID: $notificationId) at $timeString")
 
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("SummaNotification", "Failed to schedule habit", e)
         }
     }
 
-    /**
-     * Menjadwalkan pengingat sekali jalan untuk Tugas (Task)
-     * Format date: "yyyy-MM-dd", time: "HH:mm"
-     */
     fun scheduleTaskReminder(taskId: Long, taskTitle: String, date: String, time: String) {
         if (date.isBlank() || time.isBlank()) return
 
         try {
-            val localDate = LocalDate.parse(date)
-            val localTime = LocalTime.parse(time)
-            val dateTime = LocalDateTime.of(localDate, localTime)
+            // PERBAIKAN: Gunakan Formatter yang aman
+            val localDate = try {
+                LocalDate.parse(date)
+            } catch (e: DateTimeParseException) {
+                // Fallback format jika perlu, atau return
+                return
+            }
 
+            val localTime = try {
+                LocalTime.parse(time)
+            } catch (e: DateTimeParseException) {
+                return
+            }
+
+            val dateTime = LocalDateTime.of(localDate, localTime)
             val triggerTime = dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-            if (triggerTime <= System.currentTimeMillis()) return // Jangan jadwalkan masa lalu
+            if (triggerTime <= System.currentTimeMillis()) return
 
-            // PERBAIKAN: Gunakan ID yang aman (Range 1,000,000+ untuk Task)
-            // Menggunakan hashCode() dari kombinasi ID agar unik tapi tetap konsisten
-            val safeId = (taskId.hashCode().absoluteValue % 1000000) + 1000000
+            // PERBAIKAN: ID Task Offset agar tidak tabrakan dengan Habit
+            // Task ID range start from 1,000,000
+            val notificationId = (taskId.hashCode().absoluteValue % 1000000) + 1000000
 
             val intent = Intent(context, NotificationReceiver::class.java).apply {
                 putExtra("TITLE", "Pengingat Tugas 📝")
                 putExtra("MESSAGE", taskTitle)
-                putExtra("ID", safeId)
+                putExtra("ID", notificationId)
             }
 
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
-                safeId, // RequestCode unik
+                notificationId,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            // Gunakan setExactAndAllowWhileIdle untuk tugas penting agar akurat
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 triggerTime,
                 pendingIntent
             )
 
-            Log.d("SummaNotification", "Task scheduled: $taskTitle (ID: $taskId -> $safeId) at $date $time")
+            Log.d("SummaNotification", "Task scheduled: $taskTitle (ID: $notificationId) at $date $time")
 
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("SummaNotification", "Failed to schedule task", e)
         }
     }
 
-    // FITUR BARU: Notifikasi Sistem (untuk Hukuman/Level Up)
     fun showImmediateNotification(title: String, message: String) {
         try {
-            val id = System.currentTimeMillis().toInt() // ID unik sementara
+            val id = System.currentTimeMillis().toInt()
             val intent = Intent(context, NotificationReceiver::class.java).apply {
                 putExtra("TITLE", title)
                 putExtra("MESSAGE", message)
@@ -139,15 +139,8 @@ class NotificationScheduler(private val context: Context) {
 
     fun cancelHabitReminder(habitId: Long) {
         try {
-            val pendingIntentId = (habitId % 1000000).toInt().absoluteValue
-            val intent = Intent(context, NotificationReceiver::class.java)
-            val pendingIntent = PendingIntent.getBroadcast(
-                context,
-                pendingIntentId,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            alarmManager.cancel(pendingIntent)
+            val notificationId = (habitId.hashCode().absoluteValue % 1000000)
+            cancelPendingIntent(notificationId)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -155,17 +148,21 @@ class NotificationScheduler(private val context: Context) {
 
     fun cancelTaskReminder(taskId: Long) {
         try {
-            val safeId = (taskId.hashCode().absoluteValue % 1000000) + 1000000
-            val intent = Intent(context, NotificationReceiver::class.java)
-            val pendingIntent = PendingIntent.getBroadcast(
-                context,
-                safeId,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            alarmManager.cancel(pendingIntent)
+            val notificationId = (taskId.hashCode().absoluteValue % 1000000) + 1000000
+            cancelPendingIntent(notificationId)
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    private fun cancelPendingIntent(id: Int) {
+        val intent = Intent(context, NotificationReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            id,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.cancel(pendingIntent)
     }
 }

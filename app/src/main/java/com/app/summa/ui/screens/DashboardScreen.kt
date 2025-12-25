@@ -2,6 +2,7 @@ package com.app.summa.ui.screens
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -44,13 +46,14 @@ fun DashboardScreen(
     onNavigateToNotes: () -> Unit = {},
     onNavigateToReflections: () -> Unit = {},
     onNavigateToIdentityProfile: () -> Unit = {},
-    onNavigateToSettings: () -> Unit // Parameter ini dihubungkan ke UI
+    onNavigateToSettings: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showModeDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AnimatedGradientBackground()
+        // PERBAIKAN: Gunakan Canvas yang lebih ringan untuk animasi background
+        OptimizedAnimatedBackground()
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -62,7 +65,7 @@ fun DashboardScreen(
                     greeting = uiState.greeting,
                     currentMode = currentMode,
                     onModeClick = { showModeDialog = true },
-                    onSettingsClick = onNavigateToSettings // Pass fungsi navigasi
+                    onSettingsClick = onNavigateToSettings
                 )
             }
 
@@ -73,7 +76,6 @@ fun DashboardScreen(
                         .padding(horizontal = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Points Card
                     ModernPointsCard(
                         progress = uiState.todayProgress,
                         points = uiState.summaPoints,
@@ -82,7 +84,6 @@ fun DashboardScreen(
                             .clickable { onNavigateToIdentityProfile() }
                     )
 
-                    // Paperclip Card
                     ModernPaperclipCard(
                         count = uiState.totalPaperclips,
                         modifier = Modifier.weight(1f)
@@ -90,17 +91,15 @@ fun DashboardScreen(
                 }
             }
 
-            // Next Action Card
             item {
                 ModernNextActionCard(
                     task = uiState.nextTask,
-                    onStartFocus = { /* TODO: Trigger UniversalFocusMode here if needed */ },
+                    onStartFocus = { /* Trigger Focus */ },
                     onAddTask = onNavigateToPlanner,
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
 
-            // Habit hanya muncul jika bukan mode Fokus
             if (currentMode != "Fokus") {
                 item {
                     ModernSectionHeader(
@@ -147,7 +146,6 @@ fun DashboardScreen(
                 }
             }
 
-            // Quick Access hanya di Normal
             if (currentMode == "Normal") {
                 item {
                     ModernSectionHeader(
@@ -180,6 +178,40 @@ fun DashboardScreen(
                 showModeDialog = false
             }
         )
+    }
+}
+
+// --- PERBAIKAN: Optimized Background ---
+@Composable
+fun OptimizedAnimatedBackground() {
+    val infiniteTransition = rememberInfiniteTransition(label = "bg_anim")
+    val offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(20000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offset_val"
+    )
+
+    val primaryColor = MaterialTheme.colorScheme.primaryContainer
+    val secondaryColor = MaterialTheme.colorScheme.secondaryContainer
+
+    Canvas(modifier = Modifier
+        .fillMaxWidth()
+        .height(400.dp)
+    ) {
+        val brush = Brush.verticalGradient(
+            colors = listOf(
+                primaryColor.copy(alpha = 0.3f * (1 - offset * 0.5f)),
+                secondaryColor.copy(alpha = 0.2f * offset),
+                Color.Transparent
+            ),
+            startY = 0f,
+            endY = size.height
+        )
+        drawRect(brush = brush)
     }
 }
 

@@ -18,6 +18,7 @@ data class FocusUiState(
     val paperclipsMoved: Int = 0,
     val paperclipsLeft: Int = 10,
     val startTime: Long = 0L,
+    val sessionStartTimeStamp: Long = 0L, // Waktu mulai sesi sebenarnya
     val targetClips: Int = 10
 )
 
@@ -30,13 +31,13 @@ class FocusViewModel @Inject constructor() : ViewModel() {
     private var timerJob: Job? = null
 
     fun initializeSession(initialTarget: Int) {
-        if (_uiState.value.startTime == 0L) { // Hanya init jika belum berjalan
+        if (_uiState.value.startTime == 0L) {
             _uiState.update {
                 it.copy(
                     targetClips = initialTarget,
                     paperclipsLeft = initialTarget,
-                    timeRemaining = 0, // Timer naik (elapsed time)
-                    startTime = System.currentTimeMillis()
+                    timeRemaining = 0,
+                    startTime = 0L
                 )
             }
         }
@@ -45,12 +46,31 @@ class FocusViewModel @Inject constructor() : ViewModel() {
     fun startTimer() {
         if (_uiState.value.isRunning) return
 
-        _uiState.update { it.copy(isRunning = true) }
+        // Set start time stamp logic
+        val currentTime = System.currentTimeMillis()
+        // Jika melanjutkan pause, sesuaikan timestamp agar waktu tidak melompat
+        val adjustedStartTime = if (_uiState.value.sessionStartTimeStamp == 0L) {
+            currentTime
+        } else {
+            currentTime - (_uiState.value.timeRemaining * 1000L)
+        }
+
+        _uiState.update {
+            it.copy(
+                isRunning = true,
+                sessionStartTimeStamp = adjustedStartTime
+            )
+        }
 
         timerJob = viewModelScope.launch {
             while (_uiState.value.isRunning) {
-                delay(1000)
-                _uiState.update { it.copy(timeRemaining = it.timeRemaining + 1) }
+                // Update UI setiap 200ms agar responsif, tapi hitungan tetap akurat
+                delay(200)
+
+                val now = System.currentTimeMillis()
+                val elapsedSeconds = (now - _uiState.value.sessionStartTimeStamp) / 1000
+
+                _uiState.update { it.copy(timeRemaining = elapsedSeconds.toInt()) }
             }
         }
     }
@@ -62,19 +82,26 @@ class FocusViewModel @Inject constructor() : ViewModel() {
 
     fun movePaperclip() {
         _uiState.update {
+            val newLeft = (it.paperclipsLeft - 1).coerceAtLeast(0)
             it.copy(
-                paperclipsLeft = (it.paperclipsLeft - 1).coerceAtLeast(0),
+                paperclipsLeft = newLeft,
                 paperclipsMoved = it.paperclipsMoved + 1
             )
         }
 
-        // Auto-start timer on first clip move
-        if (!_uiState.value.isRunning && _uiState.value.paperclipsMoved > 0) {
+        val currentState = _uiState.value
+
+        // Logika Baru: Auto-Start saat klip pertama dipindah
+        if (!currentState.isRunning && currentState.paperclipsMoved > 0 && currentState.paperclipsLeft > 0) {
             startTimer()
+        }
+
+        // Logika Baru: Auto-Stop saat target selesai
+        if (currentState.paperclipsLeft == 0) {
+            pauseTimer()
         }
     }
 
-    // Reset state saat sesi selesai/batal
     fun reset() {
         timerJob?.cancel()
         _uiState.value = FocusUiState()
