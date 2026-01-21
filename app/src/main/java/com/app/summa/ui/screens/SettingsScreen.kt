@@ -29,6 +29,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.summa.data.repository.BackupRepository
+import com.app.summa.ui.components.BrutalTopAppBar
+import com.app.summa.ui.components.brutalBorder
 import com.app.summa.ui.theme.DeepTeal
 import com.app.summa.ui.theme.ErrorRed
 import com.app.summa.ui.theme.SuccessGreen
@@ -132,13 +134,10 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Pengaturan", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
-                    }
-                }
+            BrutalTopAppBar(
+                title = "Pengaturan",
+                navigationIcon = Icons.AutoMirrored.Filled.ArrowBack,
+                onNavigationClick = onNavigateBack
             )
         }
     ) { paddingValues ->
@@ -179,7 +178,8 @@ fun SettingsScreen(
             item {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    border = androidx.compose.foundation.BorderStroke(3.dp, MaterialTheme.colorScheme.onBackground)
                 ) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.error)
@@ -249,10 +249,13 @@ fun SettingsCard(
 ) {
     Card(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .brutalBorder(strokeWidth = 3.dp),
+        border = null
     ) {
         Row(
             modifier = Modifier

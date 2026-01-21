@@ -35,6 +35,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.Identity
 import com.app.summa.data.model.KnowledgeNote
+import com.app.summa.ui.components.BrutalFab
+import com.app.summa.ui.components.BrutalIconAction
+import com.app.summa.ui.components.BrutalTopAppBar
+import com.app.summa.ui.components.brutalBorder
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.IdentityViewModel
 import java.text.SimpleDateFormat
@@ -65,24 +69,18 @@ fun IdentityProfileScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Profil Karakter", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+            BrutalTopAppBar(
+                title = "Profil Karakter",
+                navigationIcon = Icons.AutoMirrored.Filled.ArrowBack,
+                onNavigationClick = onBack
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            BrutalFab(
                 onClick = { showAddDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Tambah Identitas")
-            }
+                icon = Icons.Default.Add,
+                contentDescription = "Tambah Identitas"
+            )
         }
     ) { paddingValues ->
         if (uiState.isLoading) {
@@ -583,10 +581,11 @@ fun IdentityStatCard(
         onClick = onClick, // Enable Click
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 6.dp),
+            .padding(horizontal = 20.dp, vertical = 6.dp)
+            .brutalBorder(strokeWidth = 3.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = null
     ) {
         Column(
             modifier = Modifier.padding(16.dp)

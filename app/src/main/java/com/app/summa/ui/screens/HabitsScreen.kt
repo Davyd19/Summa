@@ -36,6 +36,8 @@ import com.app.summa.data.model.Identity
 import com.app.summa.ui.components.HabitInputSheet
 import com.app.summa.ui.components.CoinExplosionAnimation
 import com.app.summa.data.model.HabitItem
+import com.app.summa.ui.components.BrutalTopAppBar
+import com.app.summa.ui.components.brutalBorder
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.HabitViewModel
 import java.time.LocalDate
@@ -69,21 +71,19 @@ fun HabitsScreen(
     } else {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text("Kebiasaan", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-                            Text("Bangun identitas melalui konsistensi", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                        }
-                    },
+                BrutalTopAppBar(
+                    title = "Kebiasaan",
+                    subtitle = "Bangun identitas melalui konsistensi",
                     actions = {
-                        FilledTonalButton(onClick = { showAddSheet = true }, modifier = Modifier.padding(end = 12.dp), shape = RoundedCornerShape(16.dp)) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Tambah", fontWeight = FontWeight.SemiBold)
+                        IconButton(
+                            onClick = { showAddSheet = true },
+                            modifier = Modifier
+                                .padding(end = 10.dp)
+                                .brutalBorder(strokeWidth = 2.dp, radius = 10.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(22.dp))
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    }
                 )
             }
         ) { paddingValues ->
@@ -261,14 +261,15 @@ fun IdentityContributionCard(
 ) {
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .brutalBorder(strokeWidth = 3.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        // Ganti Border kusam dengan border tipis dan shadow
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = null,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -515,8 +516,11 @@ fun EnhancedHabitItem(
 
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().scale(scale),
-        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale)
+            .brutalBorder(strokeWidth = 3.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = when {
                 isOverAchieved -> GoldContainer
@@ -524,12 +528,8 @@ fun EnhancedHabitItem(
                 else -> MaterialTheme.colorScheme.surface
             }
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isComplete) 4.dp else 1.dp),
-        border = BorderStroke(2.dp, when {
-            isOverAchieved -> GoldAccent.copy(alpha = 0.3f)
-            isComplete -> SuccessGreen.copy(alpha = 0.3f)
-            else -> MaterialTheme.colorScheme.outlineVariant
-        })
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = null
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
             // Header: Icon + Streaks

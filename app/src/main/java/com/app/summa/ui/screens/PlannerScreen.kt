@@ -50,6 +50,9 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.Identity
 import com.app.summa.data.model.Task
+import com.app.summa.ui.components.BrutalIconAction
+import com.app.summa.ui.components.BrutalTopAppBar
+import com.app.summa.ui.components.brutalBorder
 import com.app.summa.ui.components.TaskInputSheet
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.PlannerUiState
@@ -126,25 +129,38 @@ fun PlannerScreen(
                                 if (currentMode == "Fokus") {
                                     Spacer(Modifier.width(8.dp))
                                     Surface(
-                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                        shape = RoundedCornerShape(8.dp)
+                                        modifier = Modifier.brutalBorder(strokeWidth = 2.dp, radius = 6.dp),
+                                        color = MaterialTheme.colorScheme.surface,
+                                        shape = RoundedCornerShape(6.dp)
                                     ) {
                                         Text(
                                             "MODE FOKUS",
                                             style = MaterialTheme.typography.labelSmall,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                             fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 }
                             }
-                            Text(uiState.selectedDate.format(DateTimeFormatter.ofPattern("EEEE, dd MMM", Locale("id"))), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                            Text(
+                                uiState.selectedDate.format(DateTimeFormatter.ofPattern("EEEE, dd MMM", Locale("id"))),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
                         }
                     },
                     actions = {
-                        IconButton(onClick = { showDatePicker = true }) { Icon(Icons.Default.Today, contentDescription = "Pilih Tanggal") }
-                        IconButton(onClick = { showAddTaskSheet = true }) { Icon(Icons.Default.Add, contentDescription = "Tambah Tugas") }
+                        BrutalIconAction(
+                            icon = Icons.Default.Today,
+                            contentDescription = "Pilih Tanggal",
+                            onClick = { showDatePicker = true }
+                        )
+                        BrutalIconAction(
+                            icon = Icons.Default.Add,
+                            contentDescription = "Tambah Tugas",
+                            onClick = { showAddTaskSheet = true }
+                        )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
@@ -154,13 +170,23 @@ fun PlannerScreen(
                 // View Mode Switcher
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Row(modifier = Modifier.fillMaxWidth().padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf("day" to "Harian", "week" to "Mingguan", "month" to "Bulanan").forEach { (mode, label) ->
-                            FilterChip(selected = viewMode == mode, onClick = { viewMode = mode }, label = { Text(label) }, modifier = Modifier.weight(1f), colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primary, selectedLabelColor = Color.White))
+                            FilterChip(
+                                selected = viewMode == mode,
+                                onClick = { viewMode = mode },
+                                label = { Text(label, fontWeight = FontWeight.Bold) },
+                                modifier = Modifier.weight(1f).brutalBorder(strokeWidth = 2.dp, radius = 6.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = Color.White
+                                ),
+                                border = null
+                            )
                         }
                     }
                 }

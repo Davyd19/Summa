@@ -1,40 +1,73 @@
 package com.app.summa.ui.screens
 
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.PlayCircleOutline
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.HabitItem
-import com.app.summa.ui.theme.*
+import com.app.summa.data.model.Task
+import com.app.summa.ui.theme.BrutalBlack
+import com.app.summa.ui.theme.BrutalBlue
+import com.app.summa.ui.theme.BrutalWhite
 import com.app.summa.ui.viewmodel.DashboardViewModel
 import java.text.NumberFormat
+import java.time.LocalDate
+import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
@@ -46,131 +79,77 @@ fun DashboardScreen(
     onNavigateToNotes: () -> Unit = {},
     onNavigateToReflections: () -> Unit = {},
     onNavigateToIdentityProfile: () -> Unit = {},
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToHabits: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showModeDialog by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // PERBAIKAN: Gunakan Canvas yang lebih ringan untuk animasi background
-        OptimizedAnimatedBackground()
+    val today = remember { LocalDate.now() }
+    val dayLabel = today.dayOfMonth.toString().padStart(2, '0')
+    val monthLabel = today.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).uppercase(Locale.ENGLISH)
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 100.dp, top = 0.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        BrutalistHeader(
+            day = dayLabel,
+            month = monthLabel,
+            greeting = uiState.greeting,
+            currentMode = currentMode,
+            onModeClick = { showModeDialog = true },
+            onSettingsClick = onNavigateToSettings
+        )
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item {
-                ModernHeader(
-                    greeting = uiState.greeting,
-                    currentMode = currentMode,
-                    onModeClick = { showModeDialog = true },
-                    onSettingsClick = onNavigateToSettings
-                )
-            }
+            BrutalistDailyGoalCard(
+                progress = uiState.todayProgress,
+                completedHabits = uiState.completedHabits,
+                totalHabits = uiState.todayHabits.size
+            )
 
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    ModernPointsCard(
-                        progress = uiState.todayProgress,
-                        points = uiState.summaPoints,
-                        modifier = Modifier
-                            .weight(1.4f)
-                            .clickable { onNavigateToIdentityProfile() }
-                    )
+            BrutalistStatGrid(
+                tasksLeft = uiState.activeTasks,
+                points = uiState.summaPoints,
+                paperclips = uiState.totalPaperclips
+            )
 
-                    ModernPaperclipCard(
-                        count = uiState.totalPaperclips,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
+            BrutalistNextActionCard(
+                task = uiState.nextTask,
+                onPrimaryAction = onNavigateToPlanner,
+                onProfileClick = onNavigateToIdentityProfile
+            )
 
-            item {
-                ModernNextActionCard(
-                    task = uiState.nextTask,
-                    onStartFocus = { /* Trigger Focus */ },
-                    onAddTask = onNavigateToPlanner,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-            }
+            BrutalistHabitsSection(
+                habits = uiState.todayHabits,
+                onHabitClick = onNavigateToHabitDetail
+            )
 
-            if (currentMode != "Fokus") {
-                item {
-                    ModernSectionHeader(
-                        title = "Kebiasaan Hari Ini",
-                        trailing = "${uiState.todayHabits.count { it.currentCount >= it.targetCount }}/${uiState.todayHabits.size}",
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                }
-
-                if (uiState.todayHabits.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp)
-                                .height(100.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                    RoundedCornerShape(16.dp)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "Belum ada kebiasaan terjadwal",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                } else {
-                    item {
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            contentPadding = PaddingValues(horizontal = 20.dp)
-                        ) {
-                            items(uiState.todayHabits.size) { index ->
-                                ModernHabitCard(
-                                    habit = uiState.todayHabits[index],
-                                    onClick = { onNavigateToHabitDetail(uiState.todayHabits[index]) }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (currentMode == "Normal") {
-                item {
-                    ModernSectionHeader(
-                        title = "Akses Cepat",
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                }
-
-                item {
-                    ModernQuickAccessGrid(
-                        totalNetWorth = uiState.totalNetWorth,
-                        onMoneyClick = onNavigateToMoney,
-                        onNotesClick = onNavigateToNotes,
-                        onReflectionClick = onNavigateToReflections,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                }
-            }
-
-            item { Spacer(Modifier.height(24.dp)) }
+            BrutalistQuickAccessRow(
+                netWorth = uiState.totalNetWorth,
+                onMoneyClick = onNavigateToMoney,
+                onNotesClick = onNavigateToNotes,
+                onReflectionClick = onNavigateToReflections
+            )
         }
+
+        BrutalistActionSection(
+            onStartSession = onNavigateToPlanner,
+            onEditHabits = onNavigateToHabits,
+            onHistoryClick = onNavigateToReflections
+        )
     }
 
     if (showModeDialog) {
-        ModernModeDialog(
+        BrutalistModeDialog(
             currentMode = currentMode,
             onDismiss = { showModeDialog = false },
             onModeSelected = {
@@ -181,179 +160,275 @@ fun DashboardScreen(
     }
 }
 
-// --- PERBAIKAN: Optimized Background ---
 @Composable
-fun OptimizedAnimatedBackground() {
-    val infiniteTransition = rememberInfiniteTransition(label = "bg_anim")
-    val offset by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(20000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "offset_val"
-    )
-
-    val primaryColor = MaterialTheme.colorScheme.primaryContainer
-    val secondaryColor = MaterialTheme.colorScheme.secondaryContainer
-
-    Canvas(modifier = Modifier
-        .fillMaxWidth()
-        .height(400.dp)
-    ) {
-        val brush = Brush.verticalGradient(
-            colors = listOf(
-                primaryColor.copy(alpha = 0.3f * (1 - offset * 0.5f)),
-                secondaryColor.copy(alpha = 0.2f * offset),
-                Color.Transparent
-            ),
-            startY = 0f,
-            endY = size.height
-        )
-        drawRect(brush = brush)
-    }
-}
-
-// --- KOMPONEN UI ---
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ModernHeader(
+private fun BrutalistHeader(
+    day: String,
+    month: String,
     greeting: String,
     currentMode: String,
     onModeClick: () -> Unit,
-    onSettingsClick: () -> Unit // Parameter Baru
+    onSettingsClick: () -> Unit
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 32.dp)
-    ) {
-        var visible by remember { mutableStateOf(false) }
-        LaunchedEffect(Unit) { visible = true }
-
-        androidx.compose.animation.AnimatedVisibility(
-            visible = visible,
-            enter = androidx.compose.animation.fadeIn(tween(800)) +
-                    androidx.compose.animation.slideInVertically(tween(800)) { -20 }
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Baris Atas: Sapaan + Tombol Settings
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "$greeting 👋",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-
-                    // Tombol Settings yang menyatu dengan desain
-                    IconButton(
-                        onClick = onSettingsClick,
-                        modifier = Modifier
-                            .background(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                CircleShape
-                            )
-                            .size(48.dp)
-                    ) {
-                        Icon(
-                            Icons.Outlined.Settings,
-                            contentDescription = "Pengaturan",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                // Baris Bawah: Subtitle + Mode Selector
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Mari mulai hari produktif",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-
-                    Surface(
-                        onClick = onModeClick,
-                        shape = RoundedCornerShape(24.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        tonalElevation = 2.dp
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Tune,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Text(
-                                currentMode,
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ... Sisa komponen (ModernPaperclipCard, ModernPointsCard, dll) sama persis dengan kode Anda sebelumnya ...
-// Saya menyertakan mereka di bawah agar file ini lengkap dan bisa langsung di-copy paste.
-
-@Composable
-fun ModernPaperclipCard(
-    count: Int,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.height(180.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .align(Alignment.CenterStart)
+                .padding(bottom = 12.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("📎", style = MaterialTheme.typography.titleMedium)
-            }
+            Text(
+                text = day,
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                lineHeight = MaterialTheme.typography.displayMedium.lineHeight * 0.9f
+            )
+            Text(
+                text = month,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
 
-            Column {
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .shadow(0.dp)
+                .brutalBorder(),
+            shape = RoundedCornerShape(6.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "Hello, Summa",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = greeting,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+                IconButton(
+                    onClick = onModeClick,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .brutalBorder()
+                ) {
+                    Icon(Icons.Default.Home, contentDescription = "Mode")
+                }
+                IconButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .brutalBorder()
+                ) {
+                    Icon(Icons.Default.Settings, contentDescription = "Settings")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrutalistDailyGoalCard(
+    progress: Float,
+    completedHabits: Int,
+    totalHabits: Int
+) {
+    val percentage = (progress.coerceIn(0f, 1f) * 100).roundToInt()
+
+    BrutalistCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "$count",
-                    style = MaterialTheme.typography.displayMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = "Daily Goal",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold
                 )
                 Text(
-                    text = "Klip Fokus",
-                    style = MaterialTheme.typography.labelMedium,
+                    text = "+ keep your streak alive",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+            Text(
+                text = "$percentage%",
+                style = MaterialTheme.typography.displaySmall,
+                color = BrutalBlue,
+                fontWeight = FontWeight.Black
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        BrutalistProgressBar(progress = progress)
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "$completedHabits / $totalHabits selesai",
+                style = MaterialTheme.typography.labelLarge
+            )
+            BrutalistTag(label = "ACTIVE")
+        }
+    }
+}
+
+@Composable
+private fun BrutalistProgressBar(progress: Float, segments: Int = 4) {
+    val clamped = progress.coerceIn(0f, 1f)
+    val filledSegments = (clamped * segments).toInt()
+    val partial = (clamped * segments) - filledSegments
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .brutalBorder()
+            .padding(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        repeat(segments) { index ->
+            val isFilled = index < filledSegments
+            val isPartial = index == filledSegments && partial > 0f && filledSegments < segments
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxSize()
+                    .brutalBorder()
+                    .background(
+                        when {
+                            isFilled -> MaterialTheme.colorScheme.primary
+                            isPartial -> MaterialTheme.colorScheme.surface
+                            else -> MaterialTheme.colorScheme.background
+                        }
+                    )
+            ) {
+                if (isPartial) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.25f),
+                                        Color.Transparent
+                                    ),
+                                    start = Offset.Zero,
+                                    end = Offset(30f, 30f),
+                                    tileMode = TileMode.Repeated
+                                )
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrutalistStatGrid(
+    tasksLeft: Int,
+    points: Int,
+    paperclips: Int
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        BrutalistStatCard(
+            title = "Summa Points",
+            value = points.toString(),
+            subtitle = "$paperclips paperclips",
+            icon = Icons.Default.BarChart,
+            inverted = false,
+            modifier = Modifier.weight(1f)
+        )
+        BrutalistStatCard(
+            title = "Tasks Left",
+            value = tasksLeft.toString().padStart(2, '0'),
+            subtitle = "Focus pending",
+            icon = Icons.Default.Schedule,
+            inverted = true,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun BrutalistStatCard(
+    title: String,
+    value: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    inverted: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val background = if (inverted) BrutalBlack else MaterialTheme.colorScheme.surface
+    val contentColor = if (inverted) BrutalWhite else MaterialTheme.colorScheme.onSurface
+
+    BrutalistCard(
+        modifier = modifier,
+        containerColor = background,
+        contentColor = contentColor
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor.copy(alpha = 0.8f)
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = contentColor
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor.copy(alpha = 0.7f)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .brutalBorder(color = contentColor)
+                    .background(Color.Transparent),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(26.dp)
                 )
             }
         }
@@ -361,45 +436,230 @@ fun ModernPaperclipCard(
 }
 
 @Composable
-fun ModernQuickAccessGrid(
-    totalNetWorth: Double,
+private fun BrutalistNextActionCard(
+    task: Task?,
+    onPrimaryAction: () -> Unit,
+    onProfileClick: () -> Unit
+) {
+    BrutalistCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = if (task != null) "Next Action" else "Mulai Hari",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = task?.title ?: "Tambah tugas atau sesi fokus",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (!task?.scheduledTime.isNullOrEmpty()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Schedule,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = task?.scheduledTime ?: "",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalAlignment = Alignment.End
+            ) {
+                Button(
+                    onClick = onPrimaryAction,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    modifier = Modifier.brutalBorder()
+                ) {
+                    Icon(Icons.Outlined.PlayCircleOutline, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (task != null) "Mulai" else "Tambah")
+                }
+                TextButton(onClick = onProfileClick) {
+                    Text("Identity profile", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrutalistHabitsSection(
+    habits: List<HabitItem>,
+    onHabitClick: (HabitItem) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Kebiasaan Hari Ini",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold
+            )
+            BrutalistTag(label = "${habits.count { it.currentCount >= it.targetCount && it.targetCount > 0 }}/${habits.size}")
+        }
+
+        if (habits.isEmpty()) {
+            BrutalistCard {
+                Text(
+                    text = "Belum ada kebiasaan terjadwal.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                habits.forEach { habit ->
+                    BrutalistHabitChip(
+                        habit = habit,
+                        onClick = { onHabitClick(habit) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrutalistHabitChip(
+    habit: HabitItem,
+    onClick: () -> Unit
+) {
+    val isComplete = habit.currentCount >= habit.targetCount && habit.targetCount > 0
+
+    Surface(
+        modifier = Modifier
+            .width(200.dp)
+            .brutalBorder()
+            .clickable { onClick() },
+        color = if (isComplete) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = habit.icon,
+                    style = MaterialTheme.typography.headlineMedium
+                )
+                if (isComplete) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            Text(
+                text = habit.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            ProgressBlocks(
+                progress = if (habit.targetCount > 0)
+                    (habit.currentCount.toFloat() / habit.targetCount).coerceIn(0f, 1f) else 0f
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProgressBlocks(progress: Float, blocks: Int = 6) {
+    val clamped = progress.coerceIn(0f, 1f)
+    val filled = (clamped * blocks).roundToInt()
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(blocks) { index ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(
+                        if (index < filled) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    .brutalBorder(strokeWidth = 1.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun BrutalistQuickAccessRow(
+    netWorth: Double,
     onMoneyClick: () -> Unit,
     onNotesClick: () -> Unit,
-    onReflectionClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onReflectionClick: () -> Unit
 ) {
-    val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
-
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    val currency = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = "Akses Cepat",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.ExtraBold
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            ModernQuickAccessCard(
-                icon = Icons.Default.AccountBalanceWallet,
+            QuickLink(
                 title = "Keuangan",
-                subtitle = formatter.format(totalNetWorth),
-                color = BlueAccent,
+                subtitle = currency.format(netWorth),
                 onClick = onMoneyClick,
                 modifier = Modifier.weight(1f)
             )
-            ModernQuickAccessCard(
-                icon = Icons.Default.Book,
+            QuickLink(
                 title = "Pustaka",
-                subtitle = "Ide & Catatan",
-                color = PurpleAccent,
+                subtitle = "Ide & catatan",
                 onClick = onNotesClick,
                 modifier = Modifier.weight(1f)
             )
         }
-        ModernQuickAccessCard(
-            icon = Icons.Default.RateReview,
-            title = "Tinjauan Harian",
-            subtitle = "Refleksi & evaluasi hari ini",
-            color = PinkAccent,
+        QuickLink(
+            title = "Refleksi",
+            subtitle = "Tinjau hari ini",
             onClick = onReflectionClick,
             modifier = Modifier.fillMaxWidth()
         )
@@ -407,634 +667,214 @@ fun ModernQuickAccessGrid(
 }
 
 @Composable
-fun ModernQuickAccessCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+private fun QuickLink(
     title: String,
     subtitle: String,
-    color: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Surface(
         onClick = onClick,
-        modifier = modifier.height(72.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-        )
+        modifier = modifier.brutalBorder(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(color.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
-            ) {
+            Column {
                 Text(
-                    title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
                 Text(
-                    subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             }
-
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                modifier = Modifier.size(18.dp)
-            )
+            Icon(Icons.Default.ArrowForward, contentDescription = null)
         }
     }
 }
 
 @Composable
-fun AnimatedGradientBackground() {
-    val infiniteTransition = rememberInfiniteTransition(label = "bg")
-    val offset by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(20000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "offset"
-    )
-
-    Box(
+private fun BrutalistActionSection(
+    onStartSession: () -> Unit,
+    onEditHabits: () -> Unit,
+    onHistoryClick: () -> Unit
+) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(400.dp)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f * (1 - offset * 0.5f)),
-                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f * offset),
-                        Color.Transparent
-                    )
-                )
-            )
-    )
-}
-
-@Composable
-fun ModernPointsCard(
-    progress: Float,
-    points: Int,
-    modifier: Modifier = Modifier
-) {
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "progress"
-    )
-
-    val animatedPoints by animateIntAsState(
-        targetValue = points,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessVeryLow
-        ),
-        label = "points"
-    )
-
-    Card(
-        modifier = modifier.height(180.dp),
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primary
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 12.dp
-        )
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box {
-            val scale by rememberInfiniteTransition(label = "circle").animateFloat(
-                initialValue = 1f,
-                targetValue = 1.15f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(4000, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "scale"
-            )
-
-            Box(
-                modifier = Modifier
-                    .size(200.dp)
-                    .offset(x = 100.dp, y = (-50).dp)
-                    .scale(scale)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.08f))
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        "Summa Points",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White.copy(alpha = 0.9f),
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        animatedPoints.toString(),
-                        style = MaterialTheme.typography.displayLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            "Target",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White.copy(alpha = 0.9f)
-                        )
-                        Text(
-                            "${(animatedProgress * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = GoldAccent
-                        )
-                    }
-
-                    LinearProgressIndicator(
-                        progress = { animatedProgress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp)),
-                        color = GoldAccent,
-                        trackColor = Color.White.copy(alpha = 0.2f),
-                        strokeCap = StrokeCap.Round
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ModernNextActionCard(
-    task: com.app.summa.data.model.Task?,
-    onStartFocus: () -> Unit,
-    onAddTask: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val gradient = if (task != null) {
-        Brush.horizontalGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.secondaryContainer,
-                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
-            )
-        )
-    } else {
-        Brush.horizontalGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.surfaceVariant,
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
-            )
-        )
-    }
-
-    Card(
-        onClick = if (task != null) onStartFocus else onAddTask,
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Box(
+        Button(
+            onClick = onStartSession,
             modifier = Modifier
                 .fillMaxWidth()
-                .background(gradient)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                val scale by rememberInfiniteTransition(label = "icon").animateFloat(
-                    initialValue = 1f,
-                    targetValue = if (task != null) 1.15f else 1f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(1200, easing = EaseInOut),
-                        repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "scale"
-                )
-
-                Box(
-                    modifier = Modifier
-                        .size(68.dp)
-                        .scale(scale)
-                        .clip(CircleShape)
-                        .background(
-                            if (task != null)
-                                MaterialTheme.colorScheme.secondary
-                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        if (task != null) Icons.Default.PlayArrow else Icons.Default.Add,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(36.dp)
-                    )
-                }
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        if (task != null) "Selanjutnya" else "Mulai Hari",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        task?.title ?: "Tambah tugas pertama",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (task?.scheduledTime != null) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Schedule,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                            Text(
-                                task.scheduledTime,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
-                }
-
-                Icon(
-                    Icons.Default.ArrowForward,
-                    contentDescription = "Mulai",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ModernHabitCard(
-    habit: HabitItem,
-    onClick: () -> Unit
-) {
-    val isComplete = habit.currentCount >= habit.targetCount && habit.targetCount > 0
-    val progressPercentage = if (habit.targetCount > 0) {
-        (habit.currentCount.toFloat() / habit.targetCount).coerceAtMost(1f)
-    } else 0f
-
-    val scale by animateFloatAsState(
-        targetValue = if (isComplete) 1.02f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "scale"
-    )
-
-    Card(
-        onClick = onClick,
-        modifier = Modifier
-            .width(180.dp)
-            .scale(scale)
-            .animateContentSize(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isComplete)
-                SuccessGreen.copy(alpha = 0.1f)
-            else MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isComplete) 6.dp else 2.dp
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .height(68.dp)
+                .brutalBorder(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            )
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(
-                                colors = if (isComplete) {
-                                    listOf(SuccessGreen.copy(alpha = 0.2f), SuccessGreen.copy(alpha = 0.1f))
-                                } else {
-                                    listOf(
-                                        MaterialTheme.colorScheme.primaryContainer,
-                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                                    )
-                                }
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        habit.icon,
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-                }
-
-                if (habit.currentStreak > 0) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = StreakOrange.copy(alpha = 0.15f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("🔥", style = MaterialTheme.typography.labelMedium)
-                            Text(
-                                "${habit.currentStreak}",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = StreakOrange
-                            )
-                        }
-                    }
-                }
-            }
-
-            Text(
-                habit.name,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        if (habit.targetCount > 1) "${habit.currentCount}/${habit.targetCount}"
-                        else "${habit.currentCount}",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isComplete) SuccessGreen
-                        else MaterialTheme.colorScheme.primary
-                    )
-                    if (isComplete) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = "Selesai",
-                            tint = SuccessGreen,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
-
-                LinearProgressIndicator(
-                    progress = { progressPercentage },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = if (isComplete) SuccessGreen
-                    else MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    strokeCap = StrokeCap.Round
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ModernSectionHeader(
-    title: String,
-    trailing: String? = null,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-        if (trailing != null) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = SuccessGreen.copy(alpha = 0.12f)
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    trailing,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = SuccessGreen
+                    text = "Start Session",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold
                 )
+                Icon(Icons.Default.ArrowForward, contentDescription = null)
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            TextButton(onClick = onEditHabits) {
+                Text("Edit Habits", style = MaterialTheme.typography.labelLarge)
+            }
+            TextButton(onClick = onHistoryClick) {
+                Text("History", style = MaterialTheme.typography.labelLarge)
             }
         }
     }
 }
 
 @Composable
-fun ModernModeDialog(
+private fun BrutalistTag(
+    label: String,
+    color: Color = MaterialTheme.colorScheme.onBackground
+) {
+    Surface(
+        shape = RoundedCornerShape(4.dp),
+        border = BorderStroke(2.dp, color),
+        color = Color.Transparent
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+    }
+}
+
+@Composable
+private fun BrutalistModeDialog(
     currentMode: String,
     onDismiss: () -> Unit,
     onModeSelected: (String) -> Unit
 ) {
+    val options = listOf(
+        "Normal" to "Tampilan lengkap",
+        "Fokus" to "Minim gangguan",
+        "Pagi" to "Rutinitas awal hari"
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                "Mode Kontekstual",
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.headlineMedium
+                text = "Pilih Mode",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                listOf(
-                    Triple("Normal", "Tampilan lengkap semua fitur", Icons.Default.Dashboard),
-                    Triple("Fokus", "Hanya tugas prioritas", Icons.Default.TipsAndUpdates),
-                    Triple("Pagi", "Rutinitas pagi hari", Icons.Default.WbSunny)
-                ).forEach { (mode, desc, icon) ->
-                    ModernModeOptionCard(
-                        title = mode,
-                        description = desc,
-                        icon = icon,
-                        selected = currentMode == mode,
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                options.forEach { (mode, desc) ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .brutalBorder(),
+                        color = if (currentMode == mode) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                        else MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(8.dp),
                         onClick = { onModeSelected(mode) }
-                    )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = mode,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = desc,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
+                            if (currentMode == mode) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Tutup", fontWeight = FontWeight.SemiBold)
+                Text("Tutup", fontWeight = FontWeight.Bold)
             }
-        },
-        shape = RoundedCornerShape(28.dp)
+        }
     )
 }
 
 @Composable
-fun ModernModeOptionCard(
-    title: String,
-    description: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    selected: Boolean,
-    onClick: () -> Unit
+private fun BrutalistCard(
+    modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    val animatedScale by animateFloatAsState(
-        targetValue = if (selected) 1.02f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "scale"
-    )
-
-    Card(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .scale(animatedScale),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected)
-                MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (selected) 4.dp else 0.dp
-        )
+    Surface(
+        modifier = modifier
+            .brutalBorder()
+            .shadow(
+                elevation = 0.dp,
+                spotColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f)
+            ),
+        color = containerColor,
+        contentColor = contentColor,
+        shape = RoundedCornerShape(8.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = if (selected) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    title,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-                    else MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (selected)
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-            }
-            if (selected) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        }
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            content = content
+        )
     }
 }
+
+@Composable
+private fun Modifier.brutalBorder(
+    strokeWidth: Dp = 3.dp,
+    color: Color = MaterialTheme.colorScheme.onBackground
+): Modifier = this.border(
+    width = strokeWidth,
+    color = color,
+    shape = RoundedCornerShape(6.dp)
+)

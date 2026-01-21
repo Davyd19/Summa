@@ -24,6 +24,10 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.KnowledgeNote
+import com.app.summa.ui.components.BrutalIconAction
+import com.app.summa.ui.components.BrutalTopAppBar
+import com.app.summa.ui.components.brutalBorder
+import com.app.summa.ui.components.brutalTextFieldColors
 import com.app.summa.ui.theme.PurpleAccent
 import com.app.summa.ui.viewmodel.KnowledgeViewModel
 import kotlinx.coroutines.launch
@@ -118,12 +122,15 @@ fun KnowledgeDetailScreen(
             TopAppBar(
                 title = { },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onBack, modifier = Modifier.brutalBorder(strokeWidth = 2.dp)) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
+                    BrutalIconAction(
+                        icon = Icons.Default.DataArray,
+                        contentDescription = "Insert Link"
+                    ) {
                         val currentText = contentState.text
                         val selection = contentState.selection
                         val newText = StringBuilder(currentText)
@@ -132,34 +139,47 @@ fun KnowledgeDetailScreen(
                             .toString()
                         val newCursorPos = selection.min + 2
                         contentState = TextFieldValue(text = newText, selection = TextRange(newCursorPos))
-                    }) {
-                        Icon(Icons.Default.DataArray, "Insert Link", tint = MaterialTheme.colorScheme.primary)
                     }
+                    BrutalIconAction(
+                        icon = Icons.Default.Link,
+                        contentDescription = "Cari Link"
+                    ) { showLinkDialog = true }
 
-                    IconButton(onClick = { showLinkDialog = true }) {
-                        Icon(Icons.Default.Link, "Cari Link", tint = PurpleAccent)
-                    }
                     TextButton(
                         onClick = { viewModel.saveNote(title, contentState.text); onBack() },
                         enabled = contentState.text.isNotBlank()
                     ) {
-                        Text("Simpan")
+                        Text("Simpan", fontWeight = FontWeight.Bold)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
         bottomBar = {
-            BottomAppBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
+            BottomAppBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp,
+                modifier = Modifier.brutalBorder()
+            ) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    IconButton(onClick = { onConvertToTask(uiState.selectedNote?.title ?: title, uiState.selectedNote?.content ?: contentState.text) }) {
+                    IconButton(
+                        onClick = { onConvertToTask(uiState.selectedNote?.title ?: title, uiState.selectedNote?.content ?: contentState.text) },
+                        modifier = Modifier.brutalBorder(strokeWidth = 2.dp)
+                    ) {
                         Icon(Icons.Default.TaskAlt, "Jadikan Tugas")
                     }
                     val isPermanent = uiState.selectedNote?.isPermanent == true
-                    IconButton(onClick = { if (!isPermanent) { viewModel.convertToPermanent(); onBack() } }, enabled = !isPermanent) {
+                    IconButton(
+                        onClick = { if (!isPermanent) { viewModel.convertToPermanent(); onBack() } },
+                        enabled = !isPermanent,
+                        modifier = Modifier.brutalBorder(strokeWidth = 2.dp)
+                    ) {
                         Icon(if (isPermanent) Icons.Default.Inventory else Icons.Default.Archive, "Arsipkan")
                     }
-                    IconButton(onClick = { viewModel.deleteNote(); onBack() }) {
+                    IconButton(
+                        onClick = { viewModel.deleteNote(); onBack() },
+                        modifier = Modifier.brutalBorder(strokeWidth = 2.dp)
+                    ) {
                         Icon(Icons.Default.Delete, "Hapus")
                     }
                 }
@@ -228,10 +248,11 @@ fun KnowledgeDetailScreen(
                         .fillMaxWidth()
                         .heightIn(max = 200.dp)
                         .align(Alignment.BottomCenter)
-                        .shadow(8.dp, RoundedCornerShape(12.dp)),
-                    shape = RoundedCornerShape(12.dp),
+                        .shadow(0.dp, RoundedCornerShape(8.dp))
+                        .brutalBorder(),
+                    shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.surface,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                    border = null
                 ) {
                     LazyColumn {
                         item {

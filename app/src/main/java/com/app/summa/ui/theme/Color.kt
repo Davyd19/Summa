@@ -2,6 +2,14 @@ package com.app.summa.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// Brutalist palette
+val BrutalBlue = Color(0xFF0030A8)
+val BrutalBlack = Color(0xFF000000)
+val BrutalWhite = Color(0xFFFFFFFF)
+val BrutalPaper = Color(0xFFF7F7F5)
+val BrutalGray = Color(0xFF1A1A1A)
+val BrutalMuted = Color(0xFFE5E5E5)
+
 // === PRIMARY COLORS - Modern & Sophisticated ===
 val DeepTeal = Color(0xFF0D9488) // Teal 600 - Main brand
 val TealLight = Color(0xFF5EEAD4) // Teal 300

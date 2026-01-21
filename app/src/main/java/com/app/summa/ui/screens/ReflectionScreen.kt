@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.Identity
 import com.app.summa.ui.components.CoinExplosionAnimation
+import com.app.summa.ui.components.BrutalTopAppBar
+import com.app.summa.ui.components.brutalBorder
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.DailySummary
 import com.app.summa.ui.viewmodel.ReflectionViewModel
@@ -55,13 +57,10 @@ fun ReflectionScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
-                    }
-                },
+            BrutalTopAppBar(
+                title = "",
+                navigationIcon = Icons.AutoMirrored.Filled.ArrowBack,
+                onNavigationClick = onBack,
                 actions = {
                     Row(
                         modifier = Modifier.padding(end = 16.dp),
@@ -80,8 +79,7 @@ fun ReflectionScreen(
                             )
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                }
             )
         },
         bottomBar = {
@@ -89,8 +87,11 @@ fun ReflectionScreen(
                 if (pagerState.currentPage < 3) {
                     Button(
                         onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        shape = RoundedCornerShape(16.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .brutalBorder(),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Text("Lanjut", style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.width(8.dp))
@@ -102,9 +103,12 @@ fun ReflectionScreen(
                             viewModel.completeReflection()
                             onBack()
                         },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .brutalBorder(),
                         colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Text("Selesai & Simpan", style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.width(8.dp))
@@ -264,10 +268,13 @@ fun SuggestionVoteCard(suggestion: VoteSuggestion, onVote: (Identity, Int, Strin
         exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(animationSpec = tween(300))
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = GoldAccent.copy(alpha = 0.1f)),
-            border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f))
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 4.dp)
+            .brutalBorder(strokeWidth = 3.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = null
         ) {
             Row(
                 modifier = Modifier.padding(20.dp),
@@ -324,12 +331,15 @@ fun CompactIdentityVoteCard(identity: Identity, onVote: (Identity, Int, String) 
     val level = identity.progress / 100
 
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded }
+            .brutalBorder(strokeWidth = 3.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if(expanded) MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.5f) else MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        border = null
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(
@@ -402,10 +412,10 @@ fun RitualStepFour(text: String, onTextChange: (String) -> Unit) {
 @Composable
 fun StatBox(label: String, value: String, icon: ImageVector, color: Color, modifier: Modifier) {
     Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.1f)),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
+        modifier = modifier.brutalBorder(strokeWidth = 3.dp, color = MaterialTheme.colorScheme.onBackground),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(8.dp),
+        border = null
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -423,10 +433,12 @@ fun StatBox(label: String, value: String, icon: ImageVector, color: Color, modif
 fun WinCard(text: String, icon: String, type: String) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-        modifier = Modifier.fillMaxWidth()
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(3.dp, MaterialTheme.colorScheme.onBackground),
+        modifier = Modifier
+            .fillMaxWidth()
+            .brutalBorder(strokeWidth = 3.dp)
     ) {
         Row(
             modifier = Modifier.padding(12.dp),

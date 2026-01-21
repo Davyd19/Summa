@@ -1,12 +1,17 @@
 package com.app.summa.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -133,23 +138,24 @@ fun BottomNavigationBar(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(78.dp)
+            .brutalBorder(),
+        color = MaterialTheme.colorScheme.surface
     ) {
-        finalItems.forEach { screen ->
-            val screenBaseRoute = screen.route.substringBefore("?")
-            val currentBaseRoute = currentRoute?.substringBefore("?")
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            finalItems.forEach { screen ->
+                val screenBaseRoute = screen.route.substringBefore("?")
+                val currentBaseRoute = currentRoute?.substringBefore("?")
+                val isSelected = currentBaseRoute == screenBaseRoute
 
-            val isSelected = currentBaseRoute == screenBaseRoute
-
-            NavigationBarItem(
-                icon = { Icon(screen.icon, contentDescription = screen.title) },
-                label = { Text(screen.title) },
-                selected = isSelected,
-                onClick = {
+                val onItemClick = {
                     val targetRoute = screen.route.substringBefore("?")
-
                     if (isSelected) {
                         navController.popBackStack(targetRoute, false)
                     } else {
@@ -167,16 +173,53 @@ fun BottomNavigationBar(
                             restoreState = true
                         }
                     }
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            )
+                }
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(
+                            color = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surface
+                        )
+                        .brutalBorder(
+                            color = MaterialTheme.colorScheme.onBackground,
+                            strokeWidth = 2.dp
+                        )
+                        .clickable { onItemClick() }
+                        .padding(vertical = 8.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        screen.icon,
+                        contentDescription = screen.title,
+                        tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = screen.title.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
         }
     }
 }
+
+@Composable
+private fun Modifier.brutalBorder(
+    strokeWidth: Dp = 3.dp,
+    color: Color = MaterialTheme.colorScheme.onBackground
+): Modifier = this.border(
+    width = strokeWidth,
+    color = color,
+    shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)
+)
 
 @Composable
 fun NavigationGraph(
@@ -202,6 +245,7 @@ fun NavigationGraph(
                 onNavigateToReflections = { navController.navigateToTab(Screen.Reflections.route) },
                 onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) },
                 onNavigateToSettings = { navController.navigate("settings") },
+                onNavigateToHabits = { navController.navigateToTab(Screen.Habits.route) },
                 onNavigateToHabitDetail = { habit ->
                     navController.navigate(Screen.HabitDetail.createRoute(habit.id))
                 }

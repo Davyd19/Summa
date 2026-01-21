@@ -16,6 +16,8 @@ data class DashboardUiState(
     val currentMode: String = "Normal", // Normal, Fokus, Pagi
     val summaPoints: Int = 0,
     val todayProgress: Float = 0f,
+    val activeTasks: Int = 0,
+    val completedHabits: Int = 0,
     val totalPaperclips: Int = 0,
     val totalNetWorth: Double = 0.0,
     val nextTask: Task? = null,
@@ -89,6 +91,8 @@ class DashboardViewModel @Inject constructor(
 
         // 2. Hitung Total Poin (Summa Points) dari Identitas
         val totalPoints = identities.sumOf { it.progress }
+        val activeTasks = tasks.count { !it.isCompleted }
+        val completedHabits = todayHabitItems.count { it.currentCount >= it.targetCount && it.targetCount > 0 }
 
         // 3. Tentukan Next Task (Tugas Prioritas)
         val nextTask = tasks
@@ -101,6 +105,8 @@ class DashboardViewModel @Inject constructor(
             currentMode = mode,
             summaPoints = totalPoints,
             todayProgress = progress,
+            activeTasks = activeTasks,
+            completedHabits = completedHabits,
             totalPaperclips = paperclips,
             totalNetWorth = netWorth,
             nextTask = nextTask,

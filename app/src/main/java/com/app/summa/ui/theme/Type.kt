@@ -4,123 +4,132 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.googlefonts.Font
+import androidx.compose.ui.text.googlefonts.GoogleFont
+import androidx.compose.ui.text.googlefonts.FontFamily as GoogleFontFamily
 import androidx.compose.ui.unit.sp
+import com.app.summa.R
 
-// Modern Typography System - Inspired by Atoms
-// Hierarchy: Display > Headline > Title > Body > Label
+private val fontProvider = GoogleFont.Provider(
+    providerAuthority = "com.google.android.gms.fonts",
+    providerPackage = "com.google.android.gms",
+    certificates = R.array.com_google_android_gms_fonts_certs
+)
+
+private val spaceGrotesk = GoogleFont("Space Grotesk")
+
+private val SpaceGroteskFamily: FontFamily = GoogleFontFamily(
+    Font(googleFont = spaceGrotesk, fontProvider = fontProvider, weight = FontWeight.Light),
+    Font(googleFont = spaceGrotesk, fontProvider = fontProvider, weight = FontWeight.Normal),
+    Font(googleFont = spaceGrotesk, fontProvider = fontProvider, weight = FontWeight.Medium),
+    Font(googleFont = spaceGrotesk, fontProvider = fontProvider, weight = FontWeight.SemiBold),
+    Font(googleFont = spaceGrotesk, fontProvider = fontProvider, weight = FontWeight.Bold),
+)
+
 val Typography = Typography(
-    // === DISPLAY - Hero text (Dashboard points, Net worth) ===
     displayLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 57.sp,
-        lineHeight = 64.sp,
-        letterSpacing = (-0.25).sp
+        fontSize = 62.sp,
+        lineHeight = 68.sp,
+        letterSpacing = (-0.5).sp
     ),
     displayMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 45.sp,
-        lineHeight = 52.sp,
-        letterSpacing = 0.sp
+        fontSize = 48.sp,
+        lineHeight = 54.sp,
+        letterSpacing = (-0.25).sp
     ),
     displaySmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 36.sp,
-        lineHeight = 44.sp,
-        letterSpacing = 0.sp
+        lineHeight = 42.sp,
+        letterSpacing = (-0.15).sp
     ),
-
-    // === HEADLINE - Screen titles, section headers ===
     headlineLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Bold,
+        fontFamily = SpaceGroteskFamily,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 32.sp,
-        lineHeight = 40.sp,
-        letterSpacing = 0.sp
+        lineHeight = 38.sp,
+        letterSpacing = (-0.1).sp
     ),
     headlineMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Bold,
+        fontFamily = SpaceGroteskFamily,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 28.sp,
-        lineHeight = 36.sp,
-        letterSpacing = 0.sp
+        lineHeight = 34.sp,
+        letterSpacing = (-0.05).sp
     ),
     headlineSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
-        lineHeight = 32.sp,
+        lineHeight = 30.sp,
         letterSpacing = 0.sp
     ),
-
-    // === TITLE - Card headers, list items ===
     titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
+        fontSize = 20.sp,
+        lineHeight = 26.sp,
+        letterSpacing = 0.05.sp
     ),
     titleMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = SpaceGroteskFamily,
+        fontWeight = FontWeight.Medium,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
+        lineHeight = 22.sp,
         letterSpacing = 0.15.sp
     ),
     titleSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp
     ),
-
-    // === BODY - Main content text ===
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.25.sp
     ),
     bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.25.sp
+        letterSpacing = 0.2.sp
     ),
     bodySmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.2.sp
+    ),
+    labelLarge = TextStyle(
+        fontFamily = SpaceGroteskFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.4.sp
+    ),
+    labelMedium = TextStyle(
+        fontFamily = SpaceGroteskFamily,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 12.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.4.sp
     ),
-
-    // === LABEL - Buttons, tabs, small UI elements ===
-    labelLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
-    ),
-    labelMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    ),
     labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = SpaceGroteskFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
-        lineHeight = 16.sp,
+        lineHeight = 14.sp,
         letterSpacing = 0.5.sp
     )
 )

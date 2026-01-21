@@ -24,6 +24,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.KnowledgeNote
+import com.app.summa.ui.components.BrutalCard
+import com.app.summa.ui.components.BrutalTopAppBar
+import com.app.summa.ui.components.brutalBorder
+import com.app.summa.ui.components.brutalTextFieldColors
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.KnowledgeViewModel
 import kotlinx.coroutines.launch
@@ -45,24 +49,9 @@ fun KnowledgeBaseScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            "Pustaka Pengetahuan",
-                            style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "Kelola ide dan pembelajaran Anda",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
+            BrutalTopAppBar(
+                title = "Pustaka Pengetahuan",
+                subtitle = "Kelola ide dan pembelajaran Anda"
             )
         }
     ) { paddingValues ->
@@ -79,11 +68,8 @@ fun KnowledgeBaseScreen(
                     .padding(horizontal = 20.dp, vertical = 8.dp),
                 placeholder = { Text("Cari catatan...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary
-                ),
+                shape = RoundedCornerShape(8.dp),
+                colors = brutalTextFieldColors(),
                 singleLine = true
             )
 
@@ -91,10 +77,10 @@ fun KnowledgeBaseScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 12.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shadowElevation = 0.dp
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.surface
             ) {
+                // Brutal segmented tabs container
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -110,13 +96,15 @@ fun KnowledgeBaseScreen(
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(6.dp),
                             color = if (selected)
                                 MaterialTheme.colorScheme.primary
                             else Color.Transparent
                         ) {
                             Box(
-                                modifier = Modifier.padding(vertical = 14.dp),
+                                modifier = Modifier
+                                    .padding(vertical = 12.dp)
+                                    .brutalBorder(strokeWidth = 2.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -258,19 +246,16 @@ fun EnhancedNoteCard(
     onClick: () -> Unit,
     onPromote: ((KnowledgeNote) -> Unit)? = null
 ) {
-    Card(
+    Surface(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier.fillMaxWidth().brutalBorder(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
@@ -322,6 +307,7 @@ fun EnhancedNoteCard(
                         onClick = { onPromote(note) },
                         modifier = Modifier
                             .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                            .brutalBorder(strokeWidth = 2.dp, radius = 20.dp)
                             .size(40.dp)
                     ) {
                         Icon(
@@ -341,15 +327,16 @@ fun EnhancedNoteCard(
                 ) {
                     note.tags.split(",").take(3).forEach { tag ->
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
+                            modifier = Modifier.brutalBorder(strokeWidth = 2.dp, radius = 6.dp),
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.surface
                         ) {
                             Text(
                                 tag.trim(),
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }

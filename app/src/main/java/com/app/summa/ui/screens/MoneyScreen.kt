@@ -30,6 +30,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.*
+import com.app.summa.ui.components.BrutalFab
+import com.app.summa.ui.components.BrutalIconAction
+import com.app.summa.ui.components.BrutalTopAppBar
+import com.app.summa.ui.components.brutalBorder
 import com.app.summa.ui.components.*
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.MoneyViewModel
@@ -68,20 +72,21 @@ fun MoneyScreen(
             TopAppBar(
                 title = { Text("Keuangan", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) },
                 actions = {
-                    IconButton(onClick = { showAddAccountDialog = true }) {
-                        Icon(Icons.Default.Add, contentDescription = "Tambah Akun")
-                    }
+                    BrutalIconAction(
+                        icon = Icons.Default.Add,
+                        contentDescription = "Tambah Akun",
+                        onClick = { showAddAccountDialog = true }
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            BrutalFab(
                 onClick = { showTransactionSheet = true },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, "Tambah Transaksi")
-            }
+                icon = Icons.Default.Add,
+                contentDescription = "Tambah Transaksi"
+            )
         }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
@@ -116,9 +121,9 @@ fun MoneyScreen(
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(8.dp),
                             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            border = BorderStroke(3.dp, MaterialTheme.colorScheme.onBackground)
                         ) {
                             Column {
                                 uiState.recentTransactions.forEachIndexed { index, transaction ->
@@ -166,12 +171,13 @@ fun CleanNetWorthCard(
     val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
 
     Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = DeepTeal
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = modifier
+            .fillMaxWidth()
+            .brutalBorder(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(3.dp, MaterialTheme.colorScheme.onBackground)
     ) {
         Box {
             // Subtle background pattern
