@@ -126,7 +126,7 @@ fun MoneyScreen(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                             shape = RoundedCornerShape(8.dp),
                             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                            border = BorderStroke(3.dp, MaterialTheme.colorScheme.onBackground)
+                            border = BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground)
                         ) {
                             Column {
                                 uiState.recentTransactions.forEachIndexed { index, transaction ->
