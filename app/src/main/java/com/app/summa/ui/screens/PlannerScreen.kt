@@ -76,12 +76,13 @@ fun PlannerScreen(
     currentMode: String = "Normal",
     noteTitle: String? = null,
     noteContent: String? = null,
-    viewModel: PlannerViewModel = hiltViewModel()
+    viewModel: PlannerViewModel = hiltViewModel(),
+    onNavigateToAddTask: () -> Unit // New callback
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var viewMode by remember { mutableStateOf("day") }
     var selectedTask by remember { mutableStateOf<Task?>(null) }
-    var showAddTaskSheet by remember { mutableStateOf(false) }
+    // var showAddTaskSheet by remember { mutableStateOf(false) } // Removed for creation
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = uiState.selectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
@@ -105,7 +106,7 @@ fun PlannerScreen(
     // Menangani argumen navigasi (Create Task from Note)
     LaunchedEffect(noteTitle, noteContent) {
         if (!noteTitle.isNullOrBlank() || !noteContent.isNullOrBlank()) {
-            showAddTaskSheet = true
+             onNavigateToAddTask() // Use navigation
         }
     }
 
@@ -143,7 +144,7 @@ fun PlannerScreen(
                     BrutalIconAction(
                         icon = Icons.Default.Add,
                         contentDescription = "Tambah Tugas",
-                        onClick = { showAddTaskSheet = true }
+                        onClick = onNavigateToAddTask // Use callback
                     )
                 }
             }
@@ -240,40 +241,15 @@ fun PlannerScreen(
         }
     }
 
-    if (showDatePicker) {
+    if (showDatePicker) { // Keep DatePicker
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = { TextButton(onClick = { datePickerState.selectedDateMillis?.let { millis -> viewModel.selectDate(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()) }; showDatePicker = false }) { Text("OK") } },
             dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Batal") } }
         ) { DatePicker(state = datePickerState) }
     }
-
-    if (showAddTaskSheet) {
-        // Prepare initial values from nav args if any
-        val initTitle = noteTitle ?: ""
-        val initDesc = noteContent ?: ""
-
-        // Note: TaskInputSheet currently handles state internally.
-        // For 'Edit', we would need to pass task object.
-        // Since TaskInputSheet definition isn't fully flexible in previous snippets,
-        // we use it as is for creation.
-        TaskInputSheet(
-            identities = uiState.identities,
-            onDismiss = {
-                showAddTaskSheet = false
-                viewModel.clearInitialTask()
-            },
-            onSave = { title, desc, time, isCommitment, identityId, twoMin ->
-                // Jika sedang membuat dari Note, gunakan deskripsi dari note
-                val finalTitle = if (title.isBlank()) initTitle else title
-                val finalDesc = if (desc.isBlank()) initDesc else desc
-
-                viewModel.addTask(finalTitle, finalDesc, time, isCommitment, twoMin, identityId)
-                showAddTaskSheet = false
-                viewModel.clearInitialTask()
-            }
-        )
-    }
+    
+    // Removed TaskInputSheet logic from here for creation
 }
 
 // --- INTERACTIVE DAILY VIEW ---

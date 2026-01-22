@@ -22,6 +22,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import com.app.summa.ui.screens.*
 import com.app.summa.ui.components.MorningBriefingDialog
 import com.app.summa.ui.components.LevelUpDialog // Import Komponen Baru
@@ -41,6 +43,11 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object HabitDetail : Screen("habit_detail/{habitId}", "Detail Kebiasaan", Icons.Default.Edit) {
         fun createRoute(habitId: Long) = "habit_detail/$habitId"
     }
+
+    object AddHabit : Screen("add_habit", "Tambah Kebiasaan", Icons.Default.Add)
+    object AddTransaction : Screen("add_transaction", "Tambah Transaksi", Icons.Default.Add)
+    object AddTask : Screen("add_task", "Tambah Tugas", Icons.Default.Add)
+    object FocusMode : Screen("focus_mode", "Fokus", Icons.Default.Timer)
 }
 
 object KnowledgeDetailRoute {
@@ -234,7 +241,11 @@ fun NavigationGraph(
     NavHost(
         navController = navController,
         startDestination = Screen.Dashboard.route,
-        modifier = modifier
+        modifier = modifier,
+        enterTransition = { slideInHorizontally(initialOffsetX = { 1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)) },
+        exitTransition = { slideOutHorizontally(targetOffsetX = { -1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300)) },
+        popEnterTransition = { slideInHorizontally(initialOffsetX = { -1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)) },
+        popExitTransition = { slideOutHorizontally(targetOffsetX = { 1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300)) }
     ) {
         composable(Screen.Dashboard.route) {
             LaunchedEffect(Unit) { onFabVisibilityChange(true) }
@@ -248,9 +259,14 @@ fun NavigationGraph(
                 onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) },
                 onNavigateToSettings = { navController.navigate("settings") },
                 onNavigateToHabits = { navController.navigateToTab(Screen.Habits.route) },
+                onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) },
+                onNavigateToSettings = { navController.navigate("settings") },
+                onNavigateToHabits = { navController.navigateToTab(Screen.Habits.route) },
                 onNavigateToHabitDetail = { habit ->
                     navController.navigate(Screen.HabitDetail.createRoute(habit.id))
-                }
+                },
+                onNavigateToAddTask = { navController.navigate(Screen.AddTask.route) },
+                onNavigateToFocus = { navController.navigate(Screen.FocusMode.route) } // Passed callback
             )
         }
 
@@ -262,7 +278,10 @@ fun NavigationGraph(
             )
         ) {
             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-            PlannerScreen(currentMode = currentMode)
+            PlannerScreen(
+                currentMode = currentMode,
+                onNavigateToAddTask = { navController.navigate(Screen.AddTask.route) }
+            )
         }
 
         composable(route = Screen.Habits.route) {
@@ -271,7 +290,8 @@ fun NavigationGraph(
                 onNavigateToDetail = { habitId ->
                     navController.navigate(Screen.HabitDetail.createRoute(habitId))
                 },
-                onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) }
+                onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) },
+                onNavigateToAddHabit = { navController.navigate(Screen.AddHabit.route) }
             )
         }
 
@@ -286,9 +306,38 @@ fun NavigationGraph(
             )
         }
 
+        composable(Screen.AddHabit.route) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            AddHabitScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.AddTransaction.route) {
+             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+             AddTransactionScreen(
+                 onBack = { navController.popBackStack() }
+             )
+        }
+
+        composable(Screen.AddTask.route) {
+             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+             AddTaskScreen(
+                 onBack = { navController.popBackStack() }
+             )
+        }
+
+        composable(Screen.FocusMode.route) {
+             UniversalFocusModeScreen(
+                 onBack = { navController.popBackStack() }
+             )
+        }
+
         composable(Screen.Money.route) {
             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-            MoneyScreen()
+            MoneyScreen(
+                onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction.route) }
+            )
         }
         composable(Screen.Knowledge.route) {
             LaunchedEffect(Unit) { onFabVisibilityChange(true) }

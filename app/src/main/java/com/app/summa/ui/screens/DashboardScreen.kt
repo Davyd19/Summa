@@ -42,7 +42,9 @@ fun DashboardScreen(
     onNavigateToReflections: () -> Unit = {},
     onNavigateToIdentityProfile: () -> Unit = {},
     onNavigateToSettings: () -> Unit,
-    onNavigateToHabits: () -> Unit = {}
+    onNavigateToHabits: () -> Unit = {},
+    onNavigateToAddTask: () -> Unit = {},
+    onNavigateToFocus: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val today = remember { LocalDate.now() }
@@ -68,7 +70,7 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                BrutalistHeaderBadge(text = "CONTROL_PANEL_V1.0")
+                BrutalistHeaderBadge(text = "SUMMA OS v1.0")
                 
                 // MODE TOGGLE
                 Row(
@@ -169,8 +171,10 @@ fun DashboardScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Settings, null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(onClick = onNavigateToSettings, modifier = Modifier.size(24.dp)) {
+                                Icon(Icons.Default.Settings, "Pengaturan", modifier = Modifier.size(18.dp))
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text("SYSTEM_STATUS", fontWeight = FontWeight.Bold)
                         }
                         Text("${(uiState.todayProgress * 100).toInt()}%", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
@@ -222,9 +226,8 @@ fun DashboardScreen(
                                 color = Color.White
                             )
                             
-                            // Mock target standard
                             LinearProgressIndicator(
-                                progress = (uiState.summaPoints % 100) / 100f,
+                                progress = (uiState.summaPoints % 1000) / 1000f,
                                 modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
                                 color = Color.White,
                                 trackColor = Color.White.copy(alpha = 0.3f)
@@ -237,7 +240,7 @@ fun DashboardScreen(
                         modifier = Modifier
                             .weight(1f)
                             .aspectRatio(1f)
-                            .clickable { onModeSelected("Fokus") },
+                            .clickable { onNavigateToFocus() }, // Navigate to Focus Mode
                         containerColor = BrutalBlue,
                         contentColor = BrutalWhite
                     ) {
@@ -262,7 +265,7 @@ fun DashboardScreen(
                         modifier = Modifier
                             .weight(2f) // Wide card
                             .height(100.dp)
-                            .clickable { onNavigateToPlanner() },
+                            .clickable { onNavigateToAddTask() },
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     ) {
                         Row(
@@ -390,11 +393,14 @@ fun DashboardScreen(
                          val level = (uiState.summaPoints / 1000) + 1
                          Text("LEVEL $level", fontWeight=FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
                      }
-                     Row(verticalAlignment = Alignment.CenterVertically) {
-                         Text("STATUS: OPTIMAL", fontWeight=FontWeight.Bold, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, color=SuccessGreen)
-                         Spacer(Modifier.width(8.dp))
-                         Box(Modifier.size(8.dp).background(SuccessGreen, CircleShape))
-                     }
+                      Row(verticalAlignment = Alignment.CenterVertically) {
+                          val statusText = if (uiState.todayProgress >= 0.8f) "OPTIMAL" else if (uiState.todayProgress >= 0.5f) "NORMAL" else "LOW POWER"
+                          val statusColor = if (uiState.todayProgress >= 0.8f) SuccessGreen else if (uiState.todayProgress >= 0.5f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                          
+                          Text("STATUS: $statusText", fontWeight=FontWeight.Bold, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, color=statusColor)
+                          Spacer(Modifier.width(8.dp))
+                          Box(Modifier.size(8.dp).background(statusColor, CircleShape))
+                      }
                  }
             }
         }

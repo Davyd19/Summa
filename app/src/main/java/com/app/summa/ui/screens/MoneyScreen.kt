@@ -46,10 +46,11 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoneyScreen(
-    viewModel: MoneyViewModel = hiltViewModel()
+    viewModel: MoneyViewModel = hiltViewModel(),
+    onNavigateToAddTransaction: () -> Unit // New callback
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var showTransactionSheet by remember { mutableStateOf(false) } // Hanya ini yang utama
+    // var showTransactionSheet by remember { mutableStateOf(false) } // Removed
     var showAddAccountDialog by remember { mutableStateOf(false) } // Akun jarang dibuat, dialog masih oke, atau bisa diganti sheet juga nanti
 
     val haptic = LocalHapticFeedback.current
@@ -86,7 +87,7 @@ fun MoneyScreen(
         },
         floatingActionButton = {
             BrutalFab(
-                onClick = { showTransactionSheet = true },
+                onClick = onNavigateToAddTransaction, // Use callback
                 icon = Icons.Default.Add,
                 contentDescription = "Tambah Transaksi"
             )
@@ -155,16 +156,16 @@ fun MoneyScreen(
     }
 
     // INPUT SHEET TRANSAKSI BARU (Menggantikan Dialog Transaksi dan Transfer)
-    if (showTransactionSheet) {
-        TransactionInputSheet(
-            accounts = uiState.accounts,
-            onDismiss = { showTransactionSheet = false },
-            onSave = { accountId, type, amount, category, note ->
-                viewModel.addTransaction(accountId, type, amount, category, note)
-                showTransactionSheet = false
-            }
-        )
-    }
+//    if (showTransactionSheet) {
+//        TransactionInputSheet(
+//            accounts = uiState.accounts,
+//            onDismiss = { showTransactionSheet = false },
+//            onSave = { accountId, type, amount, category, note ->
+//                viewModel.addTransaction(accountId, type, amount, category, note)
+//                showTransactionSheet = false
+//            }
+//        )
+//    }
 }
 
 

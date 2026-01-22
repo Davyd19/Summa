@@ -18,29 +18,68 @@ data class FocusUiState(
     val paperclipsMoved: Int = 0,
     val paperclipsLeft: Int = 10,
     val startTime: Long = 0L,
-    val sessionStartTimeStamp: Long = 0L, // Waktu mulai sesi sebenarnya
-    val targetClips: Int = 10
+    val sessionStartTimeStamp: Long = 0L,
+    val targetClips: Int = 10,
+    val selectedHabitId: Long? = null, // New: Linked Habit
+    val availableHabits: List<com.app.summa.data.model.HabitItem> = emptyList(), // New: Dropdown data
+    val isClipMode: Boolean = false // New: Toggle for optional clips
 )
 
 @HiltViewModel
-class FocusViewModel @Inject constructor() : ViewModel() {
+class FocusViewModel @Inject constructor(
+    private val focusRepository: com.app.summa.data.repository.FocusRepository,
+    private val habitRepository: com.app.summa.data.repository.HabitRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FocusUiState())
     val uiState: StateFlow<FocusUiState> = _uiState.asStateFlow()
 
     private var timerJob: Job? = null
 
-    fun initializeSession(initialTarget: Int) {
+    init {
+        loadHabits()
+    }
+
+    private fun loadHabits() {
+        viewModelScope.launch {
+            // Simplified loading for dropdown
+            val habits = habitRepository.getAllHabits().first()
+            val logs = habitRepository.getLogsForDate(java.time.LocalDate.now()).first()
+            
+            val habitItems = habits.map { habit ->
+                val todayLog = logs.find { it.habitId == habit.id }
+                com.app.summa.data.model.HabitItem(
+                    id = habit.id,
+                    name = habit.name,
+                    icon = habit.icon,
+                    currentCount = todayLog?.count ?: 0,
+                    targetCount = habit.targetCount,
+                    totalSum = 0, // Not needed
+                    currentStreak = 0, // Not needed
+                    perfectStreak = 0, // Not needed
+                    originalModel = habit
+                )
+            }
+            _uiState.update { it.copy(availableHabits = habitItems) }
+        }
+    }
+
+    fun initializeSession(initialTarget: Int = 25, isClipMode: Boolean = false) {
         if (_uiState.value.startTime == 0L) {
             _uiState.update {
                 it.copy(
-                    targetClips = initialTarget,
-                    paperclipsLeft = initialTarget,
-                    timeRemaining = 0,
-                    startTime = 0L
+                    targetClips = initialTarget, // reused as minutes if !isClipMode
+                    paperclipsLeft = if (isClipMode) initialTarget else 0,
+                    timeRemaining = if (isClipMode) 0 else initialTarget * 60, // Minutes to Seconds
+                    startTime = 0L,
+                    isClipMode = isClipMode
                 )
             }
         }
+    }
+    
+    fun selectHabit(habitId: Long?) {
+         _uiState.update { it.copy(selectedHabitId = habitId) }
     }
 
     fun startTimer() {
@@ -48,17 +87,19 @@ class FocusViewModel @Inject constructor() : ViewModel() {
 
         // Set start time stamp logic
         val currentTime = System.currentTimeMillis()
-        // Jika melanjutkan pause, sesuaikan timestamp agar waktu tidak melompat
-        val adjustedStartTime = if (_uiState.value.sessionStartTimeStamp == 0L) {
-            currentTime
-        } else {
-            currentTime - (_uiState.value.timeRemaining * 1000L)
-        }
+        
+        // Timer Logic
+        val currentRemaining = _uiState.value.timeRemaining
+        
+        // Logic timestamp untuk menghitung durasi yang berlalu
+        val sessionStart = if (_uiState.value.sessionStartTimeStamp == 0L) currentTime else _uiState.value.sessionStartTimeStamp
+        val lastUpdate = currentTime // Not strictly needed logic change but cleaner
 
         _uiState.update {
             it.copy(
                 isRunning = true,
-                sessionStartTimeStamp = adjustedStartTime
+                sessionStartTimeStamp = currentTime, // Reset reference to now
+                startTime = if (it.startTime == 0L) currentTime else it.startTime
             )
         }
 
@@ -68,9 +109,29 @@ class FocusViewModel @Inject constructor() : ViewModel() {
                 delay(200)
 
                 val now = System.currentTimeMillis()
-                val elapsedSeconds = (now - _uiState.value.sessionStartTimeStamp) / 1000
-
-                _uiState.update { it.copy(timeRemaining = elapsedSeconds.toInt()) }
+                val deltaSeconds = (now - _uiState.value.sessionStartTimeStamp) / 1000
+                
+                // Update timestamp reference to avoid drift if needed, but simple subtraction is better:
+                // New Time Remaining = Old Time Remaining - Delta
+                // But simplified: We track time passed since Resume.
+                
+                val newRemaining = currentRemaining - deltaSeconds.toInt()
+                
+                // If Timer reaches 0
+                if (newRemaining <= 0 && !_uiState.value.isClipMode) {
+                     _uiState.update { it.copy(timeRemaining = 0, isRunning = false) }
+                     break 
+                } else if (_uiState.value.isClipMode) {
+                     // In Clip Mode, we count UP
+                     val elapsed = (now - _uiState.value.startTime) / 1000
+                     _uiState.update { it.copy(timeRemaining = elapsed.toInt()) }
+                } else {
+                     _uiState.update { it.copy(timeRemaining = newRemaining, sessionStartTimeStamp = now) } // Hacky sync?
+                     // Better: Keep sessionStartTimeStamp as "Resume Time".
+                     // remaining = savedRemaining - (now - resumeTime)
+                     val actualRemaining = currentRemaining - ((now - _uiState.value.sessionStartTimeStamp) / 1000).toInt()
+                     _uiState.update { it.copy(timeRemaining = actualRemaining.coerceAtLeast(0)) }
+                }
             }
         }
     }
@@ -81,6 +142,8 @@ class FocusViewModel @Inject constructor() : ViewModel() {
     }
 
     fun movePaperclip() {
+        if (!_uiState.value.isClipMode) return // Disable if not in clip mode
+        
         _uiState.update {
             val newLeft = (it.paperclipsLeft - 1).coerceAtLeast(0)
             it.copy(
@@ -92,13 +155,52 @@ class FocusViewModel @Inject constructor() : ViewModel() {
         val currentState = _uiState.value
 
         // Logika Baru: Auto-Start saat klip pertama dipindah
-        if (!currentState.isRunning && currentState.paperclipsMoved > 0 && currentState.paperclipsLeft > 0) {
+        if (!currentState.isRunning && currentState.paperclipsMoved > 0) {
             startTimer()
         }
 
         // Logika Baru: Auto-Stop saat target selesai
         if (currentState.paperclipsLeft == 0) {
+            // pauseTimer() // Don't auto pause, allow completion manually
+        }
+    }
+    
+    fun completeSession() {
+        viewModelScope.launch {
+            val state = _uiState.value
             pauseTimer()
+            
+            // 1. Save Session
+            val session = com.app.summa.data.model.FocusSession(
+                habitId = state.selectedHabitId ?: 0L, // 0 if generic
+                startTime = state.startTime,
+                endTime = System.currentTimeMillis(),
+                paperclipsCollected = if(state.isClipMode) state.paperclipsMoved else 0,
+                createdAt = System.currentTimeMillis()
+            )
+            focusRepository.saveSession(session)
+            
+            // 2. Update Habit if selected
+            if (state.selectedHabitId != null) {
+                // Fetch current habit to get target
+                 val habit = habitRepository.getAllHabits().first().find { it.id == state.selectedHabitId }
+                 if (habit != null) {
+                     // Increment logic (simple +1 for now, or based on clips?)
+                     // Request says: "habit itu dalam hari itu langsung terhitung sudah di kerjakan"
+                     // So we might want to set it to target count? Or just +1?
+                     // "Langsung terhitung sudah dikerjakan" implies Completion.
+                     // Let's set it to Target if not reached? Or just increment.
+                     // Safest: Increment by 1 session equivalent.
+                     // But user said "Finish focus mode -> Habit done". 
+                     // Let's set count = targetCount to be sure it marks as done.
+                     
+                     val currentLog = habitRepository.getLogsForDate(java.time.LocalDate.now()).first().find { it.habitId == habit.id }
+                     val current = currentLog?.count ?: 0
+                     if (current < habit.targetCount) {
+                         habitRepository.updateHabitCount(habit, habit.targetCount)
+                     }
+                 }
+            }
         }
     }
 

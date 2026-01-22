@@ -52,11 +52,12 @@ import java.util.Locale
 @Composable
 fun HabitsScreen(
     viewModel: HabitViewModel = hiltViewModel(),
-    onNavigateToDetail: (Long) -> Unit, // Callback baru
-    onNavigateToIdentityProfile: () -> Unit = {}
+    onNavigateToDetail: (Long) -> Unit,
+    onNavigateToIdentityProfile: () -> Unit = {},
+    onNavigateToAddHabit: () -> Unit // New callback
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var showAddSheet by remember { mutableStateOf(false) }
+    // var showAddSheet by remember { mutableStateOf(false) } // Removed
     var focusedHabit by remember { mutableStateOf<HabitItem?>(null) }
 
     // Focus Mode Overlay
@@ -86,7 +87,7 @@ fun HabitsScreen(
             ) {
                 BrutalistHeaderBadge("HABIT_FORCE")
                 IconButton(
-                    onClick = { showAddSheet = true },
+                    onClick = onNavigateToAddHabit, // Use callback
                     modifier = Modifier
                         .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp)
                         .size(36.dp)
@@ -129,7 +130,7 @@ fun HabitsScreen(
                 if (uiState.isLoading) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 } else if (uiState.habits.isEmpty()) {
-                    EmptyHabitState(Modifier.fillMaxSize(), onAddClick = { showAddSheet = true })
+                    EmptyHabitState(Modifier.fillMaxSize(), onAddClick = onNavigateToAddHabit)
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -152,16 +153,16 @@ fun HabitsScreen(
         }
     }
 
-    if (showAddSheet) {
-        HabitInputSheet(
-            identities = uiState.availableIdentities,
-            onDismiss = { showAddSheet = false },
-            onSave = { name, icon, target, identityId, cue, reminder ->
-                viewModel.addHabit(name, icon, target, identityId, cue, reminder)
-                showAddSheet = false
-            }
-        )
-    }
+//    if (showAddSheet) {
+//        HabitInputSheet(
+//            identities = uiState.availableIdentities,
+//            onDismiss = { showAddSheet = false },
+//            onSave = { name, icon, target, identityId, cue, reminder ->
+//                viewModel.addHabit(name, icon, target, identityId, cue, reminder)
+//                showAddSheet = false
+//            }
+//        )
+//    }
 }
 
 // --- 2. DESTINATION WRAPPER UNTUK DETAIL SCREEN ---
