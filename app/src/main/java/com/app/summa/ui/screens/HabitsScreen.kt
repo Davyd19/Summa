@@ -72,25 +72,53 @@ fun HabitsScreen(
             onCancel = { focusedHabit = null }
         )
     } else {
-        Scaffold(
-            topBar = {
-                BrutalTopAppBar(
-                    title = "Kebiasaan",
-                    subtitle = "Bangun identitas melalui konsistensi",
-                    actions = {
-                        IconButton(
-                            onClick = { showAddSheet = true },
-                            modifier = Modifier
-                                .padding(end = 10.dp)
-                                .brutalBorder(strokeWidth = 2.dp, cornerRadius = 6.dp)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(22.dp))
-                        }
-                    }
-                )
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp)
+        ) {
+            // HEADER
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BrutalistHeaderBadge("HABIT_FORCE")
+                IconButton(
+                    onClick = { showAddSheet = true },
+                    modifier = Modifier
+                        .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp)
+                        .size(36.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+                }
             }
-        ) { paddingValues ->
-            Box(modifier = Modifier.fillMaxSize()) {
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "HABITS",
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Black,
+                fontSize = 42.sp,
+                lineHeight = 42.sp
+            )
+            
+            Text(
+                "CONSISTENCY_PROTOCOL",
+                style = MaterialTheme.typography.titleSmall,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(MaterialTheme.colorScheme.onBackground))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // CONTENT
+            Box(modifier = Modifier.weight(1f)) {
                 if (uiState.showRewardAnimation) {
                     CoinExplosionAnimation(
                         modifier = Modifier.fillMaxSize().zIndex(10f),
@@ -102,9 +130,13 @@ fun HabitsScreen(
                 if (uiState.isLoading) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 } else if (uiState.habits.isEmpty()) {
-                    EmptyHabitState(Modifier.padding(paddingValues), onAddClick = { showAddSheet = true })
+                    EmptyHabitState(Modifier.fillMaxSize(), onAddClick = { showAddSheet = true })
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize().padding(paddingValues), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 100.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         items(uiState.habits) { habit ->
                             BrutalistHabitItem(
                                 habit = habit,

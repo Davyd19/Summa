@@ -121,81 +121,89 @@ fun PlannerScreen(
             onCancel = { selectedTask = null }
         )
     } else {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Planner", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                                if (currentMode == "Fokus") {
-                                    Spacer(Modifier.width(8.dp))
-                                    Surface(
-                                        modifier = Modifier.brutalBorder(strokeWidth = 2.dp, cornerRadius = 6.dp),
-                                        color = MaterialTheme.colorScheme.surface,
-                                        shape = RoundedCornerShape(6.dp)
-                                    ) {
-                                        Text(
-                                            "MODE FOKUS",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                }
-                            }
-                            Text(
-                                uiState.selectedDate.format(DateTimeFormatter.ofPattern("EEEE, dd MMM", Locale("id"))),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
-                    },
-                    actions = {
-                        BrutalIconAction(
-                            icon = Icons.Default.Today,
-                            contentDescription = "Pilih Tanggal",
-                            onClick = { showDatePicker = true }
-                        )
-                        BrutalIconAction(
-                            icon = Icons.Default.Add,
-                            contentDescription = "Tambah Tugas",
-                            onClick = { showAddTaskSheet = true }
-                        )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-                )
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp)
+        ) {
+            // HEADER
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BrutalistHeaderBadge("PLANNER_MODULE")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BrutalIconAction(
+                        icon = Icons.Default.Today,
+                        contentDescription = "Pilih Tanggal",
+                        onClick = { showDatePicker = true }
+                    )
+                    BrutalIconAction(
+                        icon = Icons.Default.Add,
+                        contentDescription = "Tambah Tugas",
+                        onClick = { showAddTaskSheet = true }
+                    )
+                }
             }
-        ) { paddingValues ->
-            Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                // View Mode Switcher - Brutalist Style
-                BrutalistCard(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                    containerColor = MaterialTheme.colorScheme.surface
-                ) {
-                    Row(
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "PLANNER",
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Black,
+                fontSize = 42.sp,
+                lineHeight = 42.sp
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    uiState.selectedDate.format(DateTimeFormatter.ofPattern("EEEE, dd MMM", Locale("id"))).uppercase(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                 if (currentMode == "Fokus") {
+                    Spacer(Modifier.width(8.dp))
+                    BrutalistTag("FOCUS", color = MaterialTheme.colorScheme.primary)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(MaterialTheme.colorScheme.onBackground))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // View Mode Switcher
+             BrutalistCard(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        listOf("day" to "HARIAN", "week" to "MINGGUAN", "month" to "BULANAN").forEach { (mode, label) ->
-                            Surface(
+                        listOf("day" to "DAILY", "week" to "WEEKLY", "month" to "MONTHLY").forEach { (mode, label) ->
+                             Surface(
                                 onClick = { viewMode = mode },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(6.dp),
+                                shape = RoundedCornerShape(0.dp),
                                 color = if (viewMode == mode) MaterialTheme.colorScheme.primary else Color.Transparent
                             ) {
                                 Box(
                                     modifier = Modifier
                                         .padding(vertical = 12.dp)
-                                        .brutalBorder(strokeWidth = 2.dp, cornerRadius = 6.dp),
+                                        .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         label,
-                                        style = MaterialTheme.typography.titleSmall,
+                                        style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Black,
                                         color = if (viewMode == mode) Color.White else MaterialTheme.colorScheme.onSurface
                                     )
@@ -203,12 +211,13 @@ fun PlannerScreen(
                             }
                         }
                     }
-                }
+            }
 
-                if (uiState.isLoading) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                } else {
-                    when (viewMode) {
+            if (uiState.isLoading) {
+                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            } else {
+                Box(modifier = Modifier.weight(1f)) {
+                     when (viewMode) {
                         "day" -> InteractiveDailyView(
                             tasks = filteredTasksForDay,
                             identities = uiState.identities,
@@ -220,7 +229,6 @@ fun PlannerScreen(
                             uiState = uiState,
                             onTaskClick = { selectedTask = it },
                             currentMode = currentMode,
-                            // Pass tasks for day logic manual
                             dailyTasks = filteredTasksForDay
                         )
                         "month" -> BrutalistMonthlyView(

@@ -63,6 +63,143 @@ fun BrutalistCard(
             modifier = Modifier.padding(16.dp),
             content = content
         )
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
+            }
+        }
     }
 }
 
@@ -85,6 +222,143 @@ fun BrutalistTag(
             fontWeight = FontWeight.Bold,
             color = color
         )
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
+            }
+        }
     }
 }
 
@@ -141,6 +415,143 @@ fun BrutalistMetricCard(
                 )
             }
         }
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
+            }
+        }
     }
 }
 
@@ -165,6 +576,143 @@ fun BrutalistDateDisplay(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
+            }
+        }
     }
 }
 
@@ -198,6 +746,143 @@ fun BrutalistLargeButton(
                 contentDescription = null,
                 modifier = Modifier.size(24.dp)
             )
+        }
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
+            }
         }
     }
 }
@@ -254,6 +939,143 @@ fun BrutalistProgressBar(
                             )
                     )
                 }
+            }
+        }
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
             }
         }
     }
@@ -313,6 +1135,143 @@ fun BrutalistStatCard(
                     tint = contentColor,
                     modifier = Modifier.size(26.dp)
                 )
+            }
+        }
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
             }
         }
     }
@@ -376,6 +1335,143 @@ fun BrutalIconAction(
         modifier = Modifier.brutalBorder(strokeWidth = 2.dp)
     ) {
         Icon(icon, contentDescription = contentDescription)
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
+            }
+        }
     }
 }
 
@@ -403,6 +1499,143 @@ fun BrutalFab(
             contentAlignment = Alignment.Center
         ) {
             Icon(icon, contentDescription = contentDescription)
+        }
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
+            }
         }
     }
 }
@@ -467,6 +1700,143 @@ fun BrutalistDailyGoalCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
         }
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
+            }
+        }
     }
 }
 
@@ -497,6 +1867,143 @@ fun BrutalistStatGrid(
             inverted = true, // Black card
             modifier = Modifier.weight(1f)
         )
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
+            }
+        }
     }
 }
 
@@ -548,6 +2055,143 @@ fun BrutalistNextActionCard(
                 )
             }
         }
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
+            }
+        }
     }
 }
 
@@ -576,6 +2220,143 @@ fun BrutalistHabitsSection(
                         Text("${habit.currentCount}/${habit.targetCount}", fontWeight = FontWeight.Bold)
                     }
                 }
+            }
+        }
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
             }
         }
     }
@@ -622,6 +2403,143 @@ fun BrutalistQuickAccessRow(
                 Text("Notes", fontWeight = FontWeight.Bold)
             }
         }
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
+            }
+        }
     }
 }
 
@@ -636,6 +2554,143 @@ fun BrutalistActionSection(
         BrutalIconAction(Icons.Outlined.PlayCircleOutline, "Fokus", onStartSession)
         BrutalIconAction(Icons.Filled.CheckCircle, "Habits", onEditHabits)
         BrutalIconAction(Icons.Filled.RateReview, "Refleksi", onHistoryClick)
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
+            }
+        }
     }
 }
 
@@ -685,6 +2740,143 @@ fun BrutalTextButton(
 ) {
     TextButton(onClick = onClick, modifier = modifier) {
         Text(text, fontWeight = FontWeight.Bold)
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
+            }
+        }
     }
 }
 
@@ -717,5 +2909,142 @@ fun BrutalistHeader(
                 .height(4.dp)
                 .background(MaterialTheme.colorScheme.onBackground)
         )
+// === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
+
+@Composable
+fun BrutalistHeaderBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = BrutalBlack,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp) // Sharp
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = BrutalWhite,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            letterSpacing = 1.sp
+        )
+    }
+}
+
+@Composable
+fun BrutalistDigitalClock(
+    modifier: Modifier = Modifier
+) {
+    var time by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        while(true) {
+            val now = java.time.LocalTime.now()
+            time = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(now)
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp), // Boxed
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+            Text(
+                text = time,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistBlockProgressBar(
+    current: Int,
+    max: Int,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        for (i in 1..max) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f) // Square blocks
+                    .background(
+                        if (i <= current) activeColor else Color.Transparent
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistSystemFooter(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Battery
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("BATTERY", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("92%", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(12.dp, 24.dp).background(Color.Black))
+                }
+            }
+        }
+        
+        // Network
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 0.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("NETWORK", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall)
+                Icon(Icons.Default.Wifi, null)
+            }
+        }
     }
 }
