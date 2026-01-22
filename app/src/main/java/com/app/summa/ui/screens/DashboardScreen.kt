@@ -43,169 +43,228 @@ fun DashboardScreen(
     val dayLabel = today.dayOfMonth.toString()
     val monthLabel = today.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).uppercase(Locale.ENGLISH)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Header: Date + Greeting
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            BrutalistDateDisplay(
-                day = dayLabel,
-                month = monthLabel
-            )
-            
-            // Greeting card with icons
-            Surface(
-                modifier = Modifier.brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp),
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surface
+    Scaffold(
+        bottomBar = {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp,
+                modifier = Modifier.brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp)
             ) {
+                NavigationBarItem(
+                    selected = true,
+                    onClick = { },
+                    icon = { Icon(Icons.Default.Home, "Dashboard") },
+                    label = { Text("DASHBOARD", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToPlanner,
+                    icon = { Icon(Icons.Default.CalendarToday, "Planner") },
+                    label = { Text("PLANNER", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToHabits,
+                    icon = { Icon(Icons.Default.CheckCircle, "Habits") },
+                    label = { Text("HABITS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToIdentityProfile,
+                    icon = { Icon(Icons.Default.Person, "Identity") },
+                    label = { Text("IDENTITY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToMoney,
+                    icon = { Icon(Icons.Default.AccountBalanceWallet, "Money") },
+                    label = { Text("MONEY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToReflections,
+                    icon = { Icon(Icons.Default.RateReview, "Reflection") },
+                    label = { Text("REFLECTION", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+                )
+            }
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header: Date + Greeting
+            item {
                 Row(
-                    modifier = Modifier.padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
                 ) {
-                    Column {
+                    BrutalistDateDisplay(
+                        day = dayLabel,
+                        month = monthLabel
+                    )
+                    
+                    // Greeting card with icons
+                    Surface(
+                        modifier = Modifier.brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Hello, Summa",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = uiState.greeting,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
+                            IconButton(
+                                onClick = onNavigateToSettings,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.Settings, "Settings", modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Daily Goal Card
+            item {
+                BrutalistDailyGoalCard(
+                    progress = uiState.todayProgress,
+                    completedHabits = uiState.completedHabits,
+                    totalHabits = uiState.todayHabits.size
+                )
+            }
+
+            // Metric Cards Grid (Task & XP)
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    BrutalistMetricCard(
+                        value = uiState.activeTasks.toString(),
+                        label = "Task",
+                        icon = Icons.Default.Schedule,
+                        modifier = Modifier.weight(1f),
+                        backgroundColor = MaterialTheme.colorScheme.surface
+                    )
+                    BrutalistMetricCard(
+                        value = uiState.summaPoints.toString(),
+                        label = "XP",
+                        icon = Icons.Default.BarChart,
+                        modifier = Modifier.weight(1f),
+                        backgroundColor = Color.Black,
+                        contentColor = Color.White
+                    )
+                }
+            }
+
+            // Motivational Card
+            item {
+                BrutalistCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = MaterialTheme.colorScheme.surface
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(
-                            text = "Hello, Summa",
-                            style = MaterialTheme.typography.titleSmall,
+                            text = "Semua Beres! 🎉",
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        Text(
-                            text = uiState.greeting,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        BrutalTextButton(
+                            text = "RENCANA BESOK",
+                            onClick = onNavigateToPlanner
                         )
                     }
-                    IconButton(
-                        onClick = onNavigateToSettings,
-                        modifier = Modifier.size(32.dp)
+                }
+            }
+
+            // Quick Access Buttons
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        onClick = onNavigateToMoney,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(100.dp)
+                            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = DeepTeal,
+                        contentColor = Color.White
                     ) {
-                        Icon(Icons.Default.Settings, "Settings", modifier = Modifier.size(20.dp))
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.AccountBalanceWallet, null, modifier = Modifier.size(32.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(uiState.totalNetWorth),
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                    Surface(
+                        onClick = onNavigateToNotes,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(100.dp)
+                            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.Book, null, modifier = Modifier.size(32.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Notes",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // Daily Goal Card
-        BrutalistDailyGoalCard(
-            progress = uiState.todayProgress,
-            completedHabits = uiState.completedHabits,
-            totalHabits = uiState.todayHabits.size
-        )
-
-        // Metric Cards Grid (Task & XP)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            BrutalistMetricCard(
-                value = uiState.activeTasks.toString(),
-                label = "Task",
-                icon = Icons.Default.Schedule,
-                modifier = Modifier.weight(1f),
-                backgroundColor = MaterialTheme.colorScheme.surface
-            )
-            BrutalistMetricCard(
-                value = uiState.summaPoints.toString(),
-                label = "XP",
-                icon = Icons.Default.BarChart,
-                modifier = Modifier.weight(1f),
-                backgroundColor = Color.Black,
-                contentColor = Color.White
-            )
-        }
-
-        // Motivational Card
-        BrutalistCard(
-            modifier = Modifier.fillMaxWidth(),
-            containerColor = MaterialTheme.colorScheme.surface
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Semua Beres! 🎉",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                BrutalTextButton(
-                    text = "RENCANA BESOK",
-                    onClick = onNavigateToPlanner
+            // Bottom Action Button - Full Width
+            item {
+                BrutalistLargeButton(
+                    text = "Catat Cepat",
+                    onClick = onNavigateToPlanner,
+                    icon = Icons.Default.Add,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
-
-        // Quick Access Buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Surface(
-                onClick = onNavigateToMoney,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(100.dp)
-                    .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp),
-                shape = RoundedCornerShape(8.dp),
-                color = DeepTeal,
-                contentColor = Color.White
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(Icons.Default.AccountBalanceWallet, null, modifier = Modifier.size(32.dp))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(uiState.totalNetWorth),
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-            Surface(
-                onClick = onNavigateToNotes,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(100.dp)
-                    .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp),
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(Icons.Default.Book, null, modifier = Modifier.size(32.dp))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Notes",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Bottom Action Button
-        BrutalistLargeButton(
-            text = "Catat Cepat",
-            onClick = onNavigateToPlanner,
-            icon = Icons.Default.Add
-        )
     }
 
     if (showModeDialog) {
