@@ -10,6 +10,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.app.summa.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -69,6 +71,7 @@ fun UniversalFocusModeScreen(
 }
 
 // ... FocusSetupScreen (Tidak berubah, dianggap sama seperti sebelumnya) ...
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FocusSetupScreen(
     availableHabits: List<com.app.summa.data.model.HabitItem>,
@@ -166,7 +169,6 @@ fun FocusSetupScreen(
     }
 }
 
-@Composable
 @Composable
 fun FocusRunningScreen(
     uiState: com.app.summa.ui.viewmodel.FocusUiState,
