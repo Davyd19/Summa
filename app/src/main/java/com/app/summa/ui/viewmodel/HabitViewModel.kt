@@ -117,17 +117,21 @@ class HabitViewModel @Inject constructor(
                 reminderTime = reminderTime,
                 createdAt = System.currentTimeMillis()
             )
-            habitRepository.insertHabit(newHabit)
+            val id = habitRepository.insertHabit(newHabit)
             
             if (reminderTime.isNotBlank()) {
-                 // notificationScheduler.scheduleHabit(newHabit) // Assuming this exists or TODO
+                 val habitWithId = newHabit.copy(id = id)
+                 notificationScheduler.scheduleHabitReminder(habitWithId)
             }
         }
     }
 
     fun selectHabit(habitId: Long) {
-        _uiState.update { it.copy(selectedHabit = it.habits.find { h -> h.id == habitId }) }
-        loadHabitLogs(habitId)
+        val habit = _uiState.value.habits.find { h -> h.id == habitId }
+        if (habit != null) {
+             _uiState.update { it.copy(selectedHabit = habit) }
+             loadHabitLogs(habitId)
+        }
     }
 
     private fun loadHabitLogs(habitId: Long) {
@@ -135,52 +139,6 @@ class HabitViewModel @Inject constructor(
             habitRepository.getHabitLogs(habitId).collect { logs ->
                 _uiState.update { it.copy(habitLogs = logs) }
             }
-        }
-    }
-
-    // Helper alias for UI (increment)
-    fun incrementHabit(habit: HabitItem) {
-        viewModelScope.launch {
-            // Use currentCount + 1
-             habitRepository.updateHabitCount(habit.originalModel, habit.currentCount + 1)
-        }
-    }
-
-    fun saveFocusSession(habitId: Long, clips: Int, startTime: Long) {
-         // Placeholder for integration if needed here or use FocusRepository directly in Screen
-         // But HabitsScreen called viewModel.saveFocusSession
-         viewModelScope.launch {
-             // Basic implementation
-         }
-    }
-
-
-    }
-
-    private fun loadHabitLogs(habitId: Long) {
-        viewModelScope.launch {
-            habitRepository.getHabitLogs(habitId).collect { logs ->
-                _uiState.update { it.copy(habitLogs = logs) }
-            }
-        }
-    }
-
-    fun addHabit(name: String, icon: String, target: Int, identityId: Long?, cue: String, reminder: String) {
-        viewModelScope.launch {
-            val newHabit = Habit(
-                name = name,
-                icon = icon,
-                targetCount = target,
-                relatedIdentityId = identityId,
-                cue = cue,
-                reminderTime = reminder,
-                createdAt = System.currentTimeMillis()
-            )
-            val id = habitRepository.insertHabit(newHabit)
-
-            // PERBAIKAN: Gunakan objek habit yang baru dibuat dengan ID yang benar
-            val habitWithId = newHabit.copy(id = id)
-            notificationScheduler.scheduleHabitReminder(habitWithId)
         }
     }
 
