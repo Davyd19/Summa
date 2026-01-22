@@ -655,7 +655,7 @@ fun BrutalistMonthlyView(
         Divider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 2.dp)
         Text("TASKS FOR ${uiState.selectedDate.format(DateTimeFormatter.ofPattern("dd MMMM", Locale("id"))).uppercase()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
 
-        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (dailyTasks.isEmpty()) {
                 item { Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), contentAlignment = Alignment.Center) { Text(if(currentMode=="Fokus") "No commitments" else "No tasks", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) } }
             } else {
