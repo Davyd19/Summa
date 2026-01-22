@@ -29,9 +29,9 @@ import kotlin.math.roundToInt
 
 @Composable
 fun Modifier.brutalBorder(
-    strokeWidth: Dp = 2.dp,
-    color: Color = Color.Black,
-    cornerRadius: Dp = 8.dp
+    strokeWidth: Dp = 3.dp, // Thicker border
+    color: Color = MaterialTheme.colorScheme.outline, // Use outline color
+    cornerRadius: Dp = 6.dp // Sharper corners
 ) = this.then(
     border(
         width = strokeWidth,
@@ -51,12 +51,11 @@ fun BrutalistCard(
         modifier = modifier
             .shadow(
                 elevation = 0.dp,
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(6.dp),
                 clip = false
             )
-            .offset(x = 0.dp, y = 0.dp)
-            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp),
-        shape = RoundedCornerShape(8.dp),
+            .brutalBorder(strokeWidth = 3.dp, cornerRadius = 6.dp),
+        shape = RoundedCornerShape(6.dp),
         color = containerColor,
         contentColor = contentColor
     ) {

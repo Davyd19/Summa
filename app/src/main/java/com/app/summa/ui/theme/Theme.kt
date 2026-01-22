@@ -76,16 +76,18 @@ private val MorningColorScheme = BrutalistLightColorScheme.copy(
 
 @Composable
 fun SummaTheme(
-    // PARAMETER BARU: Menerima Mode Aplikasi
     appMode: String = "Normal",
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    // Ignore system dark theme by default to ensure design consistency
+    darkTheme: Boolean = false, 
     content: @Composable () -> Unit
 ) {
-    // LOGIKA PEMILIHAN TEMA DINAMIS
+    // FORCE THEME BASED ON MODE
+    // Normal / Pagi -> Light (Brutalist White)
+    // Fokus -> Dark (Brutalist Black)
+    // Malam -> Dark
     val colorScheme = when (appMode) {
-        "Fokus" -> BrutalistDarkColorScheme
-        "Pagi" -> MorningColorScheme
-        else -> if (darkTheme) BrutalistDarkColorScheme else BrutalistLightColorScheme
+        "Fokus", "Malam" -> BrutalistDarkColorScheme
+        else -> BrutalistLightColorScheme // Force Light for Normal/Pagi
     }
 
     val view = LocalView.current
@@ -95,13 +97,12 @@ fun SummaTheme(
             if (context is Activity) {
                 val window = context.window
                 window.statusBarColor = colorScheme.background.toArgb()
-                window.navigationBarColor = colorScheme.surface.toArgb() // Match bottom nav
+                window.navigationBarColor = colorScheme.surface.toArgb()
 
-                // Atur icon status bar (gelap/terang)
+                // Determine content color (status bar icons)
                 val isDarkContent = when (appMode) {
-                    "Fokus" -> false // Text putih
-                    "Pagi" -> true   // Text hitam
-                    else -> !darkTheme
+                    "Fokus", "Malam" -> false // White text -> Dark background -> Light icons? No, White text means Dark Background means Light Icons (isAppearanceLightStatusBars = false)
+                    else -> true   // Black text -> Light background -> Dark icons (isAppearanceLightStatusBars = true)
                 }
 
                 WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = isDarkContent

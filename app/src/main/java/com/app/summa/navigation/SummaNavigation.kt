@@ -142,8 +142,9 @@ fun BottomNavigationBar(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(78.dp)
-            .brutalBorder(),
+            .height(100.dp) // Increased height to prevent cutoff
+            .brutalBorder()
+            .padding(bottom = 16.dp), // Lift content up from system nav bar
         color = MaterialTheme.colorScheme.surface
     ) {
         Row(
