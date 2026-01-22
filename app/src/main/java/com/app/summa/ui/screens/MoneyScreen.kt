@@ -1,5 +1,7 @@
 package com.app.summa.ui.screens
 
+import com.app.summa.ui.components.*
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -106,13 +108,13 @@ fun MoneyScreen(
                     contentPadding = PaddingValues(bottom = 100.dp, top = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    item { CleanNetWorthCard(totalNetWorth = uiState.totalNetWorth, modifier = Modifier.padding(horizontal = 16.dp)) }
+                    item { BrutalistNetWorthCard(totalNetWorth = uiState.totalNetWorth, modifier = Modifier.padding(horizontal = 16.dp)) }
                     item {
                         Text("Akun Anda", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
                     }
                     item {
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(horizontal = 16.dp)) {
-                            items(uiState.accounts) { account -> CleanAccountCard(account = account) }
+                            items(uiState.accounts) { account -> BrutalistAccountCard(account = account) }
                         }
                     }
                     item {
@@ -127,7 +129,7 @@ fun MoneyScreen(
                         ) {
                             Column {
                                 uiState.recentTransactions.forEachIndexed { index, transaction ->
-                                    CleanTransactionItem(transaction = transaction)
+                                    BrutalistTransactionItem(transaction = transaction)
                                     if (index < uiState.recentTransactions.lastIndex) {
                                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                     }
@@ -163,30 +165,27 @@ fun MoneyScreen(
     }
 }
 
+
 @Composable
-fun CleanNetWorthCard(
+fun BrutalistNetWorthCard(
     totalNetWorth: Double,
     modifier: Modifier = Modifier
 ) {
     val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
 
-    Card(
+    BrutalistCard(
         modifier = modifier
-            .fillMaxWidth()
-            .brutalBorder(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(3.dp, MaterialTheme.colorScheme.onBackground)
+            .fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.primary
     ) {
         Box {
-            // Subtle background pattern
+            // Background decoration
             Box(
                 modifier = Modifier
                     .size(120.dp)
                     .offset(x = 240.dp, y = (-20).dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.08f))
+                    .brutalBorder(radius = 100.dp, strokeWidth = 1.dp)
+                    .background(Color.White.copy(alpha = 0.08f), CircleShape)
             )
 
             Column(
@@ -201,15 +200,16 @@ fun CleanNetWorthCard(
                 ) {
                     Column {
                         Text(
-                            "Total Kekayaan Bersih",
+                            "NET WORTH",
                             style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                             color = Color.White.copy(alpha = 0.9f)
                         )
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(8.dp))
                         Text(
                             formatter.format(totalNetWorth),
                             style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Black,
                             color = Color.White
                         )
                     }
@@ -237,6 +237,7 @@ fun CleanNetWorthCard(
                     Text(
                         "+5.2% bulan ini",
                         style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
                         color = Color.White.copy(alpha = 0.85f)
                     )
                 }
@@ -246,7 +247,7 @@ fun CleanNetWorthCard(
 }
 
 @Composable
-fun CleanQuickActions(
+fun BrutalistQuickActions(
     onIncomeClick: () -> Unit,
     onExpenseClick: () -> Unit,
     onTransferClick: () -> Unit,
@@ -256,23 +257,23 @@ fun CleanQuickActions(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        CleanActionButton(
+        BrutalistActionButton(
             icon = Icons.Default.ArrowDownward,
-            label = "Masuk",
+            label = "MASUK",
             color = SuccessGreen,
             onClick = onIncomeClick,
             modifier = Modifier.weight(1f)
         )
-        CleanActionButton(
+        BrutalistActionButton(
             icon = Icons.Default.ArrowUpward,
-            label = "Keluar",
+            label = "KELUAR",
             color = ErrorRed,
             onClick = onExpenseClick,
             modifier = Modifier.weight(1f)
         )
-        CleanActionButton(
+        BrutalistActionButton(
             icon = Icons.Default.SwapHoriz,
-            label = "Transfer",
+            label = "TRANSFER",
             color = MaterialTheme.colorScheme.primary,
             onClick = onTransferClick,
             modifier = Modifier.weight(1f)
@@ -281,27 +282,21 @@ fun CleanQuickActions(
 }
 
 @Composable
-fun CleanActionButton(
+fun BrutalistActionButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     color: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        onClick = onClick,
-        modifier = modifier.height(72.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.08f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
+    BrutalistCard(
+        modifier = modifier.height(72.dp).clickable(onClick = onClick),
+        containerColor = color.copy(alpha = 0.1f)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
+                .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -314,8 +309,8 @@ fun CleanActionButton(
             Spacer(Modifier.height(4.dp))
             Text(
                 label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
                 color = color
             )
         }
@@ -323,7 +318,7 @@ fun CleanActionButton(
 }
 
 @Composable
-fun CleanAccountCard(account: Account) {
+fun BrutalistAccountCard(account: Account) {
     val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
     val baseColor = try {
         Color(account.color.removePrefix("#").toLong(16) or 0x00000000FF000000)
@@ -331,13 +326,11 @@ fun CleanAccountCard(account: Account) {
         DeepTeal
     }
 
-    Card(
+    BrutalistCard(
         modifier = Modifier
             .width(260.dp)
             .height(140.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = baseColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        containerColor = baseColor
     ) {
         Box {
             // Background decoration
@@ -345,8 +338,8 @@ fun CleanAccountCard(account: Account) {
                 modifier = Modifier
                     .size(100.dp)
                     .offset(x = 180.dp, y = (-20).dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.1f))
+                    .brutalBorder(radius=100.dp, strokeWidth=1.dp)
+                    .background(Color.White.copy(alpha = 0.1f), CircleShape)
             )
 
             Column(
@@ -363,24 +356,26 @@ fun CleanAccountCard(account: Account) {
                         Text(
                             account.name,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                         Text(
-                            account.type.name.lowercase().replaceFirstChar { it.uppercase() },
-                            style = MaterialTheme.typography.bodySmall,
+                            account.type.name.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
                             color = Color.White.copy(alpha = 0.8f)
                         )
                     }
 
                     if (account.isInvestment) {
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = GoldAccent.copy(alpha = 0.3f)
+                            shape = RoundedCornerShape(4.dp),
+                            color = GoldAccent.copy(alpha = 0.3f),
+                            modifier = Modifier.brutalBorder(strokeWidth = 1.dp, radius = 4.dp)
                         ) {
                             Text(
                                 "💎",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -390,7 +385,7 @@ fun CleanAccountCard(account: Account) {
                 Text(
                     formatter.format(account.balance),
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
                     color = Color.White
                 )
             }
@@ -399,32 +394,22 @@ fun CleanAccountCard(account: Account) {
 }
 
 @Composable
-fun CleanTransactionItem(transaction: Transaction) {
+fun BrutalistTransactionItem(transaction: Transaction) {
     val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
     val isExpense = transaction.type == TransactionType.EXPENSE
     val color = if (isExpense) ErrorRed else SuccessGreen
 
-    ListItem(
-        headlineContent = {
-            Text(
-                transaction.note.ifBlank { transaction.category },
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
-            )
-        },
-        supportingContent = {
-            Text(
-                "${transaction.date} • ${transaction.category}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-        },
-        leadingContent = {
-            Box(
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(CircleShape)
-                    .background(color.copy(alpha = 0.1f)),
+                    .brutalBorder(radius=100.dp, strokeWidth=2.dp, color=color)
+                    .background(color.copy(alpha = 0.1f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -434,21 +419,32 @@ fun CleanTransactionItem(transaction: Transaction) {
                     modifier = Modifier.size(20.dp)
                 )
             }
-        },
-        trailingContent = {
-            Text(
-                formatter.format(transaction.amount),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = color
-            )
-        },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-    )
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(
+                    transaction.note.ifBlank { transaction.category },
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                     "${transaction.date} • ${transaction.category}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+        }
+       
+        Text(
+            formatter.format(transaction.amount),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+    }
 }
 
 @Composable
-fun CleanRewardAnimation(onDismiss: () -> Unit) {
+fun BrutalistRewardAnimation(onDismiss: () -> Unit) {
     var visible by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
@@ -464,13 +460,9 @@ fun CleanRewardAnimation(onDismiss: () -> Unit) {
             enter = scaleIn() + fadeIn(),
             exit = scaleOut() + fadeOut()
         ) {
-            Card(
+            BrutalistCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = GoldContainer
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                containerColor = GoldContainer
             ) {
                 Column(
                     modifier = Modifier
@@ -489,7 +481,6 @@ fun CleanRewardAnimation(onDismiss: () -> Unit) {
                         label = "scale"
                     )
 
-                    // PERBAIKAN: Gunakan Modifier.scale() bukan graphicsLayer
                     Text(
                         "💎",
                         style = MaterialTheme.typography.displayLarge,
@@ -499,19 +490,20 @@ fun CleanRewardAnimation(onDismiss: () -> Unit) {
                     Spacer(Modifier.height(16.dp))
 
                     Text(
-                        "Investasi Bertambah!",
+                        "INVESTMENT UP!",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Black,
                         color = GoldDark
                     )
 
                     Spacer(Modifier.height(8.dp))
 
                     Text(
-                        "Masa depan lebih cerah dengan keputusan cerdas ini",
+                        "Smart move for a brighter future.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -519,7 +511,7 @@ fun CleanRewardAnimation(onDismiss: () -> Unit) {
     }
 }
 
-// Dialogs tetap sama seperti sebelumnya
+// Dialogs tetap sama seperti sebelumnya (AddAccountDialog, AddTransactionDialog, TransferDialog)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddAccountDialog(
@@ -534,22 +526,22 @@ fun AddAccountDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Tambah Akun Baru", fontWeight = FontWeight.Bold) },
+        title = { Text("AKUN BARU", fontWeight = FontWeight.Black) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nama Akun") },
+                    label = { Text("NAMA AKUN") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(8.dp)
                 )
                 OutlinedTextField(
                     value = balance,
                     onValueChange = { balance = it },
-                    label = { Text("Saldo Awal") },
+                    label = { Text("SALDO AWAL") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(8.dp)
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -560,7 +552,7 @@ fun AddAccountDialog(
                         onCheckedChange = { isInvestment = it }
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Akun Investasi")
+                    Text("Akun Investasi", fontWeight=FontWeight.Bold)
                 }
             }
         },
@@ -569,14 +561,15 @@ fun AddAccountDialog(
                 onClick = {
                     onAdd(name, type, balance.toDoubleOrNull() ?: 0.0, isInvestment, color)
                 },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(4.dp), // Brutalist shape
+                modifier = Modifier.brutalBorder()
             ) {
-                Text("Tambah")
+                Text("TAMBAH", fontWeight=FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Batal")
+                Text("BATAL", fontWeight=FontWeight.Bold)
             }
         }
     )
@@ -589,7 +582,9 @@ fun AddTransactionDialog(
     onDismiss: () -> Unit,
     onAdd: (Account, TransactionType, Double, String, String) -> Unit
 ) {
-    var selectedAccount by remember { mutableStateOf(accounts.firstOrNull()) }
+    // ... (Keep implementation but update styling if needed, essentially same as above)
+    // For brevity assuming standard Dialog is fine, but styled buttons are better.
+     var selectedAccount by remember { mutableStateOf(accounts.firstOrNull()) }
     var amount by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
@@ -597,41 +592,41 @@ fun AddTransactionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Tambah Transaksi", fontWeight = FontWeight.Bold) },
+        title = { Text("TRANSAKSI", fontWeight = FontWeight.Black) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = type == TransactionType.INCOME,
                         onClick = { type = TransactionType.INCOME },
-                        label = { Text("Masuk") }
+                        label = { Text("MASUK") }
                     )
                     FilterChip(
                         selected = type == TransactionType.EXPENSE,
                         onClick = { type = TransactionType.EXPENSE },
-                        label = { Text("Keluar") }
+                        label = { Text("KELUAR") }
                     )
                 }
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
-                    label = { Text("Jumlah") },
+                    label = { Text("JUMLAH") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(8.dp)
                 )
                 OutlinedTextField(
                     value = category,
                     onValueChange = { category = it },
-                    label = { Text("Kategori") },
+                    label = { Text("KATEGORI") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(8.dp)
                 )
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text("Catatan (Opsional)") },
+                    label = { Text("CATATAN") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(8.dp)
                 )
             }
         },
@@ -642,14 +637,15 @@ fun AddTransactionDialog(
                         onAdd(selectedAccount!!, type, amount.toDoubleOrNull() ?: 0.0, category, note)
                     }
                 },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier.brutalBorder()
             ) {
-                Text("Simpan")
+                Text("SIMPAN", fontWeight=FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Batal")
+                Text("BATAL", fontWeight=FontWeight.Bold)
             }
         }
     )
@@ -668,17 +664,17 @@ fun TransferDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Transfer Dana", fontWeight = FontWeight.Bold) },
+        title = { Text("TRANSFER", fontWeight = FontWeight.Black) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Dari: ${fromAccount?.name}")
-                Text("Ke: ${toAccount?.name}")
+                Text("DARI: ${fromAccount?.name}", fontWeight=FontWeight.Bold)
+                Text("KE: ${toAccount?.name}", fontWeight=FontWeight.Bold)
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
-                    label = { Text("Jumlah") },
+                    label = { Text("JUMLAH") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(8.dp)
                 )
             }
         },
@@ -689,14 +685,15 @@ fun TransferDialog(
                         onConfirm(fromAccount!!, toAccount!!, amount.toDoubleOrNull() ?: 0.0)
                     }
                 },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier.brutalBorder()
             ) {
-                Text("Transfer")
+                Text("TRANSFER", fontWeight=FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Batal")
+                Text("BATAL", fontWeight=FontWeight.Bold)
             }
         }
     )

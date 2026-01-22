@@ -1,5 +1,7 @@
 package com.app.summa.ui.screens
 
+import com.app.summa.ui.components.*
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -126,12 +128,13 @@ fun FocusSetupScreen(
             onClick = onStart,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(16.dp)
+                .height(56.dp)
+                .brutalBorder(radius=4.dp),
+            shape = RoundedCornerShape(4.dp)
         ) {
             Icon(Icons.Default.PlayArrow, null)
             Spacer(Modifier.width(8.dp))
-            Text("Mulai Sesi", style = MaterialTheme.typography.titleMedium)
+            Text("MULAI SESI", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
 
         Spacer(Modifier.height(16.dp))
@@ -235,19 +238,21 @@ fun FocusRunningScreen(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(220.dp)
+                .brutalBorder(radius=220.dp, strokeWidth=4.dp, color=DeepTeal)
                 .border(4.dp, DeepTeal.copy(alpha = 0.2f), CircleShape)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     String.format("%02d:%02d", elapsedTimeSeconds / 60, elapsedTimeSeconds % 60),
                     style = MaterialTheme.typography.displayLarge,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
                     color = DeepTeal
                 )
                 Text(
-                    if (isRunning) "Fokus..." else "Pindahkan klip untuk mulai",
+                    if (isRunning) "FOKUS..." else "Geser klip untuk mulai",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -265,7 +270,8 @@ fun FocusRunningScreen(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(100.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(24.dp))
+                    .brutalBorder(strokeWidth = 3.dp, radius = 8.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
                     // PERBAIKAN: Klik juga bisa memindahkan klip (Aksesibilitas)
                     .clickable(
                         enabled = paperclipsLeft > 0,
@@ -357,8 +363,8 @@ fun FocusRunningScreen(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(100.dp)
-                    .background(SuccessGreen.copy(alpha = 0.1f), RoundedCornerShape(24.dp))
-                    .border(2.dp, SuccessGreen.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
+                    .background(SuccessGreen.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                    .brutalBorder(radius=8.dp, strokeWidth=2.dp, color=SuccessGreen)
                     .semantics { contentDescription = "Target pengumpulan klip" }
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -370,7 +376,7 @@ fun FocusRunningScreen(
                     Text(
                         "$paperclipsMoved",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Black,
                         color = SuccessGreen
                     )
                 }

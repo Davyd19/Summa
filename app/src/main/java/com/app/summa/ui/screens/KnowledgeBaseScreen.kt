@@ -1,5 +1,7 @@
 package com.app.summa.ui.screens
 
+import com.app.summa.ui.components.*
+
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -180,7 +182,6 @@ fun EnhancedNoteList(
     emptyIcon: String,
     emptyTitle: String,
     emptyText: String,
-    // Callback opsional
     onQuickPromote: ((KnowledgeNote) -> Unit)? = null
 ) {
     if (notes.isEmpty()) {
@@ -194,14 +195,14 @@ fun EnhancedNoteList(
             Box(
                 modifier = Modifier
                     .size(120.dp)
-                    .clip(CircleShape)
+                    .brutalBorder(radius=120.dp, strokeWidth=1.dp)
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
                                 MaterialTheme.colorScheme.primaryContainer,
                                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                             )
-                        )
+                        ), CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -214,14 +215,15 @@ fun EnhancedNoteList(
             Text(
                 emptyTitle,
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Black
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 emptyText,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                fontWeight = FontWeight.Bold
             )
         }
     } else {
@@ -246,11 +248,9 @@ fun EnhancedNoteCard(
     onClick: () -> Unit,
     onPromote: ((KnowledgeNote) -> Unit)? = null
 ) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().brutalBorder(),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface
+    BrutalistCard(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
@@ -282,15 +282,17 @@ fun EnhancedNoteCard(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                         maxLines = 4,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = FontWeight.Medium
                     )
                 }
 
                 // Bagian Kanan: Indikator atau Tombol Aksi
                 if (note.isPermanent) {
                     Surface(
-                        shape = CircleShape,
-                        color = PurpleAccent.copy(alpha = 0.15f)
+                        shape = RoundedCornerShape(4.dp),
+                        color = PurpleAccent.copy(alpha = 0.15f),
+                        modifier = Modifier.brutalBorder(radius=4.dp, strokeWidth=1.dp)
                     ) {
                         Icon(
                             Icons.Default.Inventory,
@@ -303,12 +305,13 @@ fun EnhancedNoteCard(
                     }
                 } else if (onPromote != null) {
                     // TOMBOL QUICK PROMOTE UNTUK INBOX
-                    IconButton(
-                        onClick = { onPromote(note) },
+                    Box(
                         modifier = Modifier
-                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-                            .brutalBorder(strokeWidth = 2.dp, radius = 20.dp)
                             .size(40.dp)
+                            .brutalBorder(strokeWidth = 2.dp, radius = 40.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                            .clickable { onPromote(note) },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.DriveFileMove, // Icon pindah/arsip
@@ -326,19 +329,7 @@ fun EnhancedNoteCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     note.tags.split(",").take(3).forEach { tag ->
-                        Surface(
-                            modifier = Modifier.brutalBorder(strokeWidth = 2.dp, radius = 6.dp),
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            Text(
-                                tag.trim(),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
+                        BrutalistTag(text = tag.trim())
                     }
                 }
             }

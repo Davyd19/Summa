@@ -1,5 +1,7 @@
 package com.app.summa.ui.screens
 
+import com.app.summa.ui.components.*
+
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -128,7 +130,7 @@ fun IdentityProfileScreen(
                 }
 
                 items(uiState.identities) { identity ->
-                    IdentityStatCard(
+                    BrutalistIdentityStatCard(
                         identity = identity,
                         onClick = { viewModel.selectIdentity(identity) } // KLIK UNTUK DETAIL
                     )
@@ -164,7 +166,7 @@ fun IdentityProfileScreen(
                     }
                 } else {
                     items(uiState.recentActivityLogs) { log ->
-                        EvidenceTimelineItem(log)
+                        BrutalistEvidenceItem(log)
                     }
                 }
             }
@@ -210,14 +212,14 @@ fun IdentityDetailSheet(
             Box(
                 modifier = Modifier
                     .size(100.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .brutalBorder(radius = 100.dp, strokeWidth = 3.dp)
+                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     identity.name.take(1).uppercase(),
                     style = MaterialTheme.typography.displayMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
@@ -237,9 +239,9 @@ fun IdentityDetailSheet(
             Spacer(Modifier.height(32.dp))
 
             // Level & Progress Bar Besar
-            Card(
+            BrutalistCard(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
             ) {
                 Column(Modifier.padding(20.dp)) {
                     Row(
@@ -248,19 +250,16 @@ fun IdentityDetailSheet(
                         verticalAlignment = Alignment.Bottom
                     ) {
                         Text("LEVEL $level", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = GoldDark)
-                        Text("${currentXp}/100 XP", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${currentXp}/100 XP", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(Modifier.height(12.dp))
 
-                    LinearProgressIndicator(
-                        progress = { progress },
+                    BrutalistProgressBar(
+                        progress = progress,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(16.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        color = GoldAccent,
-                        trackColor = MaterialTheme.colorScheme.surface
                     )
 
                     Spacer(Modifier.height(8.dp))
@@ -295,7 +294,7 @@ fun IdentityDetailSheet(
             } else {
                 LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
                     items(logs) { log ->
-                        EvidenceTimelineItem(log)
+                        BrutalistEvidenceItem(log)
                     }
                 }
             }
@@ -482,11 +481,11 @@ fun ProfileHeader(totalLevel: Int) {
             Box(
                 modifier = Modifier
                     .size(100.dp)
-                    .clip(CircleShape)
+                    .brutalBorder(radius = 100.dp, strokeWidth = 3.dp)
                     .background(
                         Brush.linearGradient(
                             colors = listOf(DeepTeal, TealLight)
-                        )
+                        ), CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -494,17 +493,18 @@ fun ProfileHeader(totalLevel: Int) {
                     "YOU",
                     style = MaterialTheme.typography.headlineMedium,
                     color = Color.White,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Black
                 )
             }
 
             Surface(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(4.dp),
                 color = GoldAccent,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .offset(y = 12.dp),
-                shadowElevation = 4.dp
+                    .offset(y = 12.dp)
+                    .brutalBorder(radius = 4.dp),
+                shadowElevation = 0.dp
             ) {
                 Text(
                     "LVL $totalLevel",
@@ -521,7 +521,7 @@ fun ProfileHeader(totalLevel: Int) {
 
 @Composable
 fun RadarChart(identities: List<Identity>, modifier: Modifier = Modifier) {
-    // ... (Keep existing implementation)
+    // ... (Keep existing implementation logic but ensure colors match)
     val labels = identities.map { it.name }
     val maxVal = 1000f
     val values = identities.map { min(it.progress.toFloat(), maxVal) / maxVal }
@@ -543,7 +543,7 @@ fun RadarChart(identities: List<Identity>, modifier: Modifier = Modifier) {
                 if (j == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
             path.close()
-            drawPath(path, color = surfaceColor.copy(alpha = 0.1f), style = Stroke(width = 1.dp.toPx()))
+            drawPath(path, color = surfaceColor.copy(alpha = 0.1f), style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)) // Thicker stroke
         }
 
         val dataPath = Path()
@@ -553,11 +553,11 @@ fun RadarChart(identities: List<Identity>, modifier: Modifier = Modifier) {
             val x = center.x + r * cos(angle).toFloat()
             val y = center.y + r * sin(angle).toFloat()
             if (index == 0) dataPath.moveTo(x, y) else dataPath.lineTo(x, y)
-            drawCircle(color = primaryColor, radius = 4.dp.toPx(), center = Offset(x, y))
+            drawCircle(color = primaryColor, radius = 6.dp.toPx(), center = Offset(x, y)) // Bigger dots
         }
         dataPath.close()
         drawPath(path = dataPath, color = primaryColor.copy(alpha = 0.3f), style = Fill)
-        drawPath(path = dataPath, color = primaryColor, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
+        drawPath(path = dataPath, color = primaryColor, style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)) // Thicker stroke
 
         values.indices.forEach { index ->
             val angle = Math.toRadians((stepAngle * index - 90).toDouble())
@@ -569,7 +569,7 @@ fun RadarChart(identities: List<Identity>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun IdentityStatCard(
+fun BrutalistIdentityStatCard(
     identity: Identity,
     onClick: () -> Unit // Parameter Baru
 ) {
@@ -577,15 +577,12 @@ fun IdentityStatCard(
     val currentXp = identity.progress % 100
     val progress = currentXp / 100f
 
-    Card(
-        onClick = onClick, // Enable Click
+    BrutalistCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 6.dp)
-            .brutalBorder(strokeWidth = 3.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = null
+            .clickable(onClick = onClick),
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -601,30 +598,194 @@ fun IdentityStatCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "Lvl $level",
+                    "LVL $level",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
                     color = GoldDark
                 )
             }
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                BrutalistProgressBar(
+                    progress = progress,
+                    modifier = Modifier.weight(1f).height(12.dp)
                 )
                 Spacer(Modifier.width(12.dp))
                 Text(
                     "$currentXp / 100 XP",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
     }
+}
+
+@Composable
+fun BrutalistEvidenceItem(note: KnowledgeNote) {
+    val identityName = if (note.title.startsWith("Bukti: ")) {
+        note.title.removePrefix("Bukti: ")
+    } else if (note.title.startsWith("Jurnal Identitas: ")) {
+        note.title.removePrefix("Jurnal Identitas: ")
+    } else {
+        "Aktivitas"
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .height(IntrinsicSize.Min)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.width(24.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .brutalBorder(radius=12.dp, strokeWidth=1.dp)
+                    .background(GoldAccent, CircleShape)
+            )
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.onSurface)
+            )
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        BrutalistCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Text(
+                        identityName,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Surface(
+                        color = GoldAccent,
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier.brutalBorder(radius=4.dp, strokeWidth=1.dp)
+                    ) {
+                        Text(
+                            "+XP",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Black,
+                            color = Color.Black,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(4.dp))
+
+                Text(
+                    text = note.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(note.createdAt ?: 0)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    modifier = Modifier.align(Alignment.End).padding(top = 4.dp),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun EmptyIdentityState() {
+    BrutalistCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    ) {
+        Column(
+            modifier = Modifier.padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(Icons.Default.PersonOutline, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(16.dp))
+            Text("BELUM ADA IDENTITAS", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Black)
+            Text("Buat kebiasaan baru untuk memulai", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+        }
+    }
+}
+
+// ... (IdentityDetailSheet & AddIdentityDialog need updates too but for now linking usages)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddIdentityDialog(
+    onDismiss: () -> Unit,
+    onAdd: (String, String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("IDENTITAS BARU", fontWeight = FontWeight.Black) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(
+                    "Siapa yang ingin Anda jadi?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.Bold
+                )
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("NAMA IDENTITAS") },
+                    placeholder = { Text("Contoh: Musisi, Orang Sehat") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("DESKRIPSI/MANTRA") },
+                    placeholder = { Text("Contoh: Saya menciptakan musik setiap hari") },
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { if (name.isNotBlank()) onAdd(name, description) },
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier.brutalBorder()
+            ) {
+                Text("TAMBAH", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("BATAL", fontWeight = FontWeight.Bold) }
+        }
+    )
 }

@@ -1,5 +1,7 @@
 package com.app.summa.ui.screens
 
+import com.app.summa.ui.components.*
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -140,6 +142,45 @@ fun ReflectionScreen(
 }
 
 @Composable
+fun BrutalistStatBox(label: String, value: String, icon: ImageVector, color: Color, modifier: Modifier) {
+    BrutalistCard(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.height(8.dp))
+            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = color)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.8f), fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun BrutalistWinCard(text: String, icon: String, type: String) {
+    BrutalistCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(icon, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                Text(type, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+// Update usages in RitualStepOne
+@Composable
 fun RitualStepOne(summary: DailySummary?) {
     if (summary == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -164,8 +205,7 @@ fun RitualStepOne(summary: DailySummary?) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(10.dp))
-        Text("Tinjauan Hari Ini", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Seberapa konsisten Anda hari ini?", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+        BrutalistHeader(title = "TINJAUAN HARI", subtitle = "Seberapa konsisten Anda hari ini?")
 
         Spacer(Modifier.height(32.dp))
 
@@ -181,7 +221,8 @@ fun RitualStepOne(summary: DailySummary?) {
             Box(
                 modifier = Modifier
                     .size(120.dp)
-                    .border(width = 4.dp, color = if (isGreatDay) GoldAccent else MaterialTheme.colorScheme.outline, shape = CircleShape),
+                    .brutalBorder(radius = 100.dp, strokeWidth = 4.dp, color = if (isGreatDay) GoldAccent else MaterialTheme.colorScheme.outline)
+                    .background(MaterialTheme.colorScheme.surface, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -194,13 +235,13 @@ fun RitualStepOne(summary: DailySummary?) {
         Spacer(Modifier.height(40.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            StatBox(label = "Komitmen", value = "${summary.completedCommitments}/${summary.totalCommitments}", icon = Icons.Default.CheckCircle, color = DeepTeal, modifier = Modifier.weight(1f))
-            StatBox(label = "Kebiasaan", value = "${summary.completedHabits.size}", icon = Icons.Default.EmojiEvents, color = StreakOrange, modifier = Modifier.weight(1f))
+            BrutalistStatBox(label = "KOMITMEN", value = "${summary.completedCommitments}/${summary.totalCommitments}", icon = Icons.Default.CheckCircle, color = DeepTeal, modifier = Modifier.weight(1f))
+            BrutalistStatBox(label = "KEBIASAAN", value = "${summary.completedHabits.size}", icon = Icons.Default.EmojiEvents, color = StreakOrange, modifier = Modifier.weight(1f))
         }
 
         Spacer(Modifier.height(32.dp))
 
-        Text("Kemenangan Kecil", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Start))
+        Text("KEMENANGAN KECIL", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.Start))
         Spacer(Modifier.height(12.dp))
 
         if (summary.completedTasks.isEmpty() && summary.completedHabits.isEmpty()) {
@@ -209,56 +250,22 @@ fun RitualStepOne(summary: DailySummary?) {
             }
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                summary.completedHabits.forEach { habit -> WinCard(text = habit.name, icon = habit.icon, type = "Kebiasaan") }
-                summary.completedTasks.forEach { task -> WinCard(text = task.title, icon = if (task.isCommitment) "🔥" else "✅", type = if (task.isCommitment) "Komitmen" else "Tugas") }
+                summary.completedHabits.forEach { habit -> BrutalistWinCard(text = habit.name, icon = habit.icon, type = "KEBIASAAN") }
+                summary.completedTasks.forEach { task -> BrutalistWinCard(text = task.title, icon = if (task.isCommitment) "🔥" else "✅", type = if (task.isCommitment) "KOMITMEN" else "TUGAS") }
             }
         }
         Spacer(Modifier.height(40.dp))
     }
 }
 
-// --- SLIDE 2: VOTING SARAN (FIXED) ---
+// Fix SuggestionVoteCard -> BrutalistVoteCard
 @Composable
-fun RitualStepTwo(suggestions: List<VoteSuggestion>, onVote: (Identity, Int, String) -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("🗳️", style = MaterialTheme.typography.displayLarge)
-        Spacer(Modifier.height(16.dp))
-        Text("Bukti Identitas", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Aktivitas Anda membuktikan siapa Anda.", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-
-        Spacer(Modifier.height(32.dp))
-
-        if (suggestions.isEmpty()) {
-            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Text("Tidak ada saran otomatis.\nLanjut ke manual vote.", textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-            }
-        } else {
-            // FIX: Tambahkan weight(1f) agar LazyColumn mengisi sisa ruang dengan benar
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // FIX: Tambahkan key agar animasi penghapusan item berjalan mulus
-                items(items = suggestions, key = { "${it.identity.id}_${it.reason.hashCode()}" }) { suggestion ->
-                    SuggestionVoteCard(suggestion, onVote)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SuggestionVoteCard(suggestion: VoteSuggestion, onVote: (Identity, Int, String) -> Unit) {
-    // FIX: Gunakan state lokal untuk animasi sebelum menghapus data
+fun BrutalistVoteCard(suggestion: VoteSuggestion, onVote: (Identity, Int, String) -> Unit) {
     var isVisible by remember { mutableStateOf(true) }
 
-    // Trigger penghapusan data SETELAH animasi selesai
     LaunchedEffect(isVisible) {
         if (!isVisible) {
-            delay(400) // Tunggu animasi selesai
+            delay(400)
             onVote(suggestion.identity, suggestion.points, suggestion.reason)
         }
     }
@@ -267,32 +274,27 @@ fun SuggestionVoteCard(suggestion: VoteSuggestion, onVote: (Identity, Int, Strin
         visible = isVisible,
         exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(animationSpec = tween(300))
     ) {
-        Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 4.dp)
-            .brutalBorder(strokeWidth = 3.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = null
+        BrutalistCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp),
+            containerColor = MaterialTheme.colorScheme.surface
         ) {
             Row(
                 modifier = Modifier.padding(20.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Vote untuk:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                    Text(suggestion.identity.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("VOTE UNTUK:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
+                    Text(suggestion.identity.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
                     Spacer(Modifier.height(4.dp))
-                    Text(suggestion.reason, style = MaterialTheme.typography.bodySmall)
+                    Text(suggestion.reason, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic)
                 }
                 Button(
-                    onClick = {
-                        // Mulai animasi exit
-                        isVisible = false
-                    },
+                    onClick = { isVisible = false },
                     colors = ButtonDefaults.buttonColors(containerColor = GoldAccent),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(4.dp),
+                    modifier = Modifier.brutalBorder(radius=4.dp)
                 ) {
                     Text("+${suggestion.points} XP", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
@@ -301,45 +303,48 @@ fun SuggestionVoteCard(suggestion: VoteSuggestion, onVote: (Identity, Int, Strin
     }
 }
 
-// --- SLIDE 3: MANUAL VOTE ---
+// Update RitualStepTwo to use BrutalistVoteCard
 @Composable
-fun RitualStepThree(identities: List<Identity>, onVote: (Identity, Int, String) -> Unit) {
+fun RitualStepTwo(suggestions: List<VoteSuggestion>, onVote: (Identity, Int, String) -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("🙋", style = MaterialTheme.typography.displayLarge)
+        Text("🗳️", style = MaterialTheme.typography.displayLarge)
         Spacer(Modifier.height(16.dp))
-        Text("Siapa Kamu Hari Ini?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(24.dp))
+        BrutalistHeader(title = "BUKTI IDENTITAS", subtitle = "Aktivitas Anda membuktikan siapa Anda.")
 
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(identities) { identity ->
-                CompactIdentityVoteCard(identity, onVote)
+        Spacer(Modifier.height(32.dp))
+
+        if (suggestions.isEmpty()) {
+            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                Text("Tidak ada saran otomatis.\nLanjut ke manual vote.", textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(items = suggestions, key = { "${it.identity.id}_${it.reason.hashCode()}" }) { suggestion ->
+                    BrutalistVoteCard(suggestion, onVote)
+                }
             }
         }
     }
 }
 
+// Update CompactIdentityVoteCard to use BrutalistCard
 @Composable
 fun CompactIdentityVoteCard(identity: Identity, onVote: (Identity, Int, String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf("") }
     val level = identity.progress / 100
 
-    Card(
+    BrutalistCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { expanded = !expanded }
-            .brutalBorder(strokeWidth = 3.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = null
+            .clickable { expanded = !expanded },
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(
@@ -349,7 +354,7 @@ fun CompactIdentityVoteCard(identity: Identity, onVote: (Identity, Int, String) 
             ) {
                 Column {
                     Text(identity.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("Lvl $level", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    Text("Lvl $level", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
                 Icon(if (expanded) Icons.Default.Close else Icons.Default.ThumbUp, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -361,7 +366,7 @@ fun CompactIdentityVoteCard(identity: Identity, onVote: (Identity, Int, String) 
                         onValueChange = { note = it },
                         placeholder = { Text("Alasan (Opsional)") },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(8.dp)
                     )
                     Button(
                         onClick = {
@@ -369,86 +374,12 @@ fun CompactIdentityVoteCard(identity: Identity, onVote: (Identity, Int, String) 
                             expanded = false
                             note = ""
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        modifier = Modifier.fillMaxWidth().brutalBorder(radius=4.dp),
+                        shape = RoundedCornerShape(4.dp)
                     ) {
-                        Text("Beri Suara (+10 XP)")
+                        Text("BERI SUARA (+10 XP)", fontWeight = FontWeight.Bold)
                     }
                 }
-            }
-        }
-    }
-}
-
-// --- SLIDE 4: JURNAL PENUTUP ---
-@Composable
-fun RitualStepFour(text: String, onTextChange: (String) -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("🌙", style = MaterialTheme.typography.displayLarge)
-        Spacer(Modifier.height(16.dp))
-        Text("Satu Pelajaran", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Tutup hari dengan satu pemikiran.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-
-        Spacer(Modifier.height(32.dp))
-
-        OutlinedTextField(
-            value = text,
-            onValueChange = onTextChange,
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            placeholder = { Text("Hari ini saya belajar...") },
-            shape = RoundedCornerShape(24.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-            ),
-            textStyle = MaterialTheme.typography.bodyLarge.copy(lineHeight = 28.sp)
-        )
-    }
-}
-
-@Composable
-fun StatBox(label: String, value: String, icon: ImageVector, color: Color, modifier: Modifier) {
-    Card(
-        modifier = modifier.brutalBorder(strokeWidth = 3.dp, color = MaterialTheme.colorScheme.onBackground),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(8.dp),
-        border = null
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.height(8.dp))
-            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = color)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.8f))
-        }
-    }
-}
-
-@Composable
-fun WinCard(text: String, icon: String, type: String) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(3.dp, MaterialTheme.colorScheme.onBackground),
-        modifier = Modifier
-            .fillMaxWidth()
-            .brutalBorder(strokeWidth = 3.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(icon, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                Text(type, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
             }
         }
     }

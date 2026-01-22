@@ -1,5 +1,7 @@
 package com.app.summa.ui.screens
 
+import com.app.summa.ui.components.*
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -37,12 +39,13 @@ import com.app.summa.ui.components.HabitInputSheet
 import com.app.summa.ui.components.CoinExplosionAnimation
 import com.app.summa.data.model.HabitItem
 import com.app.summa.ui.components.BrutalTopAppBar
-import com.app.summa.ui.components.brutalBorder
+import com.app.summa.ui.components.*
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.HabitViewModel
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+
 
 // --- 1. SCREEN DAFTAR HABIT (LIST ONLY) ---
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,7 +82,7 @@ fun HabitsScreen(
                             onClick = { showAddSheet = true },
                             modifier = Modifier
                                 .padding(end = 10.dp)
-                                .brutalBorder(strokeWidth = 2.dp, radius = 10.dp)
+                                .brutalBorder(strokeWidth = 2.dp, radius = 6.dp)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(22.dp))
                         }
@@ -101,9 +104,9 @@ fun HabitsScreen(
                 } else if (uiState.habits.isEmpty()) {
                     EmptyHabitState(Modifier.padding(paddingValues), onAddClick = { showAddSheet = true })
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize().padding(paddingValues), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    LazyColumn(modifier = Modifier.fillMaxSize().padding(paddingValues), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         items(uiState.habits) { habit ->
-                            EnhancedHabitItem(
+                            BrutalistHabitItem(
                                 habit = habit,
                                 // KLIK ITEM -> NAVIGASI KE ROUTE DETAIL
                                 onClick = { onNavigateToDetail(habit.id) },
@@ -196,35 +199,32 @@ fun ModernHabitDetailScreen(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali") }
-                },
+            BrutalTopAppBar(
+                title = habit.name,
+                navigationIcon = Icons.AutoMirrored.Filled.ArrowBack,
+                onNavigationClick = onBack,
                 actions = {
-                    IconButton(onClick = onEditClick) { Icon(Icons.Default.Edit, "Edit") }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    BrutalIconAction(icon = Icons.Default.Edit, contentDescription = "Edit", onClick = onEditClick)
+                }
             )
         }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(paddingValues),
-            contentPadding = PaddingValues(20.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
-                    Box(modifier = Modifier.size(100.dp).clip(CircleShape).background(Brush.linearGradient(colors = listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)))), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size(100.dp).brutalBorder(radius = 100.dp).background(MaterialTheme.colorScheme.primaryContainer.copy(alpha=0.5f), CircleShape), contentAlignment = Alignment.Center) {
                         Text(habit.icon, style = MaterialTheme.typography.displayLarge)
                     }
-                    Text(habit.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                 }
             }
 
             if (relatedIdentity != null) {
                 item {
-                    IdentityContributionCard(
+                    BrutalistIdentityContributionCard(
                         identity = relatedIdentity,
                         onClick = onIdentityClick // Panggil callback, bukan hanya param
                     )
@@ -233,13 +233,16 @@ fun ModernHabitDetailScreen(
 
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    EnhancedStatCard(title = "Total Points", value = "${habit.totalSum}", subtitle = "XP Terkumpul", icon = "⭐", color = GoldAccent, modifier = Modifier.weight(1f))
-                    EnhancedStatCard(title = "Konsistensi", value = "${habit.currentStreak}", subtitle = "Hari Berturut", icon = "🔥", color = StreakOrange, modifier = Modifier.weight(1f))
+                    val color = GoldAccent
+                    val streakColor = StreakOrange
+                    
+                    BrutalistEmojiStatCard(title = "Total Points", value = "${habit.totalSum}", subtitle = "XP Terkumpul", icon = "⭐", color = color, modifier = Modifier.weight(1f))
+                    BrutalistEmojiStatCard(title = "Konsistensi", value = "${habit.currentStreak}", subtitle = "Hari Berturut", icon = "🔥", color = streakColor, modifier = Modifier.weight(1f))
                 }
             }
 
             item {
-                EnhancedStatCard(
+                BrutalistEmojiStatCard(
                     title = "Streak Sempurna", value = "${habit.perfectStreak}", subtitle = "Hari tanpa putus sama sekali",
                     icon = "👑", color = if (habit.perfectStreak > 0) GoldAccent else MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.fillMaxWidth().height(100.dp), isHorizontal = true
@@ -255,31 +258,24 @@ fun ModernHabitDetailScreen(
 // === KOMPONEN VISUAL YANG DIPERBAIKI ===
 
 @Composable
-fun IdentityContributionCard(
+fun BrutalistIdentityContributionCard(
     identity: Identity,
     onClick: () -> Unit
 ) {
-    Card(
-        onClick = onClick,
+    BrutalistCard(
         modifier = Modifier
             .fillMaxWidth()
-            .brutalBorder(strokeWidth = 3.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = null,
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            .clickable(onClick = onClick)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Icon Identitas dengan background modern
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.size(52.dp)
+                modifier = Modifier.size(52.dp).brutalBorder(strokeWidth = 2.dp, radius = 50.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
@@ -313,27 +309,18 @@ fun IdentityContributionCard(
                 )
             }
 
-            // Indikator Navigasi
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(32.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Lihat Profil",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Lihat Profil",
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
 
 @Composable
-fun EnhancedStatCard(
+fun BrutalistEmojiStatCard(
     title: String,
     value: String,
     subtitle: String,
@@ -342,25 +329,18 @@ fun EnhancedStatCard(
     modifier: Modifier = Modifier,
     isHorizontal: Boolean = false
 ) {
-    // DESAIN BARU: Style "Bento Grid" / Apple Health
-    // Background putih/gelap bersih, icon di dalam lingkaran warna transparan, angka besar
-    Card(
-        modifier = modifier.aspectRatio(if (isHorizontal) 3f else 0.9f, matchHeightConstraintsFirst = isHorizontal),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface // Hapus warna background kusam
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+    // DESAIN BARU: Brutalist Bento Grid
+    BrutalistCard(
+        modifier = modifier.aspectRatio(if (isHorizontal) 3f else 0.9f, matchHeightConstraintsFirst = isHorizontal)
     ) {
-        if (isHorizontal) {
+         if (isHorizontal) {
             Row(
-                modifier = Modifier.fillMaxSize().padding(20.dp),
+                modifier = Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Box(modifier = Modifier.size(48.dp).clip(CircleShape).background(color.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size(48.dp).brutalBorder(radius = 50.dp).background(color.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
                         Text(icon, style = MaterialTheme.typography.headlineMedium)
                     }
                     Column {
@@ -372,7 +352,7 @@ fun EnhancedStatCard(
             }
         } else {
             Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.Start
             ) {
@@ -383,7 +363,7 @@ fun EnhancedStatCard(
                     verticalAlignment = Alignment.Top
                 ) {
                     Box(
-                        modifier = Modifier.size(40.dp).clip(CircleShape).background(color.copy(alpha = 0.15f)),
+                        modifier = Modifier.size(40.dp).brutalBorder(radius = 50.dp).background(color.copy(alpha = 0.15f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(icon, style = MaterialTheme.typography.titleMedium)
@@ -444,8 +424,8 @@ fun EmptyHabitState(
             modifier = Modifier
                 .size(120.dp)
                 .scale(scale)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                .brutalBorder(radius=100.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -478,10 +458,12 @@ fun EmptyHabitState(
             onClick = onAddClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(16.dp),
+                .height(56.dp)
+                .brutalBorder(),
+            shape = RoundedCornerShape(8.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             )
         ) {
             Icon(Icons.Default.Add, contentDescription = null)
@@ -493,7 +475,7 @@ fun EmptyHabitState(
 
 // ... (EnhancedHabitItem tetap sama) ...
 @Composable
-fun EnhancedHabitItem(
+fun BrutalistHabitItem(
     habit: HabitItem,
     onClick: () -> Unit,
     onIncrement: () -> Unit,
@@ -514,48 +496,41 @@ fun EnhancedHabitItem(
 
     val haptic = LocalHapticFeedback.current
 
-    Card(
-        onClick = onClick,
+    BrutalistCard(
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
-            .brutalBorder(strokeWidth = 3.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                isOverAchieved -> GoldContainer
-                isComplete -> SuccessGreenBg
-                else -> MaterialTheme.colorScheme.surface
-            }
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = null
+            .clickable(onClick = onClick),
+        containerColor = when {
+            isOverAchieved -> GoldContainer
+            isComplete -> SuccessGreenBg
+            else -> MaterialTheme.colorScheme.surface
+        }
     ) {
-        Column(modifier = Modifier.padding(24.dp)) {
-            // Header: Icon + Streaks
+         // Header: Icon + Streaks
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    modifier = Modifier.size(72.dp).clip(CircleShape).background(
+                    modifier = Modifier.size(60.dp).brutalBorder(radius=50.dp).background(
                         Brush.linearGradient(
                             colors = when {
                                 isOverAchieved -> listOf(GoldAccent.copy(alpha = 0.3f), GoldDark.copy(alpha = 0.2f))
                                 isComplete -> listOf(SuccessGreen.copy(alpha = 0.3f), SuccessGreenDark.copy(alpha = 0.2f))
                                 else -> listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
                             }
-                        )
+                        ), CircleShape
                     ),
                     contentAlignment = Alignment.Center
                 ) { Text(text = habit.icon, style = MaterialTheme.typography.displaySmall) }
 
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (habit.currentStreak > 0) { EnhancedStreakBadge(emoji = "🔥", count = habit.currentStreak, color = StreakOrange, label = "Konsisten") }
-                    if (habit.perfectStreak > 0) { EnhancedStreakBadge(emoji = "👑", count = habit.perfectStreak, color = GoldAccent, label = "Sempurna") }
+                    if (habit.currentStreak > 0) { BrutalistStreakBadge(emoji = "🔥", count = habit.currentStreak, color = StreakOrange, label = "Konsisten") }
+                    if (habit.perfectStreak > 0) { BrutalistStreakBadge(emoji = "👑", count = habit.perfectStreak, color = GoldAccent, label = "Sempurna") }
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(16.dp))
             Text(text = habit.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(16.dp))
 
             // Action Row
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -565,7 +540,7 @@ fun EnhancedHabitItem(
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onDecrement()
                         },
-                        modifier = Modifier.size(52.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
+                        modifier = Modifier.size(48.dp).brutalBorder(radius=50.dp).background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
                         enabled = habit.currentCount > 0
                     ) { Icon(Icons.Default.Remove, contentDescription = "Kurangi", modifier = Modifier.size(24.dp)) }
 
@@ -574,10 +549,10 @@ fun EnhancedHabitItem(
                         transitionSpec = { (slideInVertically { it } + fadeIn()).togetherWith(slideOutVertically { -it } + fadeOut()) },
                         label = "count_anim"
                     ) { count ->
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.widthIn(min = 80.dp)) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.widthIn(min = 60.dp)) {
                             Text(
                                 text = if (habit.targetCount > 1) "$count / ${habit.targetCount}" else "$count",
-                                style = MaterialTheme.typography.displayMedium,
+                                style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = when { isOverAchieved -> GoldAccent; isComplete -> SuccessGreen; count > 0 -> MaterialTheme.colorScheme.primary; else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) }
                             )
@@ -589,24 +564,29 @@ fun EnhancedHabitItem(
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onIncrement()
                         },
-                        modifier = Modifier.size(52.dp),
+                        modifier = Modifier.size(48.dp),
                         containerColor = when { isOverAchieved -> GoldAccent; isComplete -> SuccessGreen; else -> MaterialTheme.colorScheme.primary },
-                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
-                    ) { Icon(Icons.Default.Add, contentDescription = "Tambah", modifier = Modifier.size(24.dp), tint = Color.White) }
+                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp)
+                    ) { 
+                        Box(modifier = Modifier.fillMaxSize().brutalBorder(radius=16.dp, color=MaterialTheme.colorScheme.onPrimary).padding(2.dp)) {
+                            // Border trick setup
+                        }
+                        Icon(Icons.Default.Add, contentDescription = "Tambah", modifier = Modifier.size(24.dp), tint = Color.White) 
+                    }
                 }
 
                 // TOMBOL FOKUS
                 IconButton(
                     onClick = onFocusClick,
                     modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.tertiaryContainer)
+                        .size(48.dp)
+                        .brutalBorder(radius=50.dp)
+                        .background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape)
                 ) {
                     Icon(
                         Icons.Default.Timer,
                         contentDescription = "Mulai Fokus",
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(24.dp),
                         tint = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                 }
@@ -614,33 +594,26 @@ fun EnhancedHabitItem(
 
             if (habit.targetCount > 0) {
                 Spacer(Modifier.height(16.dp))
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
-                    color = when { isOverAchieved -> GoldAccent; isComplete -> SuccessGreen; else -> MaterialTheme.colorScheme.primary },
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    strokeCap = StrokeCap.Round
-                )
+                BrutalistProgressBar(progress = progress, modifier = Modifier.height(16.dp))
             }
-        }
     }
 }
 
 // ... (EnhancedStreakBadge tetap sama) ...
 @Composable
-fun EnhancedStreakBadge(
+fun BrutalistStreakBadge(
     emoji: String,
     count: Int,
     color: Color,
     label: String
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(4.dp),
         color = color.copy(alpha = 0.15f),
-        shadowElevation = 2.dp
+        modifier = Modifier.brutalBorder(strokeWidth=1.dp, color=color, radius=4.dp)
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
@@ -673,19 +646,11 @@ fun ModernAddHabitDialog(
     onDismiss: () -> Unit,
     onAdd: (name: String, icon: String, target: Int, relatedIdentityId: Long?) -> Unit
 ) {
-    // Gunakan kembali kode dialog yang ada di file sebelumnya (tidak ada perubahan logika di sini)
-    // Untuk mempersingkat context window, anggap kode dialog ada di sini.
-    // Jika perlu saya paste ulang, kabari saja.
     var name by remember { mutableStateOf("") }
     var icon by remember { mutableStateOf("🎯") }
     var target by remember { mutableStateOf("1") }
     var selectedIdentity by remember { mutableStateOf<Identity?>(null) }
     var expanded by remember { mutableStateOf(false) }
-
-    val commonEmojis = listOf(
-        "🎯", "📚", "💪", "🧘", "🏃", "🎨", "✍️", "💻",
-        "🎵", "🌱", "💧", "🍎", "😴", "🧹", "📱", "💼"
-    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -695,7 +660,8 @@ fun ModernAddHabitDialog(
                 OutlinedTextField(
                     value = name, onValueChange = { name = it },
                     label = { Text("Nama Kebiasaan") }, modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    colors = brutalTextFieldColors()
                 )
                 // Dropdown
                 ExposedDropdownMenuBox(
@@ -704,11 +670,12 @@ fun ModernAddHabitDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
-                        value = selectedIdentity?.name ?: "Hubungkan ke Identitas (Opsional)",
+                        value = selectedIdentity?.name ?: "Hubungkan ke Identitas",
                         onValueChange = {}, readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        colors = brutalTextFieldColors()
                     )
                     ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         DropdownMenuItem(text = { Text("Tidak ada") }, onClick = { selectedIdentity = null; expanded = false })
@@ -720,87 +687,22 @@ fun ModernAddHabitDialog(
                 OutlinedTextField(
                     value = target, onValueChange = { if (it.all { char -> char.isDigit() }) target = it },
                     label = { Text("Target Harian") }, modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    colors = brutalTextFieldColors()
                 )
             }
         },
         confirmButton = {
-            Button(onClick = { if (name.isNotBlank()) onAdd(name, icon, target.toIntOrNull() ?: 1, selectedIdentity?.id) }) {
-                Text("Tambah")
-            }
+            BrutalTextButton(onClick = { if (name.isNotBlank()) onAdd(name, icon, target.toIntOrNull() ?: 1, selectedIdentity?.id) }, text = "TAMBAH")
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal") } }
+        dismissButton = { BrutalTextButton(onClick = onDismiss, text = "BATAL") },
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.brutalBorder()
     )
 }
 
-// === KOMPONEN BARU: KARTU KONTRIBUSI IDENTITAS ===
-@Composable
-fun IdentityContributionCard(identity: Identity) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.15f)
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f))
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Icon Placeholder untuk Identitas
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = identity.name.take(1).uppercase(),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSecondary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
 
-            Spacer(Modifier.width(16.dp))
-
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Bolt, // Simbol energi/XP
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.secondary
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = "SUMBER XP UNTUK",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-                }
-                Text(
-                    text = identity.name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-            )
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

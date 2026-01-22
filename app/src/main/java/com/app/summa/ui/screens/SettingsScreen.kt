@@ -1,5 +1,7 @@
 package com.app.summa.ui.screens
 
+import com.app.summa.ui.components.*
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -176,10 +178,9 @@ fun SettingsScreen(
                 )
             }
             item {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)),
-                    shape = RoundedCornerShape(8.dp),
-                    border = androidx.compose.foundation.BorderStroke(3.dp, MaterialTheme.colorScheme.onBackground)
+                BrutalistCard(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.error)
@@ -187,7 +188,8 @@ fun SettingsScreen(
                         Text(
                             "Hati-hati: Restore akan menghapus data saat ini dan menggantinya dengan data dari file backup.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -233,9 +235,9 @@ fun SettingsSectionTitle(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Black,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+        modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
     )
 }
 
@@ -247,15 +249,11 @@ fun SettingsCard(
     color: Color,
     onClick: () -> Unit
 ) {
-    Card(
-        onClick = onClick,
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    BrutalistCard(
         modifier = Modifier
             .fillMaxWidth()
-            .brutalBorder(strokeWidth = 3.dp),
-        border = null
+            .clickable(onClick = onClick),
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier
@@ -264,9 +262,9 @@ fun SettingsCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(4.dp),
                 color = color.copy(alpha = 0.1f),
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(48.dp).brutalBorder(radius=4.dp, strokeWidth=1.dp, color=color)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(icon, contentDescription = null, tint = color)
@@ -274,8 +272,8 @@ fun SettingsCard(
             }
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Medium)
             }
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
         }

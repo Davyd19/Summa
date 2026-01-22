@@ -119,13 +119,11 @@ fun KnowledgeDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { },
-                navigationIcon = {
-                    IconButton(onClick = onBack, modifier = Modifier.brutalBorder(strokeWidth = 2.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
-                    }
-                },
+        topBar = {
+            BrutalTopAppBar(
+                title = "",
+                navigationIcon = Icons.AutoMirrored.Filled.ArrowBack,
+                onNavigationClick = onBack,
                 actions = {
                     BrutalIconAction(
                         icon = Icons.Default.DataArray,
@@ -145,43 +143,38 @@ fun KnowledgeDetailScreen(
                         contentDescription = "Cari Link"
                     ) { showLinkDialog = true }
 
-                    TextButton(
+                    BrutalTextButton(
+                        text = "SIMPAN",
                         onClick = { viewModel.saveNote(title, contentState.text); onBack() },
-                        enabled = contentState.text.isNotBlank()
-                    ) {
-                        Text("Simpan", fontWeight = FontWeight.Bold)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                }
             )
+        }
         },
         bottomBar = {
             BottomAppBar(
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp,
-                modifier = Modifier.brutalBorder()
+                modifier = Modifier.brutalBorder(strokeWidth = 3.dp)
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    IconButton(
+                    BrutalIconAction(
                         onClick = { onConvertToTask(uiState.selectedNote?.title ?: title, uiState.selectedNote?.content ?: contentState.text) },
-                        modifier = Modifier.brutalBorder(strokeWidth = 2.dp)
-                    ) {
-                        Icon(Icons.Default.TaskAlt, "Jadikan Tugas")
-                    }
+                        icon = Icons.Default.TaskAlt,
+                        contentDescription = "Jadikan Tugas"
+                    )
                     val isPermanent = uiState.selectedNote?.isPermanent == true
-                    IconButton(
+                    BrutalIconAction(
                         onClick = { if (!isPermanent) { viewModel.convertToPermanent(); onBack() } },
-                        enabled = !isPermanent,
-                        modifier = Modifier.brutalBorder(strokeWidth = 2.dp)
-                    ) {
-                        Icon(if (isPermanent) Icons.Default.Inventory else Icons.Default.Archive, "Arsipkan")
-                    }
-                    IconButton(
+                        icon = if (isPermanent) Icons.Default.Inventory else Icons.Default.Archive,
+                        contentDescription = "Arsipkan"
+                    )
+                    BrutalIconAction(
                         onClick = { viewModel.deleteNote(); onBack() },
-                        modifier = Modifier.brutalBorder(strokeWidth = 2.dp)
-                    ) {
-                        Icon(Icons.Default.Delete, "Hapus")
-                    }
+                        icon = Icons.Default.Delete,
+                        contentDescription = "Hapus"
+                    )
                 }
             }
         }
@@ -194,8 +187,8 @@ fun KnowledgeDetailScreen(
                     placeholder = { Text("Judul (Opsional)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    textStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                    colors = OutlinedTextFieldDefaults.colors(
+                    textStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
+                    colors = brutalTextFieldColors().copy(
                         unfocusedBorderColor = Color.Transparent,
                         focusedBorderColor = Color.Transparent
                     )
@@ -311,9 +304,10 @@ fun KnowledgeDetailScreen(
                             Text("Tidak ditemukan", style = MaterialTheme.typography.bodySmall)
                         }
                         items(searchResults) { note ->
-                            Card(
+                            BrutalistCard(
                                 onClick = { viewModel.addLink(note); showLinkDialog = false },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.fillMaxWidth().clickable { viewModel.addLink(note); showLinkDialog = false }
                             ) {
                                 Column(Modifier.padding(12.dp).fillMaxWidth()) {
                                     Text(note.title.ifBlank { "Tanpa Judul" }, fontWeight = FontWeight.Bold)

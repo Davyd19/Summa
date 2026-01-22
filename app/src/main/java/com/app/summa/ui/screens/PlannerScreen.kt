@@ -1,5 +1,7 @@
 package com.app.summa.ui.screens
 
+import com.app.summa.ui.components.*
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -168,13 +170,12 @@ fun PlannerScreen(
         ) { paddingValues ->
             Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
                 // View Mode Switcher
-                Card(
+                BrutalistCard(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentPadding = PaddingValues(4.dp)
                 ) {
-                    Row(modifier = Modifier.fillMaxWidth().padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf("day" to "Harian", "week" to "Mingguan", "month" to "Bulanan").forEach { (mode, label) ->
                             FilterChip(
                                 selected = viewMode == mode,
@@ -201,7 +202,7 @@ fun PlannerScreen(
                             onTaskClick = { selectedTask = it },
                             onTaskMoved = { task, newHour -> viewModel.moveTaskToTime(task, newHour) }
                         )
-                        "week" -> CleanWeeklyView(
+                        "week" -> BrutalistWeeklyView(
                             viewModel = viewModel,
                             uiState = uiState,
                             onTaskClick = { selectedTask = it },
@@ -209,7 +210,7 @@ fun PlannerScreen(
                             // Pass tasks for day logic manual
                             dailyTasks = filteredTasksForDay
                         )
-                        "month" -> CleanMonthlyView(
+                        "month" -> BrutalistMonthlyView(
                             viewModel = viewModel,
                             uiState = uiState,
                             onTaskClick = { selectedTask = it },
@@ -260,6 +261,9 @@ fun PlannerScreen(
 
 // --- INTERACTIVE DAILY VIEW ---
 
+
+// --- INTERACTIVE DAILY VIEW ---
+
 @Composable
 fun InteractiveDailyView(
     tasks: List<Task>,
@@ -285,7 +289,7 @@ fun InteractiveDailyView(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             repeat(24) { hour ->
                 Box(
@@ -293,7 +297,7 @@ fun InteractiveDailyView(
                         dropZones[hour] = coordinates.boundsInWindow()
                     }
                 ) {
-                    CleanTimeSlot(
+                    BrutalistTimeSlot(
                         hour = hour,
                         tasks = tasksByHour[hour] ?: emptyList(),
                         identities = identities,
@@ -337,14 +341,14 @@ fun InteractiveDailyView(
                         )
                     }
             ) {
-                CleanTaskCard(
+                BrutalistTaskCard(
                     task = draggingTask!!,
                     identity = identities.find { it.id == draggingTask!!.relatedIdentityId },
                     onClick = {},
                     modifier = Modifier
                         .offset { IntOffset(dragOffset.x.roundToInt() - 50, dragOffset.y.roundToInt() - 50) }
                         .width(300.dp)
-                        .shadow(16.dp, RoundedCornerShape(12.dp))
+                        .shadow(16.dp, RoundedCornerShape(8.dp))
                         .alpha(0.9f)
                         .zIndex(10f),
                     isDragging = true
@@ -355,7 +359,7 @@ fun InteractiveDailyView(
 }
 
 @Composable
-fun CleanTimeSlot(
+fun BrutalistTimeSlot(
     hour: Int,
     tasks: List<Task>,
     identities: List<Identity>,
@@ -365,48 +369,60 @@ fun CleanTimeSlot(
     hiddenTask: Task?
 ) {
     val animatedScale by animateFloatAsState(if (isDropTarget) 1.02f else 1f, label = "scale")
-    val animatedColor = if (isDropTarget) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent
-
+    
+    // Brutalist: Solid border for time slots
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 72.dp)
+            .heightIn(min = 80.dp)
             .scale(animatedScale)
-            .background(animatedColor, RoundedCornerShape(8.dp))
-            .padding(vertical = 4.dp)
+            .brutalBorder(strokeWidth = if(isDropTarget) 4.dp else 2.dp, color = if(isDropTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
+            .background(if(isDropTarget) MaterialTheme.colorScheme.primary.copy(alpha=0.05f) else Color.Transparent)
+            .padding(8.dp)
     ) {
-        Box(modifier = Modifier.width(60.dp).padding(top = 8.dp)) {
+        // Time Column
+        Column(
+            modifier = Modifier.width(50.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
                 String.format("%02d:00", hour),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = if(isDropTarget) FontWeight.Bold else FontWeight.Normal,
-                color = if(isDropTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = if(isDropTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             )
         }
+        
+        // Vertical Divider
+        Box(
+            modifier = Modifier
+                .width(2.dp)
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+        )
+        
+        Spacer(Modifier.width(8.dp))
 
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .drawBehind {
-                    drawLine(color = Color.Gray.copy(alpha = 0.1f), start = Offset(0f, 0f), end = Offset(size.width, 0f), strokeWidth = 1.dp.toPx())
-                }
-                .padding(start = 8.dp),
+            modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (tasks.isEmpty() && isDropTarget) {
-                Text("Pindahkan ke sini", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 8.dp))
+                Text("Drop Here", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 12.dp))
+            } else if (tasks.isEmpty()) {
+                Text("Free Slot", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), modifier = Modifier.padding(top = 4.dp))
             }
 
             tasks.forEach { task ->
                 if (task.id != hiddenTask?.id) {
-                    CleanTaskCard(
+                    BrutalistTaskCard(
                         task = task,
                         identity = identities.find { it.id == task.relatedIdentityId },
                         onClick = { onTaskClick(task) },
                         onLongClick = { offset -> onDragStart(task, offset) }
                     )
                 } else {
-                    Box(modifier = Modifier.fillMaxWidth().height(50.dp).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp)).border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)))
+                    Box(modifier = Modifier.fillMaxWidth().height(50.dp).brutalBorder(strokeWidth=1.dp).background(Color.Gray.copy(alpha=0.1f)))
                 }
             }
         }
@@ -415,7 +431,7 @@ fun CleanTimeSlot(
 
 // --- TASK CARD ---
 @Composable
-fun CleanTaskCard(
+fun BrutalistTaskCard(
     task: Task,
     identity: Identity? = null,
     onClick: () -> Unit,
@@ -427,7 +443,7 @@ fun CleanTaskCard(
 
     val containerColor = when {
         isDragging -> MaterialTheme.colorScheme.primaryContainer
-        task.isCompleted -> SuccessGreenBg.copy(alpha = 0.5f)
+        task.isCompleted -> SuccessGreenBg
         task.isCommitment -> CommitmentContainer
         else -> MaterialTheme.colorScheme.surface
     }
@@ -437,16 +453,10 @@ fun CleanTaskCard(
         task.isCommitment -> Color.White
         else -> MaterialTheme.colorScheme.onSurface
     }
+    
+    val borderColor = if (task.isCommitment) Color.Black else MaterialTheme.colorScheme.onBackground
 
-    val borderModifier = if (!task.isCommitment && !task.isCompleted && !isDragging) {
-        Modifier.drawBehind {
-            val stroke = Stroke(width = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 15f), 0f))
-            drawRoundRect(color = AspirationColor, style = stroke, cornerRadius = CornerRadius(12.dp.toPx()))
-        }
-    } else Modifier
-
-    Card(
-        onClick = onClick,
+    Surface(
         modifier = modifier
             .fillMaxWidth()
             .onGloballyPositioned { coordinates -> itemPosition = coordinates.positionInRoot() }
@@ -460,71 +470,56 @@ fun CleanTaskCard(
                     )
                 }
             }
-            .then(borderModifier),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else if (task.isCommitment) 4.dp else 0.dp),
-        border = null
+            .brutalBorder(strokeWidth = if(task.isCommitment) 4.dp else 2.dp, color = borderColor)
+            .clickable(onClick = onClick),
+        color = containerColor,
+        shape = RoundedCornerShape(6.dp)
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (!task.isCompleted) {
-                Icon(Icons.Default.DragHandle, null, tint = contentColor.copy(alpha = 0.3f), modifier = Modifier.size(16.dp).padding(end = 4.dp))
-            }
-
-            Box(
-                modifier = Modifier.size(8.dp).clip(CircleShape).background(if (task.isCompleted) SuccessGreen else if (task.isCommitment) GoldAccent else AspirationColor)
-            )
-
-            Spacer(Modifier.width(12.dp))
-
             Column(modifier = Modifier.weight(1f)) {
+                // Title
                 Text(
                     task.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (task.isCommitment) FontWeight.Bold else FontWeight.Normal,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     color = contentColor,
                     textDecoration = if (task.isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
                 )
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Meta Row
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                     if (task.scheduledTime != null && !isDragging) {
-                        Text(task.scheduledTime, style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.7f))
-                        Spacer(Modifier.width(8.dp))
+                        BrutalistTag(label = task.scheduledTime, color = contentColor.copy(alpha=0.7f))
+                        Spacer(Modifier.width(6.dp))
                     }
-
-                    if (!task.isCompleted) {
-                        Surface(
-                            color = if(task.isCommitment) Color.Black.copy(alpha=0.2f) else MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text(if (task.isCommitment) "KOMITMEN" else "ASPIRASI", style = MaterialTheme.typography.labelSmall, fontSize = 8.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp), color = if(task.isCommitment) Color.White.copy(alpha=0.8f) else MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
+                    
+                    BrutalistTag(
+                         label = if (task.isCommitment) "COMMITMENT" else "ASPIRATION",
+                         color = if (task.isCommitment) GoldAccent else contentColor.copy(alpha=0.7f)
+                    )
 
                     if (identity != null) {
                         Spacer(Modifier.width(6.dp))
-                        Surface(
-                            color = if(task.isCommitment) GoldAccent.copy(alpha=0.3f) else MaterialTheme.colorScheme.secondaryContainer.copy(alpha=0.5f),
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)) {
-                                Icon(Icons.Default.Person, null, modifier = Modifier.size(8.dp), tint = if(task.isCommitment) GoldLight else MaterialTheme.colorScheme.onSecondaryContainer)
-                                Spacer(Modifier.width(2.dp))
-                                Text(
-                                    identity.name,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 8.sp,
-                                    color = if(task.isCommitment) GoldLight else MaterialTheme.colorScheme.onSecondaryContainer,
-                                    maxLines = 1
-                                )
-                            }
-                        }
+                        Icon(Icons.Default.Person, null, modifier = Modifier.size(12.dp), tint = contentColor.copy(alpha=0.7f))
+                        Spacer(Modifier.width(2.dp))
+                        Text(
+                            identity.name,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = contentColor.copy(alpha=0.7f),
+                            maxLines = 1
+                        )
                     }
                 }
             }
 
-            Icon(if (task.isCompleted) Icons.Default.CheckCircle else Icons.Default.ArrowForward, null, tint = if (task.isCompleted) SuccessGreen else contentColor.copy(alpha = 0.4f), modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                if (task.isCompleted) Icons.Default.CheckCircle else Icons.Default.ArrowForward, 
+                null, 
+                tint = if (task.isCompleted) SuccessGreen else contentColor, 
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
@@ -532,39 +527,44 @@ fun CleanTaskCard(
 // --- WEEKLY & MONTHLY VIEW ---
 
 @Composable
-fun CleanWeeklyView(
+fun BrutalistWeeklyView(
     viewModel: PlannerViewModel,
     uiState: PlannerUiState,
     onTaskClick: (Task) -> Unit,
     currentMode: String,
-    dailyTasks: List<Task> // Tugas untuk hari yang dipilih
+    dailyTasks: List<Task>
 ) {
     val selectedDate = uiState.selectedDate
     val firstDayOfWeek = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
     val weekDays = remember(firstDayOfWeek) { (0..6).map { firstDayOfWeek.plusDays(it.toLong()) } }
 
     Column(modifier = Modifier.fillMaxSize()) {
+        // Navigation Header
         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { viewModel.selectDate(firstDayOfWeek.minusWeeks(1)) }) { Icon(Icons.Default.ChevronLeft, "Prev") }
-            Text("${firstDayOfWeek.format(DateTimeFormatter.ofPattern("d MMM"))} - ${weekDays.last().format(DateTimeFormatter.ofPattern("d MMM"))}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            IconButton(onClick = { viewModel.selectDate(firstDayOfWeek.plusWeeks(1)) }) { Icon(Icons.Default.ChevronRight, "Next") }
+            BrutalIconAction(icon = Icons.Default.ChevronLeft, contentDescription = "Prev", onClick = { viewModel.selectDate(firstDayOfWeek.minusWeeks(1)) })
+            Text(
+                "${firstDayOfWeek.format(DateTimeFormatter.ofPattern("d MMM"))} - ${weekDays.last().format(DateTimeFormatter.ofPattern("d MMM"))}", 
+                style = MaterialTheme.typography.titleMedium, 
+                fontWeight = FontWeight.Bold
+            )
+            BrutalIconAction(icon = Icons.Default.ChevronRight, contentDescription = "Next", onClick = { viewModel.selectDate(firstDayOfWeek.plusWeeks(1)) })
         }
 
         LazyRow(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(weekDays.size) { index ->
-                CleanDayCell(date = weekDays[index], isSelected = weekDays[index].isEqual(selectedDate), isToday = weekDays[index].isEqual(LocalDate.now()), onClick = { viewModel.selectDate(weekDays[index]) })
+                BrutalistDayCell(date = weekDays[index], isSelected = weekDays[index].isEqual(selectedDate), isToday = weekDays[index].isEqual(LocalDate.now()), onClick = { viewModel.selectDate(weekDays[index]) })
             }
         }
 
         Spacer(Modifier.height(16.dp))
-        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        Divider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 2.dp)
 
-        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (dailyTasks.isEmpty()) {
-                item { Box(modifier = Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) { Text(if(currentMode == "Fokus") "Tidak ada Komitmen hari ini" else "Tidak ada tugas", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) } }
+                item { Box(modifier = Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) { Text(if(currentMode == "Fokus") "No Commitments" else "No Tasks", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) } }
             } else {
                 items(dailyTasks) { task ->
-                    CleanTaskCard(
+                    BrutalistTaskCard(
                         task = task,
                         identity = uiState.identities.find { it.id == task.relatedIdentityId },
                         onClick = { onTaskClick(task) }
@@ -576,14 +576,13 @@ fun CleanWeeklyView(
 }
 
 @Composable
-fun CleanMonthlyView(
+fun BrutalistMonthlyView(
     viewModel: PlannerViewModel,
     uiState: PlannerUiState,
     onTaskClick: (Task) -> Unit,
     currentMode: String,
     dailyTasks: List<Task>
 ) {
-    // Kelompokkan tugas bulanan berdasarkan tanggal
     val tasksByDate = remember(uiState.tasks) {
         uiState.tasks.groupBy { try { LocalDate.parse(it.scheduledDate) } catch (e: Exception) { null } }
     }
@@ -594,19 +593,19 @@ fun CleanMonthlyView(
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { viewModel.selectDate(firstDayOfMonth.minusMonths(1)) }) { Icon(Icons.Default.ChevronLeft, "Prev") }
+            BrutalIconAction(icon = Icons.Default.ChevronLeft, contentDescription = "Prev", onClick = { viewModel.selectDate(firstDayOfMonth.minusMonths(1)) })
             Text(firstDayOfMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale("id"))), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            IconButton(onClick = { viewModel.selectDate(firstDayOfMonth.plusMonths(1)) }) { Icon(Icons.Default.ChevronRight, "Next") }
+            BrutalIconAction(icon = Icons.Default.ChevronRight, contentDescription = "Next", onClick = { viewModel.selectDate(firstDayOfMonth.plusMonths(1)) })
         }
 
         LazyVerticalGrid(columns = GridCells.Fixed(7), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(7) { index -> Text(DayOfWeek.of(index + 1).getDisplayName(TextStyle.SHORT, Locale("id")), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) }
+            items(7) { index -> Text(DayOfWeek.of(index + 1).getDisplayName(TextStyle.SHORT, Locale("id")), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Bold) }
             items(paddingDays) { Box(modifier = Modifier.aspectRatio(1f)) }
             items(daysInMonth) { dayIndex ->
                 val currentDate = firstDayOfMonth.plusDays(dayIndex.toLong())
                 val tasksOnDay = tasksByDate[currentDate] ?: emptyList()
 
-                CleanCalendarCell(
+                BrutalistCalendarCell(
                     day = dayIndex + 1,
                     taskCount = tasksOnDay.size,
                     isToday = currentDate.isEqual(LocalDate.now()),
@@ -617,15 +616,15 @@ fun CleanMonthlyView(
         }
 
         Spacer(Modifier.height(16.dp))
-        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        Text("Tugas pada ${uiState.selectedDate.format(DateTimeFormatter.ofPattern("dd MMMM", Locale("id")))}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        Divider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 2.dp)
+        Text("TASKS FOR ${uiState.selectedDate.format(DateTimeFormatter.ofPattern("dd MMMM", Locale("id"))).uppercase()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
 
-        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (dailyTasks.isEmpty()) {
-                item { Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), contentAlignment = Alignment.Center) { Text(if(currentMode=="Fokus") "Fokus terjaga. Tidak ada komitmen." else "Tidak ada tugas", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) } }
+                item { Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), contentAlignment = Alignment.Center) { Text(if(currentMode=="Fokus") "No commitments" else "No tasks", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) } }
             } else {
                 items(dailyTasks) { task ->
-                    CleanTaskCard(
+                    BrutalistTaskCard(
                         task = task,
                         identity = uiState.identities.find { it.id == task.relatedIdentityId },
                         onClick = { onTaskClick(task) }
@@ -637,46 +636,30 @@ fun CleanMonthlyView(
 }
 
 @Composable
-fun CleanDayCell(date: LocalDate, isSelected: Boolean, isToday: Boolean, onClick: () -> Unit) {
+fun BrutalistDayCell(date: LocalDate, isSelected: Boolean, isToday: Boolean, onClick: () -> Unit) {
     val dayName = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("id"))
     val dayNumber = date.dayOfMonth.toString()
-    Card(
+    
+    Surface(
         onClick = onClick,
-        modifier = Modifier.width(60.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                isSelected -> MaterialTheme.colorScheme.primary
-                isToday -> MaterialTheme.colorScheme.primaryContainer
-                else -> MaterialTheme.colorScheme.surface
-            }
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
+        modifier = Modifier.width(62.dp).brutalBorder(strokeWidth = if(isSelected) 3.dp else 2.dp, color = if(isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline),
+        shape = RoundedCornerShape(8.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha=0.1f) else MaterialTheme.colorScheme.surface
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(dayName, style = MaterialTheme.typography.labelSmall, color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-            Text(dayNumber, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface)
+            Text(dayName, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = if(isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f))
+            Text(dayNumber, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = if(isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
         }
     }
 }
 
 @Composable
-fun CleanCalendarCell(day: Int, taskCount: Int, isToday: Boolean, isSelected: Boolean, onClick: () -> Unit) {
-    Card(
+fun BrutalistCalendarCell(day: Int, taskCount: Int, isToday: Boolean, isSelected: Boolean, onClick: () -> Unit) {
+    Surface(
         onClick = onClick,
-        modifier = Modifier.aspectRatio(1f),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primary
-            else if (isToday) MaterialTheme.colorScheme.primaryContainer
-            else Color.Transparent
-        ),
-        border = BorderStroke(
-            1.dp,
-            if (isSelected) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-        )
+        modifier = Modifier.aspectRatio(1f).brutalBorder(strokeWidth = if(isSelected) 3.dp else 1.dp, color = if(isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(6.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha=0.1f) else if(isToday) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(4.dp),
@@ -686,7 +669,7 @@ fun CleanCalendarCell(day: Int, taskCount: Int, isToday: Boolean, isSelected: Bo
             Text(
                 day.toString(),
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal
             )
             if (taskCount > 0) {
@@ -695,9 +678,9 @@ fun CleanCalendarCell(day: Int, taskCount: Int, isToday: Boolean, isSelected: Bo
                     repeat(minOf(taskCount, 3)) {
                         Box(
                             modifier = Modifier
-                                .size(4.dp)
-                                .clip(CircleShape)
-                                .background(if (isSelected) Color.White else DeepTeal)
+                                .size(6.dp)
+                                .brutalBorder(strokeWidth = 1.dp)
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary else DeepTeal)
                         )
                     }
                 }
