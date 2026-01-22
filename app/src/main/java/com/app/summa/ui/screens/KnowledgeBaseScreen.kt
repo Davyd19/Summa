@@ -53,13 +53,7 @@ fun KnowledgeBaseScreen(
     var searchQuery by remember { mutableStateOf("") }
 
     Scaffold(
-        floatingActionButton = {
-            BrutalFab(
-                onClick = onAddNoteClick,
-                icon = Icons.Default.Add,
-                contentDescription = "Tambah Catatan"
-            )
-        }
+        // FAB handled globally by Main Scaffold
     ) { paddingValues ->
         Column(
             modifier = Modifier

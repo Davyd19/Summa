@@ -61,8 +61,8 @@ fun ReflectionScreen(
         topBar = {
             BrutalTopAppBar(
                 title = "",
-                navigationIcon = Icons.AutoMirrored.Filled.ArrowBack,
-                onNavigationClick = onBack,
+                navigationIcon = null, // Remove back button
+                onNavigationClick = {},
                 actions = {
                     Row(
                         modifier = Modifier.padding(end = 16.dp),
@@ -214,6 +214,10 @@ fun RitualStepOne(summary: DailySummary?) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(10.dp))
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+             BrutalistHeaderBadge("REFLECTION_LOG")
+        }
+        Spacer(Modifier.height(16.dp))
         BrutalistHeader(title = "TINJAUAN HARI", subtitle = "Seberapa konsisten Anda hari ini?")
 
         Spacer(Modifier.height(32.dp))
@@ -353,6 +357,10 @@ fun RitualStepTwo(suggestions: List<VoteSuggestion>, onVote: (Identity, Int, Str
         modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+             BrutalistHeaderBadge("IDENTITY_PROOF")
+        }
+        Spacer(Modifier.height(16.dp))
         Text("🗳️", style = MaterialTheme.typography.displayLarge)
         Spacer(Modifier.height(16.dp))
         BrutalistHeader(title = "BUKTI IDENTITAS", subtitle = "Aktivitas Anda membuktikan siapa Anda.")
@@ -435,6 +443,10 @@ fun RitualStepThree(identities: List<Identity>, onVote: (Identity, Int, String) 
         modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+             BrutalistHeaderBadge("MANUAL_VOTE")
+        }
+        Spacer(Modifier.height(16.dp))
         Text("⚖️", style = MaterialTheme.typography.displayLarge)
         Spacer(Modifier.height(16.dp))
         BrutalistHeader(title = "VOTE MANUAL", subtitle = "Tambahkan poin untuk identitas lain?")
@@ -460,6 +472,10 @@ fun RitualStepFour(reflectionText: String, onTextChange: (String) -> Unit) {
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+             BrutalistHeaderBadge("DAILY_LOG")
+        }
+        Spacer(Modifier.height(16.dp))
         Text("📝", style = MaterialTheme.typography.displayLarge)
         Spacer(Modifier.height(16.dp))
         BrutalistHeader(title = "CATATAN", subtitle = "Satu kalimat untuk hari ini.")

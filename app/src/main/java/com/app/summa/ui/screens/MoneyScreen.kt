@@ -45,13 +45,15 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Composable
 fun MoneyScreen(
     viewModel: MoneyViewModel = hiltViewModel(),
-    onNavigateToAddTransaction: () -> Unit // New callback
+    onNavigateToAddTransaction: () -> Unit,
+    onNavigateToAddAccount: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     // var showTransactionSheet by remember { mutableStateOf(false) } // Removed
-    var showAddAccountDialog by remember { mutableStateOf(false) } // Akun jarang dibuat, dialog masih oke, atau bisa diganti sheet juga nanti
+    // var showAddAccountDialog by remember { mutableStateOf(false) } // Removed
 
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -73,23 +75,20 @@ fun MoneyScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("Keuangan", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) },
-                actions = {
-                    BrutalIconAction(
-                        icon = Icons.Default.Add,
-                        contentDescription = "Tambah Akun",
-                        onClick = { showAddAccountDialog = true }
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
+        topBar = {
+            // Removed Transparent TopAppBar, replaced with consistent Header Badge inside content
+            // or if we want consistent BrutalTopAppBar, we can use it, but Design says "FINANCE_CORE" badge.
+            // Let's hide TopAppBar here and use custom header row like KnowledgeScreen for consistency.
+            // Or keep scaffold topBar empty.
         },
         floatingActionButton = {
-            BrutalFab(
-                onClick = onNavigateToAddTransaction, // Use callback
-                icon = Icons.Default.Add,
-                contentDescription = "Tambah Transaksi"
+            ExtendedFloatingActionButton(
+                onClick = onNavigateToAddTransaction,
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = { Text("CATAT TRANSAKSI", fontWeight = FontWeight.Bold) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.brutalBorder(cornerRadius = 16.dp)
             )
         },
         floatingActionButtonPosition = FabPosition.End
@@ -111,9 +110,30 @@ fun MoneyScreen(
                     contentPadding = PaddingValues(bottom = 110.dp, top = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
+                    item {
+                        // HEADER SECTION
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                             BrutalistHeaderBadge("FINANCE_CORE")
+                        }
+                    }
                     item { BrutalistNetWorthCard(totalNetWorth = uiState.totalNetWorth, modifier = Modifier.padding(horizontal = 16.dp)) }
                     item {
-                        Text("Akun Anda", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                             Text("AKUN", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                             BrutalIconAction(
+                                 icon = Icons.Default.Add,
+                                 contentDescription = "Tambah Akun",
+                                 onClick = onNavigateToAddAccount
+                             )
+                        }
                     }
                     item {
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(horizontal = 16.dp)) {
@@ -145,15 +165,7 @@ fun MoneyScreen(
         }
     }
 
-    if (showAddAccountDialog) {
-        AddAccountDialog(
-            onDismiss = { showAddAccountDialog = false },
-            onAdd = { name, type, balance, isInvestment, color ->
-                viewModel.addAccount(name, type, balance, isInvestment, color)
-                showAddAccountDialog = false
-            }
-        )
-    }
+    // Old Show Dialog Logic Removed
 
     // INPUT SHEET TRANSAKSI BARU (Menggantikan Dialog Transaksi dan Transfer)
 //    if (showTransactionSheet) {

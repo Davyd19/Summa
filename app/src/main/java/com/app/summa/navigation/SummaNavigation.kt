@@ -45,9 +45,25 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     }
 
     object AddHabit : Screen("add_habit", "Tambah Kebiasaan", Icons.Default.Add)
+    object AddAccount : Screen("add_account", "Tambah Akun", Icons.Default.Add)
     object AddTransaction : Screen("add_transaction", "Tambah Transaksi", Icons.Default.Add)
     object AddTask : Screen("add_task", "Tambah Tugas", Icons.Default.Add)
     object FocusMode : Screen("focus_mode", "Fokus", Icons.Default.Timer)
+}
+
+// Validation for tab animation order
+fun getTabIndex(route: String?): Int {
+    if (route == null) return -1
+    val baseRoute = route.substringBefore("?")
+    return when (baseRoute) {
+        Screen.Dashboard.route -> 0
+        Screen.Planner.route -> 1
+        Screen.Habits.route -> 2
+        Screen.Knowledge.route -> 3
+        Screen.Money.route -> 4
+        Screen.Reflections.route -> 5
+        else -> -1
+    }
 }
 
 object KnowledgeDetailRoute {
@@ -242,10 +258,49 @@ fun NavigationGraph(
         navController = navController,
         startDestination = Screen.Dashboard.route,
         modifier = modifier,
-        enterTransition = { slideInHorizontally(initialOffsetX = { 1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)) },
-        exitTransition = { slideOutHorizontally(targetOffsetX = { -1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300)) },
-        popEnterTransition = { slideInHorizontally(initialOffsetX = { -1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)) },
-        popExitTransition = { slideOutHorizontally(targetOffsetX = { 1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300)) }
+        enterTransition = {
+            val fromIndex = getTabIndex(initialState.destination.route)
+            val toIndex = getTabIndex(targetState.destination.route)
+            
+            if (fromIndex != -1 && toIndex != -1) {
+                // Tab navigation
+                if (toIndex > fromIndex) {
+                    // Moving Right: Slide in from Right
+                    slideInHorizontally(initialOffsetX = { 1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
+                } else {
+                    // Moving Left: Slide in from Left
+                    slideInHorizontally(initialOffsetX = { -1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
+                }
+            } else {
+                 // Push/Pop navigation (Default)
+                 slideInHorizontally(initialOffsetX = { 1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
+            }
+        },
+        exitTransition = {
+            val fromIndex = getTabIndex(initialState.destination.route)
+            val toIndex = getTabIndex(targetState.destination.route)
+            
+            if (fromIndex != -1 && toIndex != -1) {
+                 if (toIndex > fromIndex) {
+                    // Moving Right: Old slides out to Left
+                    slideOutHorizontally(targetOffsetX = { -1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+                 } else {
+                    // Moving Left: Old slides out to Right
+                    slideOutHorizontally(targetOffsetX = { 1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+                 }
+            } else {
+                // Default Push Exit
+                slideOutHorizontally(targetOffsetX = { -1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+            }
+        },
+        popEnterTransition = {
+            // Back navigation usually slides in from left
+            slideInHorizontally(initialOffsetX = { -1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
+        },
+        popExitTransition = {
+            // Back navigation old slides out to right
+            slideOutHorizontally(targetOffsetX = { 1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+        }
     ) {
         composable(Screen.Dashboard.route) {
             LaunchedEffect(Unit) { onFabVisibilityChange(true) }
@@ -317,6 +372,13 @@ fun NavigationGraph(
              )
         }
 
+        composable(Screen.AddAccount.route) {
+             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+             AddAccountScreen(
+                 onBack = { navController.popBackStack() }
+             )
+        }
+
         composable(Screen.AddTask.route) {
              LaunchedEffect(Unit) { onFabVisibilityChange(false) }
              AddTaskScreen(
@@ -333,7 +395,8 @@ fun NavigationGraph(
         composable(Screen.Money.route) {
             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
             MoneyScreen(
-                onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction.route) }
+                onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction.route) },
+                onNavigateToAddAccount = { navController.navigate(Screen.AddAccount.route) }
             )
         }
         composable(Screen.Knowledge.route) {
