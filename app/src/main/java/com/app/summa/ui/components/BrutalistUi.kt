@@ -55,7 +55,7 @@ fun BrutalistCard(
                 clip = false
             )
             .offset(x = 0.dp, y = 0.dp)
-            .brutalBorder(strokeWidth = 2.dp, cornercornerRadius = 8.dp),
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp),
         shape = RoundedCornerShape(8.dp),
         color = containerColor,
         contentColor = contentColor
@@ -110,7 +110,7 @@ fun BrutalistMetricCard(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .size(40.dp)
-                    .brutalBorder(strokeWidth = 2.dp, cornercornerRadius = 20.dp),
+                    .brutalBorder(strokeWidth = 2.dp, cornerRadius = 20.dp),
                 shape = CircleShape,
                 color = backgroundColor,
                 contentColor = contentColor
@@ -180,7 +180,7 @@ fun BrutalistLargeButton(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .brutalBorder(strokeWidth = 2.dp, cornercornerRadius = 8.dp),
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp),
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surface
     ) {
