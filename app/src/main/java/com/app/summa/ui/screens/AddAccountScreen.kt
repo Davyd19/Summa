@@ -1,5 +1,6 @@
 package com.app.summa.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -9,12 +10,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.app.summa.data.model.AccountType
 import com.app.summa.ui.components.*
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.MoneyViewModel
@@ -26,13 +29,10 @@ fun AddAccountScreen(
     onBack: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf("CASH") } // CASH, BANK, E-WALLET, INVESTMENT
+    var selectedType by remember { mutableStateOf(AccountType.CASH) }
     var balance by remember { mutableStateOf("") }
-    var isInvestment by remember { mutableStateOf(false) } // Checkbox
-    var selectedColor by remember { mutableStateOf(0xFF000000) } // Placeholder for color picker
-
-    // Mapping type to display name
-    val accountTypes = listOf("CASH", "BANK", "E-WALLET", "INVESTMENT")
+    var isInvestment by remember { mutableStateOf(false) }
+    var selectedColor by remember { mutableStateOf("#000000") } // String hex for color
 
     Scaffold(
         topBar = {
@@ -54,11 +54,13 @@ fun AddAccountScreen(
                     onClick = {
                         if (name.isNotBlank()) {
                             val balanceValue = balance.toDoubleOrNull() ?: 0.0
-                            // Logic adaptasi dari MoneyScreen.kt yang sebelumnya pakai dialog
-                            // viewModel.addAccount(name, type, balanceValue, isInvestment, color)
-                            // Warning: Color parameter might be Int or String depending on implementation.
-                            // Assuming Int for now based on default.
-                            viewModel.addAccount(name, type, balanceValue, isInvestment, selectedColor.toInt())
+                            viewModel.addAccount(
+                                name = name,
+                                type = selectedType,
+                                balance = balanceValue,
+                                isInvestment = isInvestment,
+                                color = selectedColor
+                            )
                             onBack()
                         }
                     },
@@ -93,25 +95,19 @@ fun AddAccountScreen(
                     letterSpacing = 1.sp
                 )
                 
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    accountTypes.chunked(2).forEach { rowTypes ->
-                         // Simple row logic or just flow row. Let's use simple logic.
-                    }
-                    // Simplified: Just use dropdown or row buttons.
-                }
-                
-                // Manual Wrap Layout
+                // Manual Wrap Layout for Enums
+                val types = AccountType.values()
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    accountTypes.chunked(2).forEach { row ->
+                    types.toList().chunked(2).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             row.forEach { typeOption ->
-                                val isSelected = type == typeOption
+                                val isSelected = selectedType == typeOption
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
                                         .clickable { 
-                                            type = typeOption 
-                                            isInvestment = (typeOption == "INVESTMENT")
+                                            selectedType = typeOption 
+                                            isInvestment = (typeOption == AccountType.INVESTMENT)
                                         }
                                         .brutalBorder(
                                             strokeWidth = if(isSelected) 3.dp else 1.dp,
@@ -122,11 +118,15 @@ fun AddAccountScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        typeOption,
+                                        typeOption.name,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = if(isSelected) FontWeight.Black else FontWeight.Medium
                                     )
                                 }
+                            }
+                            // Fill empty space if row is incomplete
+                            if (row.size < 2) {
+                                Spacer(modifier = Modifier.weight(1f))
                             }
                         }
                     }

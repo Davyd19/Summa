@@ -75,11 +75,7 @@ fun MoneyScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-        topBar = {
-            // Removed Transparent TopAppBar, replaced with consistent Header Badge inside content
-            // or if we want consistent BrutalTopAppBar, we can use it, but Design says "FINANCE_CORE" badge.
-            // Let's hide TopAppBar here and use custom header row like KnowledgeScreen for consistency.
-            // Or keep scaffold topBar empty.
+             // Header is now inside content with BrutalistHeaderBadge
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
