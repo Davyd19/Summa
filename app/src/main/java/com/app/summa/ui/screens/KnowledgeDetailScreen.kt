@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.KnowledgeNote
+import com.app.summa.ui.components.BrutalistCard
 import com.app.summa.ui.components.BrutalIconAction
 import com.app.summa.ui.components.BrutalTopAppBar
 import com.app.summa.ui.components.brutalBorder
@@ -79,7 +80,6 @@ fun KnowledgeDetailScreen(
     fun checkAutocomplete(value: TextFieldValue) {
         val text = value.text
         val cursor = value.selection.start
-
         val lastOpenBracket = text.lastIndexOf("[[", cursor - 1)
 
         if (lastOpenBracket != -1) {
@@ -119,7 +119,6 @@ fun KnowledgeDetailScreen(
 
     Scaffold(
         topBar = {
-        topBar = {
             BrutalTopAppBar(
                 title = "",
                 navigationIcon = Icons.AutoMirrored.Filled.ArrowBack,
@@ -150,7 +149,6 @@ fun KnowledgeDetailScreen(
                     )
                 }
             )
-        }
         },
         bottomBar = {
             BottomAppBar(
@@ -226,10 +224,7 @@ fun KnowledgeDetailScreen(
                     placeholder = { Text("Mulai menulis... Ketik [[ untuk menghubungkan.") },
                     modifier = Modifier.fillMaxSize(),
                     textStyle = MaterialTheme.typography.bodyLarge,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = Color.Transparent
-                    )
+                    colors = brutalTextFieldColors()
                 )
             }
 

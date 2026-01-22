@@ -80,7 +80,6 @@ fun KnowledgeBaseScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 12.dp),
-                shape = RoundedCornerShape(8.dp),
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
                 // Brutal segmented tabs container

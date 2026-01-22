@@ -135,7 +135,7 @@ fun DashboardScreen(
             )
 
             BrutalistQuickAccessRow(
-                netWorth = uiState.totalNetWorth,
+                netWorth = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(uiState.totalNetWorth),
                 onMoneyClick = onNavigateToMoney,
                 onNotesClick = onNavigateToNotes,
                 onReflectionClick = onNavigateToReflections
