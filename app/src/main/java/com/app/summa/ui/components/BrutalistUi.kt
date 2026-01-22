@@ -405,18 +405,11 @@ fun BrutalFab(
         onClick = onClick,
         containerColor = containerColor,
         contentColor = contentColor,
-        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp)
+        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.brutalBorder(strokeWidth = 2.dp, cornerRadius = 12.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Transparent)
-                .padding(2.dp)
-                .brutalBorder(strokeWidth = 3.dp, color = MaterialTheme.colorScheme.onBackground),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = contentDescription)
-        }
+        Icon(icon, contentDescription = contentDescription)
     }
 }
 
