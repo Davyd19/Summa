@@ -1,17 +1,20 @@
 package com.app.summa.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -21,6 +24,7 @@ import com.app.summa.ui.components.*
 import com.app.summa.ui.theme.BrutalBlack
 import com.app.summa.ui.theme.BrutalBlue
 import com.app.summa.ui.theme.BrutalWhite
+import com.app.summa.ui.theme.SuccessGreen
 import com.app.summa.ui.viewmodel.DashboardViewModel
 import java.time.LocalDate
 import java.time.format.TextStyle
