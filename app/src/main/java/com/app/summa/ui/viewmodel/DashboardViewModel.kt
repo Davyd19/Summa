@@ -23,7 +23,8 @@ data class DashboardUiState(
     val nextTask: Task? = null,
     val todayHabits: List<HabitItem> = emptyList(),
     val levelUpEvent: LevelUpEvent? = null,
-    val morningBriefing: DailyWrapUpResult? = null
+    val morningBriefing: DailyWrapUpResult? = null,
+    val accounts: List<Account> = emptyList()
 )
 
 @HiltViewModel
@@ -53,7 +54,8 @@ class DashboardViewModel @Inject constructor(
         accountRepository.getTotalNetWorth(),
         focusRepository.getTotalPaperclips(),
         _levelUpEvent,
-        _morningBriefing
+        _morningBriefing,
+        accountRepository.getAllAccounts() // Add accounts source
     ) { inputs ->
         // Destructuring array inputs agar rapi
         val mode = inputs[0] as String
@@ -65,6 +67,7 @@ class DashboardViewModel @Inject constructor(
         val paperclips = inputs[6] as Int
         val lvlEvent = inputs[7] as LevelUpEvent?
         val briefing = inputs[8] as DailyWrapUpResult?
+        val accounts = inputs[9] as List<Account> // Get accounts
 
         // 1. Hitung Progress Habit Hari Ini
         // Transform Habit Entity ke UI Model (HabitItem)
@@ -112,7 +115,8 @@ class DashboardViewModel @Inject constructor(
             nextTask = nextTask,
             todayHabits = todayHabitItems,
             levelUpEvent = lvlEvent,
-            morningBriefing = briefing
+            morningBriefing = briefing,
+            accounts = accounts // Pass accounts
         )
     }.stateIn(
         scope = viewModelScope,
@@ -150,6 +154,35 @@ class DashboardViewModel @Inject constructor(
             if (result != null) {
                 _morningBriefing.value = result
             }
+        }
+    }
+
+    fun addTransaction(
+        accountId: Long,
+        type: com.app.summa.data.model.TransactionType,
+        amount: Double,
+        category: String = "",
+        note: String = ""
+    ) {
+        viewModelScope.launch {
+            val finalAmount = when(type) {
+                TransactionType.INCOME -> amount
+                TransactionType.EXPENSE -> -amount
+                TransactionType.TRANSFER -> 0.0
+            }
+
+            if (type == TransactionType.TRANSFER) return@launch
+
+            val transaction = Transaction(
+                accountId = accountId,
+                type = type,
+                amount = finalAmount,
+                category = category,
+                note = note,
+                date = LocalDate.now().toString(),
+                timestamp = System.currentTimeMillis()
+            )
+            accountRepository.insertTransaction(transaction)
         }
     }
 

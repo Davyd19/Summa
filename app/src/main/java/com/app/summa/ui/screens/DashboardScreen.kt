@@ -49,6 +49,8 @@ fun DashboardScreen(
     val dayLabel = today.dayOfMonth.toString()
     val monthLabel = today.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).uppercase()
     val dayName = today.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH).uppercase()
+    
+    var showTransactionSheet by remember { mutableStateOf(false) }
 
     // Main Container
     LazyColumn(
@@ -355,38 +357,46 @@ fun DashboardScreen(
             }
         }
 
-        // 7. QUICK ACTIONS (Button Row)
+        // 7. QUICK ACTIONS
         item {
              Text("AKSES CEPAT", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
              Spacer(Modifier.height(12.dp))
-             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                 Button(
-                     onClick = { onNavigateToNotes() },
-                     shape = RoundedCornerShape(8.dp),
-                     modifier = Modifier.weight(1f).height(56.dp).brutalBorder(),
-                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                 ) {
-                     Icon(Icons.Default.Add, null)
-                     Spacer(Modifier.width(8.dp))
-                     Text("CATAT CEPAT", fontWeight = FontWeight.Bold)
-                 }
-                 
-                 Button(
-                     onClick = { onNavigateToMoney() },
-                     shape = RoundedCornerShape(8.dp),
-                     modifier = Modifier.weight(1f).height(56.dp).brutalBorder(),
-                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface)
-                 ) {
-                     Icon(Icons.Default.AttachMoney, null, tint = MaterialTheme.colorScheme.onSurface)
-                     Spacer(Modifier.width(8.dp))
-                     Text("CATAT UANG", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                 }
+             Button(
+                 onClick = { showTransactionSheet = true },
+                 shape = RoundedCornerShape(8.dp),
+                 modifier = Modifier.fillMaxWidth().height(56.dp).brutalBorder(),
+                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface)
+             ) {
+                 Icon(Icons.Default.AttachMoney, null, tint = MaterialTheme.colorScheme.onSurface)
+                 Spacer(Modifier.width(8.dp))
+                 Text("CATAT TRANSAKSI", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
              }
         }
 
         // 6. SYSTEM FOOTER
         item {
-            BrutalistSystemFooter()
+            BrutalistCard(
+                 modifier = Modifier.fillMaxWidth(),
+                 containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                 Row(
+                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                     horizontalArrangement = Arrangement.SpaceBetween,
+                     verticalAlignment = Alignment.CenterVertically
+                 ) {
+                     Row(verticalAlignment = Alignment.CenterVertically) {
+                         Icon(Icons.Default.Star, null, modifier = Modifier.size(16.dp))
+                         Spacer(Modifier.width(8.dp))
+                         val level = (uiState.summaPoints / 1000) + 1
+                         Text("LEVEL $level", fontWeight=FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                     }
+                     Row(verticalAlignment = Alignment.CenterVertically) {
+                         Text("STATUS: OPTIMAL", fontWeight=FontWeight.Bold, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, color=SuccessGreen)
+                         Spacer(Modifier.width(8.dp))
+                         Box(Modifier.size(8.dp).background(SuccessGreen, CircleShape))
+                     }
+                 }
+            }
         }
         
         // Spacer for Bottom Nav

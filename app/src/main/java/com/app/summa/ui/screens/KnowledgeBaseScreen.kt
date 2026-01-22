@@ -53,10 +53,11 @@ fun KnowledgeBaseScreen(
     var searchQuery by remember { mutableStateOf("") }
 
     Scaffold(
-        topBar = {
-            BrutalTopAppBar(
-                title = "Pustaka Pengetahuan",
-                subtitle = "Kelola ide dan pembelajaran Anda"
+        floatingActionButton = {
+            BrutalFab(
+                onClick = onAddNoteClick,
+                icon = Icons.Default.Add,
+                contentDescription = "Tambah Catatan"
             )
         }
     ) { paddingValues ->
@@ -65,6 +66,29 @@ fun KnowledgeBaseScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // BRUTALIST HEADER
+            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
+                BrutalistHeaderBadge(text = "KNOWLEDGE_BASE_V1.0")
+                Spacer(Modifier.height(16.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = "PUSTAKA",
+                        style = MaterialTheme.typography.displayMedium,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 42.sp,
+                        lineHeight = 42.sp
+                    )
+                }
+            }
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .height(4.dp)
+                    .background(MaterialTheme.colorScheme.onBackground)
+            )
+            Spacer(Modifier.height(20.dp))
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
