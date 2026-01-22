@@ -490,12 +490,12 @@ fun BrutalistTaskCard(
                 // Meta Row
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                     if (task.scheduledTime != null && !isDragging) {
-                        BrutalistTag(label = task.scheduledTime, color = contentColor.copy(alpha=0.7f))
+                        BrutalistTag(text = task.scheduledTime, color = contentColor.copy(alpha=0.7f))
                         Spacer(Modifier.width(6.dp))
                     }
                     
                     BrutalistTag(
-                         label = if (task.isCommitment) "COMMITMENT" else "ASPIRATION",
+                         text = if (task.isCommitment) "COMMITMENT" else "ASPIRATION",
                          color = if (task.isCommitment) GoldAccent else contentColor.copy(alpha=0.7f)
                     )
 

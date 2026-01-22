@@ -409,7 +409,7 @@ fun BrutalistNextActionCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
             ) {
-                BrutalistTag(label = "NEXT ACTION", color = MaterialTheme.colorScheme.onPrimaryContainer)
+                BrutalistTag(text = "NEXT ACTION", color = MaterialTheme.colorScheme.onPrimaryContainer)
                 Text(
                      task.scheduledTime ?: "Now",
                     style = MaterialTheme.typography.labelLarge,
