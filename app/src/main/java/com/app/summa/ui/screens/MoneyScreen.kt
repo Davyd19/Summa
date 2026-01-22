@@ -528,7 +528,8 @@ fun AddAccountDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("AKUN BARU", fontWeight = FontWeight.Black) },
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = { Text("AKUN BARU", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineMedium) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -536,14 +537,16 @@ fun AddAccountDialog(
                     onValueChange = { name = it },
                     label = { Text("NAMA AKUN") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    colors = brutalTextFieldColors()
                 )
                 OutlinedTextField(
                     value = balance,
                     onValueChange = { balance = it },
                     label = { Text("SALDO AWAL") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    colors = brutalTextFieldColors()
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -551,10 +554,15 @@ fun AddAccountDialog(
                 ) {
                     Switch(
                         checked = isInvestment,
-                        onCheckedChange = { isInvestment = it }
+                        onCheckedChange = { isInvestment = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.outline
+                        )
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Akun Investasi", fontWeight=FontWeight.Bold)
+                    Text("AKUN INVESTASI", fontWeight=FontWeight.Bold)
                 }
             }
         },
@@ -563,17 +571,19 @@ fun AddAccountDialog(
                 onClick = {
                     onAdd(name, type, balance.toDoubleOrNull() ?: 0.0, isInvestment, color)
                 },
-                shape = RoundedCornerShape(4.dp), // Brutalist shape
-                modifier = Modifier.brutalBorder()
+                shape = RoundedCornerShape(4.dp), 
+                modifier = Modifier.brutalBorder(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("TAMBAH", fontWeight=FontWeight.Bold)
+                Text("TAMBAH", fontWeight=FontWeight.Black)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("BATAL", fontWeight=FontWeight.Bold)
+                Text("BATAL", fontWeight=FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
             }
-        }
+        },
+        modifier = Modifier.brutalBorder()
     )
 }
 
@@ -594,19 +604,34 @@ fun AddTransactionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("TRANSAKSI", fontWeight = FontWeight.Black) },
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = { Text("TRANSAKSI", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineMedium) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = type == TransactionType.INCOME,
                         onClick = { type = TransactionType.INCOME },
-                        label = { Text("MASUK") }
+                        label = { Text("MASUK", fontWeight = FontWeight.Bold) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = SuccessGreen.copy(alpha = 0.2f),
+                            selectedLabelColor = SuccessGreen
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled=true, selected=true, borderColor = SuccessGreen, borderWidth = 2.dp
+                        )
                     )
                     FilterChip(
                         selected = type == TransactionType.EXPENSE,
                         onClick = { type = TransactionType.EXPENSE },
-                        label = { Text("KELUAR") }
+                        label = { Text("KELUAR", fontWeight = FontWeight.Bold) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = ErrorRed.copy(alpha = 0.2f),
+                            selectedLabelColor = ErrorRed
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled=true, selected=true, borderColor = ErrorRed, borderWidth = 2.dp
+                        )
                     )
                 }
                 OutlinedTextField(
@@ -614,21 +639,24 @@ fun AddTransactionDialog(
                     onValueChange = { amount = it },
                     label = { Text("JUMLAH") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    colors = brutalTextFieldColors()
                 )
                 OutlinedTextField(
                     value = category,
                     onValueChange = { category = it },
                     label = { Text("KATEGORI") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    colors = brutalTextFieldColors()
                 )
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
                     label = { Text("CATATAN") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    colors = brutalTextFieldColors()
                 )
             }
         },
@@ -640,16 +668,18 @@ fun AddTransactionDialog(
                     }
                 },
                 shape = RoundedCornerShape(4.dp),
-                modifier = Modifier.brutalBorder()
+                modifier = Modifier.brutalBorder(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("SIMPAN", fontWeight=FontWeight.Bold)
+                Text("SIMPAN", fontWeight=FontWeight.Black)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("BATAL", fontWeight=FontWeight.Bold)
+                Text("BATAL", fontWeight=FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
             }
-        }
+        },
+        modifier = Modifier.brutalBorder()
     )
 }
 
@@ -666,17 +696,19 @@ fun TransferDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("TRANSFER", fontWeight = FontWeight.Black) },
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = { Text("TRANSFER", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineMedium) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("DARI: ${fromAccount?.name}", fontWeight=FontWeight.Bold)
-                Text("KE: ${toAccount?.name}", fontWeight=FontWeight.Bold)
+                Text("DARI: ${fromAccount?.name}", fontWeight=FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                Text("KE: ${toAccount?.name}", fontWeight=FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
                     label = { Text("JUMLAH") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    colors = brutalTextFieldColors()
                 )
             }
         },
@@ -688,15 +720,17 @@ fun TransferDialog(
                     }
                 },
                 shape = RoundedCornerShape(4.dp),
-                modifier = Modifier.brutalBorder()
+                modifier = Modifier.brutalBorder(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("TRANSFER", fontWeight=FontWeight.Bold)
+                Text("TRANSFER", fontWeight=FontWeight.Black)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("BATAL", fontWeight=FontWeight.Bold)
+                Text("BATAL", fontWeight=FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
             }
-        }
+        },
+        modifier = Modifier.brutalBorder()
     )
 }

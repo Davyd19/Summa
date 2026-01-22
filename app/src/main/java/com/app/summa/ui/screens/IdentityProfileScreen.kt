@@ -304,6 +304,7 @@ fun IdentityDetailSheet(
 
 // --- DIALOG BARU: Add Identity ---
 @OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddIdentityDialog(
     onDismiss: () -> Unit,
@@ -314,29 +315,33 @@ fun AddIdentityDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Identitas Baru", fontWeight = FontWeight.Bold) },
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = { Text("IDENTITAS BARU", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineMedium) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
                     "Siapa yang ingin Anda jadi?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.Bold
                 )
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nama Identitas") },
-                    placeholder = { Text("Contoh: Musisi, Orang Sehat") },
+                    label = { Text("NAMA IDENTITAS") },
+                    placeholder = { Text("Contoh: Musisi") },
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = brutalTextFieldColors(),
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Deskripsi/Mantra (Opsional)") },
-                    placeholder = { Text("Contoh: Saya menciptakan musik setiap hari") },
-                    shape = RoundedCornerShape(12.dp),
+                    label = { Text("MANTRA (OPSIONAL)") },
+                    placeholder = { Text("Saya menciptakan musik setiap hari") },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = brutalTextFieldColors(),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -344,14 +349,17 @@ fun AddIdentityDialog(
         confirmButton = {
             Button(
                 onClick = { if (name.isNotBlank()) onAdd(name, description) },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier.brutalBorder(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("Tambah")
+                Text("TAMBAH", fontWeight = FontWeight.Black)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Batal") }
-        }
+            TextButton(onClick = onDismiss) { Text("BATAL", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface) }
+        },
+        modifier = Modifier.brutalBorder()
     )
 }
 

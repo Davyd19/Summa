@@ -93,32 +93,25 @@ fun KnowledgeBaseScreen(
                 ) {
                     tabTitles.forEachIndexed { index, title ->
                         val selected = pagerState.currentPage == index
-                        Surface(
-                            onClick = {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(index)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    scope.launch {
+                                        pagerState.animateScrollToPage(index)
+                                    }
                                 }
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(6.dp),
-                            color = if (selected)
-                                MaterialTheme.colorScheme.primary
-                            else Color.Transparent
+                                .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                .brutalBorder(strokeWidth = 2.dp)
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .padding(vertical = 12.dp)
-                                    .brutalBorder(strokeWidth = 2.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (selected) Color.White
-                                    else MaterialTheme.colorScheme.onSurface
-                                )
-                            }
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface
+                            )
                         }
                     }
                 }

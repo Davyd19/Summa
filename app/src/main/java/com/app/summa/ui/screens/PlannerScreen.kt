@@ -188,25 +188,22 @@ fun PlannerScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         listOf("day" to "DAILY", "week" to "WEEKLY", "month" to "MONTHLY").forEach { (mode, label) ->
-                             Surface(
-                                onClick = { viewMode = mode },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(0.dp),
-                                color = if (viewMode == mode) MaterialTheme.colorScheme.primary else Color.Transparent
+                            val isSelected = viewMode == mode
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { viewMode = mode }
+                                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                    .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp)
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .padding(vertical = 12.dp)
-                                        .brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        label,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Black,
-                                        color = if (viewMode == mode) Color.White else MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         }
                     }

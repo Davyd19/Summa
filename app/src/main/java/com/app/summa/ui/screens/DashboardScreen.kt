@@ -63,13 +63,37 @@ fun DashboardScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 BrutalistHeaderBadge(text = "CONTROL_PANEL_V1.0")
-                // Status Dot
-                Box(
+                
+                // MODE TOGGLE
+                Row(
                     modifier = Modifier
-                        .size(12.dp)
-                        .background(Color(0xFFFF6B6B), CircleShape)
-                        .brutalBorder(strokeWidth = 1.dp, cornerRadius = 10.dp)
-                )
+                        .brutalBorder(strokeWidth = 2.dp, cornerRadius = 24.dp)
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val modes = listOf("Normal", "Fokus")
+                    modes.forEach { mode ->
+                        val isSelected = currentMode == mode
+                        Box(
+                            modifier = Modifier
+                                .clickable { onModeSelected(mode) }
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    RoundedCornerShape(20.dp)
+                                )
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = mode.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Black,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -167,52 +191,47 @@ fun DashboardScreen(
             }
         }
 
-        // 5. GRID LAYOUT (2x2)
+        // 5. GRID LAYOUT
         item {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 // ROW 1
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // TASKS CARD
+                    // SUMMA POINTS CARD (Green)
                     BrutalistCard(
                         modifier = Modifier
                             .weight(1f)
-                            .aspectRatio(1f)
-                            .clickable { onNavigateToPlanner() },
-                        containerColor = MaterialTheme.colorScheme.surface
+                            .aspectRatio(1f),
+                        containerColor = MaterialTheme.colorScheme.primary, // Using primary (Teal/Green) like original
                     ) {
                         Column(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize().padding(16.dp),
                             verticalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .background(Color.Black)
-                                        .padding(4.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.Check, null, tint = Color.White)
-                                }
-                                Text("HIGH", style = MaterialTheme.typography.labelSmall, modifier = Modifier.background(Color.Black).padding(horizontal=4.dp, vertical=2.dp), color = Color.White)
-                            }
+                            Text("Summa Points", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.White)
                             
-                            Column {
-                                Text("PENDING: ${uiState.activeTasks}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                                Text("TASKS", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
-                            }
+                            Text(
+                                text = "${uiState.summaPoints}",
+                                style = MaterialTheme.typography.displayMedium,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White
+                            )
+                            
+                            // Mock target standard
+                            LinearProgressIndicator(
+                                progress = (uiState.summaPoints % 100) / 100f,
+                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                color = Color.White,
+                                trackColor = Color.White.copy(alpha = 0.3f)
+                            )
                         }
                     }
 
-                    // SESSION CARD (BLUE)
+                    // FOCUS CLIP / SESSION CARD (Blue)
                     BrutalistCard(
                         modifier = Modifier
                             .weight(1f)
                             .aspectRatio(1f)
-                            .clickable { onModeSelected("Fokus") }, // Trigger Focus
+                            .clickable { onModeSelected("Fokus") },
                         containerColor = BrutalBlue,
                         contentColor = BrutalWhite
                     ) {
@@ -223,8 +242,8 @@ fun DashboardScreen(
                             Icon(Icons.Default.Timer, null, modifier = Modifier.size(32.dp))
                             
                             Column {
-                                Text("SESSION", style = MaterialTheme.typography.labelSmall, color = BrutalWhite.copy(alpha = 0.7f))
-                                Text("00:25:00", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                                Text("KLIP FOKUS", style = MaterialTheme.typography.labelSmall, color = BrutalWhite.copy(alpha = 0.7f), fontWeight = FontWeight.Bold)
+                                Text("${uiState.totalPaperclips}", style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Black)
                             }
                         }
                     }
@@ -232,54 +251,133 @@ fun DashboardScreen(
 
                 // ROW 2
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // MEETING / PLANNER CARD
+                    // START DAY / ADD TASK CARD
                     BrutalistCard(
                         modifier = Modifier
-                            .weight(1f)
-                            .aspectRatio(1f)
-                            .clickable { onNavigateToPlanner() }
+                            .weight(2f) // Wide card
+                            .height(100.dp)
+                            .clickable { onNavigateToPlanner() },
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     ) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.SpaceBetween
+                        Row(
+                            modifier = Modifier.fillMaxSize().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Icon(Icons.Default.CalendarToday, null, modifier = Modifier.size(32.dp))
-                            
-                            Column {
-                                Text("NEXT: 2PM", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                                Text("MEETING", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
-                                Text("Prod. Sync", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.surface, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary)
+                                }
+                                Spacer(Modifier.width(16.dp))
+                                Column {
+                                    Text("Mulai Hari", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("Tambah tugas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                                }
                             }
-                        }
-                    }
-
-                    // NOTES CARD
-                    BrutalistCard(
-                        modifier = Modifier
-                            .weight(1f)
-                            .aspectRatio(1f)
-                            .clickable { onNavigateToNotes() }
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Icon(Icons.Default.Edit, null, modifier = Modifier.size(32.dp))
-                                Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp), tint = Color.Gray)
-                            }
-                            
-                            Column {
-                                Text("QUICK ENTRY", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                                Text("NOTES", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
-                            }
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, null)
                         }
                     }
                 }
             }
+        }
+        
+        // 6. HABITS WIDGET (RESTORATION)
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("KEBIASAAN HARI INI", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Text(
+                        "${uiState.completedHabits}/${uiState.todayHabits.size}", 
+                        modifier = Modifier.padding(horizontal=8.dp, vertical=2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            
+            if (uiState.todayHabits.isEmpty()) {
+                BrutalistCard(modifier = Modifier.fillMaxWidth().height(100.dp)) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Belum ada kebiasaan terjadwal", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    uiState.todayHabits.forEach { habit ->
+                         // Simple Brutalist Habit Item row
+                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp)
+                                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                                .clickable { onNavigateToHabits() } // Or navigate to toggle
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                         ) {
+                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                 Text(habit.icon, style = MaterialTheme.typography.titleMedium)
+                                 Spacer(Modifier.width(12.dp))
+                                 Text(habit.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                             }
+                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                 Text("${habit.currentCount}/${habit.targetCount}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                 Spacer(Modifier.width(8.dp))
+                                 // Checkbox visualization
+                                 Box(
+                                     modifier = Modifier
+                                        .size(20.dp)
+                                        .border(2.dp, if(habit.currentCount >= habit.targetCount) SuccessGreen else MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+                                        .background(if(habit.currentCount >= habit.targetCount) SuccessGreen else Color.Transparent, RoundedCornerShape(4.dp)),
+                                     contentAlignment = Alignment.Center
+                                 ) {
+                                     if(habit.currentCount >= habit.targetCount) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                 }
+                             }
+                         }
+                    }
+                }
+            }
+        }
+
+        // 7. QUICK ACTIONS (Button Row)
+        item {
+             Text("AKSES CEPAT", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+             Spacer(Modifier.height(12.dp))
+             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                 Button(
+                     onClick = { onNavigateToNotes() },
+                     shape = RoundedCornerShape(8.dp),
+                     modifier = Modifier.weight(1f).height(56.dp).brutalBorder(),
+                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                 ) {
+                     Icon(Icons.Default.Add, null)
+                     Spacer(Modifier.width(8.dp))
+                     Text("CATAT CEPAT", fontWeight = FontWeight.Bold)
+                 }
+                 
+                 Button(
+                     onClick = { onNavigateToMoney() },
+                     shape = RoundedCornerShape(8.dp),
+                     modifier = Modifier.weight(1f).height(56.dp).brutalBorder(),
+                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface)
+                 ) {
+                     Icon(Icons.Default.AttachMoney, null, tint = MaterialTheme.colorScheme.onSurface)
+                     Spacer(Modifier.width(8.dp))
+                     Text("CATAT UANG", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                 }
+             }
         }
 
         // 6. SYSTEM FOOTER
