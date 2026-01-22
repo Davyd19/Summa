@@ -43,59 +43,13 @@ fun DashboardScreen(
     val dayLabel = today.dayOfMonth.toString()
     val monthLabel = today.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).uppercase(Locale.ENGLISH)
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp,
-                modifier = Modifier.brutalBorder(strokeWidth = 2.dp, cornerRadius = 0.dp)
-            ) {
-                NavigationBarItem(
-                    selected = true,
-                    onClick = { },
-                    icon = { Icon(Icons.Default.Home, "Dashboard") },
-                    label = { Text("DASHBOARD", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onNavigateToPlanner,
-                    icon = { Icon(Icons.Default.CalendarToday, "Planner") },
-                    label = { Text("PLANNER", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onNavigateToHabits,
-                    icon = { Icon(Icons.Default.CheckCircle, "Habits") },
-                    label = { Text("HABITS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onNavigateToIdentityProfile,
-                    icon = { Icon(Icons.Default.Person, "Identity") },
-                    label = { Text("IDENTITY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onNavigateToMoney,
-                    icon = { Icon(Icons.Default.AccountBalanceWallet, "Money") },
-                    label = { Text("MONEY", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = onNavigateToReflections,
-                    icon = { Icon(Icons.Default.RateReview, "Reflection") },
-                    label = { Text("REFLECTION", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
-                )
-            }
-        }
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+
+    // No Scaffold needed - parent handles navigation
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
             // Header: Date + Greeting
             item {
                 Row(
@@ -265,7 +219,6 @@ fun DashboardScreen(
                 )
             }
         }
-    }
 
     if (showModeDialog) {
         BrutalistModeDialog(

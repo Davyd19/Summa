@@ -183,8 +183,21 @@ fun BrutalistWinCard(text: String, icon: String, type: String) {
 @Composable
 fun RitualStepOne(summary: DailySummary?) {
     if (summary == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Data aktivitas hari ini belum tersedia.", color = MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Memuat data aktivitas...",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
         }
         return
     }
@@ -192,10 +205,6 @@ fun RitualStepOne(summary: DailySummary?) {
     val score = summary.dailyScore
     val grade = summary.dailyGrade
     val isGreatDay = score >= 80
-
-    if (isGreatDay) {
-        CoinExplosionAnimation(trigger = true) {}
-    }
 
     Column(
         modifier = Modifier
@@ -209,49 +218,83 @@ fun RitualStepOne(summary: DailySummary?) {
 
         Spacer(Modifier.height(32.dp))
 
-        Box(contentAlignment = Alignment.Center) {
-            Box(
-                modifier = Modifier
-                    .size(160.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(colors = listOf(if (isGreatDay) GoldAccent.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant, Color.Transparent))
-                    )
-            )
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .brutalBorder(cornerRadius = 100.dp, strokeWidth = 4.dp, color = if (isGreatDay) GoldAccent else MaterialTheme.colorScheme.outline)
-                    .background(MaterialTheme.colorScheme.surface, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = grade, style = MaterialTheme.typography.displayLarge, fontWeight = FontWeight.Black, color = if (isGreatDay) GoldDark else MaterialTheme.colorScheme.onSurface)
-                    Text(text = "$score/100", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-                }
+        // Grade Circle - Simplified to avoid double layer
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .brutalBorder(
+                    cornerRadius = 60.dp,
+                    strokeWidth = 4.dp,
+                    color = if (isGreatDay) GoldAccent else MaterialTheme.colorScheme.outline
+                )
+                .background(MaterialTheme.colorScheme.surface, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = grade,
+                    style = MaterialTheme.typography.displayLarge,
+                    fontWeight = FontWeight.Black,
+                    color = if (isGreatDay) GoldDark else MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "$score/100",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
             }
         }
 
         Spacer(Modifier.height(40.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            BrutalistStatBox(label = "KOMITMEN", value = "${summary.completedCommitments}/${summary.totalCommitments}", icon = Icons.Default.CheckCircle, color = DeepTeal, modifier = Modifier.weight(1f))
-            BrutalistStatBox(label = "KEBIASAAN", value = "${summary.completedHabits.size}", icon = Icons.Default.EmojiEvents, color = StreakOrange, modifier = Modifier.weight(1f))
+            BrutalistStatBox(
+                label = "KOMITMEN",
+                value = "${summary.completedCommitments}/${summary.totalCommitments}",
+                icon = Icons.Default.CheckCircle,
+                color = DeepTeal,
+                modifier = Modifier.weight(1f)
+            )
+            BrutalistStatBox(
+                label = "KEBIASAAN",
+                value = "${summary.completedHabits.size}",
+                icon = Icons.Default.EmojiEvents,
+                color = StreakOrange,
+                modifier = Modifier.weight(1f)
+            )
         }
 
         Spacer(Modifier.height(32.dp))
 
-        Text("KEMENANGAN KECIL", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.Start))
+        Text(
+            "KEMENANGAN KECIL",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Black,
+            modifier = Modifier.align(Alignment.Start)
+        )
         Spacer(Modifier.height(12.dp))
 
         if (summary.completedTasks.isEmpty() && summary.completedHabits.isEmpty()) {
             Box(modifier = Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
-                Text("Belum ada aktivitas tercatat hari ini.", fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                Text(
+                    "Belum ada aktivitas tercatat hari ini.",
+                    fontStyle = FontStyle.Italic,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
             }
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                summary.completedHabits.forEach { habit -> BrutalistWinCard(text = habit.name, icon = habit.icon, type = "KEBIASAAN") }
-                summary.completedTasks.forEach { task -> BrutalistWinCard(text = task.title, icon = if (task.isCommitment) "🔥" else "✅", type = if (task.isCommitment) "KOMITMEN" else "TUGAS") }
+                summary.completedHabits.forEach { habit ->
+                    BrutalistWinCard(text = habit.name, icon = habit.icon, type = "KEBIASAAN")
+                }
+                summary.completedTasks.forEach { task ->
+                    BrutalistWinCard(
+                        text = task.title,
+                        icon = if (task.isCommitment) "🔥" else "✅",
+                        type = if (task.isCommitment) "KOMITMEN" else "TUGAS"
+                    )
+                }
             }
         }
         Spacer(Modifier.height(40.dp))
