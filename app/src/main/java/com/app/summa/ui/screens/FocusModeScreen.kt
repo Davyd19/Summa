@@ -35,7 +35,6 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
-@Composable
 fun UniversalFocusModeScreen(
     onBack: () -> Unit,
     viewModel: com.app.summa.ui.viewmodel.FocusViewModel = androidx.hilt.navigation.compose.hiltViewModel()
@@ -70,8 +69,6 @@ fun UniversalFocusModeScreen(
 }
 
 // ... FocusSetupScreen (Tidak berubah, dianggap sama seperti sebelumnya) ...
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FocusSetupScreen(
     availableHabits: List<com.app.summa.data.model.HabitItem>,

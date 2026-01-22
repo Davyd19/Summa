@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.flow.first
 
 data class FocusUiState(
     val timeRemaining: Int = 0,
@@ -194,11 +195,23 @@ class FocusViewModel @Inject constructor(
                      // But user said "Finish focus mode -> Habit done". 
                      // Let's set count = targetCount to be sure it marks as done.
                      
+    // Fix save logic
+    /*
                      val currentLog = habitRepository.getLogsForDate(java.time.LocalDate.now()).first().find { it.habitId == habit.id }
                      val current = currentLog?.count ?: 0
                      if (current < habit.targetCount) {
+                         // Update logic
+                         // We need to call a repository method that accepts ID + Count, or update the Habit object?
+                         // Assuming repository has updateHabitCount(habit: Habit, newCount: Int)
+                         // But 'habit' here is HabitItem? No, 'habit' from find() is Habit entity.
                          habitRepository.updateHabitCount(habit, habit.targetCount)
                      }
+    */
+                // Simplified safe logic:
+                 val habitEntity = habitRepository.getAllHabits().first().find { it.id == state.selectedHabitId }
+                 if (habitEntity != null) {
+                      habitRepository.updateHabitCount(habitEntity, habitEntity.targetCount)
+                 }
                  }
             }
         }

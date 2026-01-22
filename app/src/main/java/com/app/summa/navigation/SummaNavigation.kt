@@ -259,9 +259,6 @@ fun NavigationGraph(
                 onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) },
                 onNavigateToSettings = { navController.navigate("settings") },
                 onNavigateToHabits = { navController.navigateToTab(Screen.Habits.route) },
-                onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) },
-                onNavigateToSettings = { navController.navigate("settings") },
-                onNavigateToHabits = { navController.navigateToTab(Screen.Habits.route) },
                 onNavigateToHabitDetail = { habit ->
                     navController.navigate(Screen.HabitDetail.createRoute(habit.id))
                 },
