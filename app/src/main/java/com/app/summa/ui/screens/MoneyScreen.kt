@@ -90,7 +90,8 @@ fun MoneyScreen(
                 icon = Icons.Default.Add,
                 contentDescription = "Tambah Transaksi"
             )
-        }
+        },
+        floatingActionButtonPosition = FabPosition.End
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             if (uiState.showRewardAnimation) {

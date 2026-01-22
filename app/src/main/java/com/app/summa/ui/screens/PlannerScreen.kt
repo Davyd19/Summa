@@ -369,25 +369,29 @@ fun BrutalistTimeSlot(
 ) {
     val animatedScale by animateFloatAsState(if (isDropTarget) 1.02f else 1f, label = "scale")
     
-    // Brutalist: Solid border for time slots
+    // Brutalist: Solid border for time slots with improved styling
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 80.dp)
             .scale(animatedScale)
-            .brutalBorder(strokeWidth = if(isDropTarget) 4.dp else 2.dp, color = if(isDropTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
-            .background(if(isDropTarget) MaterialTheme.colorScheme.primary.copy(alpha=0.05f) else Color.Transparent)
-            .padding(8.dp)
+            .brutalBorder(
+                strokeWidth = if(isDropTarget) 3.dp else 2.dp, 
+                color = if(isDropTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+            )
+            .background(if(isDropTarget) MaterialTheme.colorScheme.primary.copy(alpha=0.08f) else Color.Transparent)
+            .padding(12.dp)
     ) {
         // Time Column
         Column(
-            modifier = Modifier.width(50.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.width(56.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
                 String.format("%02d:00", hour),
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Black,
                 color = if(isDropTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             )
         }
@@ -397,19 +401,31 @@ fun BrutalistTimeSlot(
             modifier = Modifier
                 .width(2.dp)
                 .fillMaxHeight()
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
         )
         
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(12.dp))
 
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (tasks.isEmpty() && isDropTarget) {
-                Text("Drop Here", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 12.dp))
+                Text(
+                    "Drop Here", 
+                    style = MaterialTheme.typography.titleSmall, 
+                    fontWeight = FontWeight.Bold, 
+                    color = MaterialTheme.colorScheme.primary, 
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             } else if (tasks.isEmpty()) {
-                Text("Free Slot", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), modifier = Modifier.padding(top = 4.dp))
+                Text(
+                    "Free Slot", 
+                    style = MaterialTheme.typography.bodyMedium, 
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), 
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
 
             tasks.forEach { task ->
