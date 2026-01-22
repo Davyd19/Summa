@@ -44,8 +44,7 @@ fun DashboardScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToHabits: () -> Unit = {},
     onNavigateToAddTask: () -> Unit = {},
-    onNavigateToFocus: () -> Unit = {},
-    onNavigateToAddTransaction: () -> Unit = {}
+    onNavigateToFocus: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val today = remember { LocalDate.now() }
@@ -53,6 +52,8 @@ fun DashboardScreen(
     val monthLabel = today.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).uppercase()
     val dayName = today.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH).uppercase()
     
+    var showTransactionSheet by remember { mutableStateOf(false) }
+
     // Main Container
     LazyColumn(
         modifier = Modifier
@@ -71,55 +72,300 @@ fun DashboardScreen(
             ) {
                 BrutalistHeaderBadge(text = "SUMMA OS v1.0")
                 
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // MODE TOGGLE
-                    Row(
-                        modifier = Modifier
-                            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 24.dp)
-                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        val modes = listOf("Normal", "Fokus")
-                        modes.forEach { mode ->
-                            val isSelected = currentMode == mode
-                            Box(
-                                modifier = Modifier
-                                    .clickable { onModeSelected(mode) }
-                                    .background(
-                                        if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                        RoundedCornerShape(20.dp)
-                                    )
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = mode.uppercase(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Black,
-                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                // MODE TOGGLE
+                Row(
+                    modifier = Modifier
+                        .brutalBorder(strokeWidth = 2.dp, cornerRadius = 24.dp)
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val modes = listOf("Normal", "Fokus")
+                    modes.forEach { mode ->
+                        val isSelected = currentMode == mode
+                        Box(
+                            modifier = Modifier
+                                .clickable { onModeSelected(mode) }
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    RoundedCornerShape(20.dp)
                                 )
-                            }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = mode.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Black,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                            )
                         }
                     }
-
-                    // SETTINGS BUTTON (Moved to Top)
-                    BrutalIconAction(
-                        icon = Icons.Default.Settings,
-                        contentDescription = "Pengaturan",
-                        onClick = onNavigateToSettings,
-                        modifier = Modifier.size(40.dp) // Slightly smaller than standard fab, fits header
-                    )
                 }
             }
         }
-// ... (Lines 108-363 unchanged)
+
+        // 2. GIANT HEADER
+        item {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = monthLabel,
+                            style = MaterialTheme.typography.displayLarge,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 64.sp,
+                            lineHeight = 64.sp
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = dayLabel,
+                            style = MaterialTheme.typography.displayLarge,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 64.sp,
+                            lineHeight = 64.sp
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = dayName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    BrutalistDigitalClock()
+                }
+            }
+        }
+
+        // 3. DIVIDER
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(MaterialTheme.colorScheme.onBackground)
+            )
+        }
+
+        // 4. SYSTEM STATUS CARD
+        item {
+            BrutalistCard(
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = onNavigateToSettings, modifier = Modifier.size(24.dp)) {
+                                Icon(Icons.Default.Settings, "Pengaturan", modifier = Modifier.size(18.dp))
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("SYSTEM_STATUS", fontWeight = FontWeight.Bold)
+                        }
+                        Text("${(uiState.todayProgress * 100).toInt()}%", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // BLOCK PROGRESS BAR
+                    // Assume 10 blocks max for visual balance
+                    val maxBlocks = 10
+                    val currentBlocks = (uiState.todayProgress * maxBlocks).toInt()
+                    BrutalistBlockProgressBar(current = currentBlocks, max = maxBlocks)
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("DAILY_QUOTA", style = MaterialTheme.typography.labelSmall, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                        Text("${uiState.completedHabits}/${uiState.todayHabits.size} TASKS", style = MaterialTheme.typography.labelSmall, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                    }
+                }
+            }
+        }
+
+        // 5. GRID LAYOUT
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // ROW 1
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // SUMMA POINTS CARD (Green)
+                    BrutalistCard(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f),
+                        containerColor = MaterialTheme.colorScheme.primary, // Using primary (Teal/Green) like original
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(16.dp),
+                            verticalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Summa Points", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                            
+                            Text(
+                                text = "${uiState.summaPoints}",
+                                style = MaterialTheme.typography.displayMedium,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White
+                            )
+                            
+                            LinearProgressIndicator(
+                                progress = (uiState.summaPoints % 1000) / 1000f,
+                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                color = Color.White,
+                                trackColor = Color.White.copy(alpha = 0.3f)
+                            )
+                        }
+                    }
+
+                    // FOCUS CLIP / SESSION CARD (Blue)
+                    BrutalistCard(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .clickable { onNavigateToFocus() }, // Navigate to Focus Mode
+                        containerColor = BrutalBlue,
+                        contentColor = BrutalWhite
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Icon(Icons.Default.Timer, null, modifier = Modifier.size(32.dp))
+                            
+                            Column {
+                                Text("KLIP FOKUS", style = MaterialTheme.typography.labelSmall, color = BrutalWhite.copy(alpha = 0.7f), fontWeight = FontWeight.Bold)
+                                Text("${uiState.totalPaperclips}", style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Black)
+                            }
+                        }
+                    }
+                }
+
+                // ROW 2
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // START DAY / ADD TASK CARD
+                    BrutalistCard(
+                        modifier = Modifier
+                            .weight(2f) // Wide card
+                            .height(100.dp)
+                            .clickable { onNavigateToAddTask() },
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.surface, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary)
+                                }
+                                Spacer(Modifier.width(16.dp))
+                                Column {
+                                    Text("Mulai Hari", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("Tambah tugas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                                }
+                            }
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, null)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 6. HABITS WIDGET (RESTORATION)
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("KEBIASAAN HARI INI", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Text(
+                        "${uiState.completedHabits}/${uiState.todayHabits.size}", 
+                        modifier = Modifier.padding(horizontal=8.dp, vertical=2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            
+            if (uiState.todayHabits.isEmpty()) {
+                BrutalistCard(modifier = Modifier.fillMaxWidth().height(100.dp)) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Belum ada kebiasaan terjadwal", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    uiState.todayHabits.forEach { habit ->
+                         // Simple Brutalist Habit Item row
+                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp)
+                                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                                .clickable { onNavigateToHabits() } // Or navigate to toggle
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                         ) {
+                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                 Text(habit.icon, style = MaterialTheme.typography.titleMedium)
+                                 Spacer(Modifier.width(12.dp))
+                                 Text(habit.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                             }
+                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                 Text("${habit.currentCount}/${habit.targetCount}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                 Spacer(Modifier.width(8.dp))
+                                 // Checkbox visualization
+                                 Box(
+                                     modifier = Modifier
+                                        .size(20.dp)
+                                        .border(2.dp, if(habit.currentCount >= habit.targetCount) SuccessGreen else MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+                                        .background(if(habit.currentCount >= habit.targetCount) SuccessGreen else Color.Transparent, RoundedCornerShape(4.dp)),
+                                     contentAlignment = Alignment.Center
+                                 ) {
+                                     if(habit.currentCount >= habit.targetCount) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                 }
+                             }
+                         }
+                    }
+                }
+            }
+        }
+
         // 7. QUICK ACTIONS
         item {
              Text("AKSES CEPAT", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
              Spacer(Modifier.height(12.dp))
              Button(
-                 onClick = onNavigateToAddTransaction,
+                 onClick = { showTransactionSheet = true },
                  shape = RoundedCornerShape(8.dp),
                  modifier = Modifier.fillMaxWidth().height(56.dp).brutalBorder(),
                  colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface)
