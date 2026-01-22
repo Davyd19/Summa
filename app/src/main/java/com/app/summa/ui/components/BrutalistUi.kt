@@ -382,11 +382,12 @@ fun BrutalTopAppBar(
 fun BrutalIconAction(
     icon: ImageVector,
     contentDescription: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     IconButton(
         onClick = onClick,
-        modifier = Modifier.brutalBorder(strokeWidth = 2.dp)
+        modifier = modifier.brutalBorder(strokeWidth = 2.dp)
     ) {
         Icon(icon, contentDescription = contentDescription)
     }
