@@ -6,7 +6,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.text.googlefonts.GoogleFont
-import androidx.compose.ui.text.googlefonts.FontFamily as GoogleFontFamily
 import androidx.compose.ui.unit.sp
 import com.app.summa.R
 
@@ -18,7 +17,7 @@ private val fontProvider = GoogleFont.Provider(
 
 private val spaceGrotesk = GoogleFont("Space Grotesk")
 
-private val SpaceGroteskFamily: FontFamily = GoogleFontFamily(
+private val SpaceGroteskFamily = FontFamily(
     Font(googleFont = spaceGrotesk, fontProvider = fontProvider, weight = FontWeight.Light),
     Font(googleFont = spaceGrotesk, fontProvider = fontProvider, weight = FontWeight.Normal),
     Font(googleFont = spaceGrotesk, fontProvider = fontProvider, weight = FontWeight.Medium),

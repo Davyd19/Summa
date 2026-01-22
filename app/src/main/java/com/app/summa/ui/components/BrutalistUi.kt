@@ -312,11 +312,273 @@ fun BrutalFab(
 
 @Composable
 fun brutalTextFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = MaterialTheme.colorScheme.onBackground,
-    unfocusedBorderColor = MaterialTheme.colorScheme.onBackground,
-    focusedLabelColor = MaterialTheme.colorScheme.onBackground,
-    cursorColor = MaterialTheme.colorScheme.onBackground
+    focusedBorderColor = Color.Transparent,
+    unfocusedBorderColor = Color.Transparent
 )
+
+// --- DASHBOARD COMPONENTS ---
+
+@Composable
+fun BrutalistDailyGoalCard(
+    progress: Float,
+    completedHabits: Int,
+    totalHabits: Int,
+    modifier: Modifier = Modifier
+) {
+    BrutalistCard(modifier = modifier) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "GOAL HARI INI",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        "${(progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.displayMedium,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .brutalBorder(radius = 50.dp)
+                        .background(MaterialTheme.colorScheme.primaryContainer, androidx.compose.foundation.shape.CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            BrutalistProgressBar(progress = progress)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "$completedHabits dari $totalHabits kebiasaan selesai",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
+@Composable
+fun BrutalistStatGrid(
+    tasksLeft: Int,
+    points: Int,
+    paperclips: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
+    ) {
+        BrutalistStatCard(
+            title = "TASK",
+            value = "$tasksLeft",
+            subtitle = "Sisa",
+            icon = androidx.compose.material.icons.Icons.Filled.Schedule,
+            inverted = false,
+            modifier = Modifier.weight(1f)
+        )
+        BrutalistStatCard(
+            title = "XP",
+            value = "$points",
+            subtitle = "Total",
+            icon = androidx.compose.material.icons.Icons.Filled.BarChart,
+            inverted = true, // Black card
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+fun BrutalistNextActionCard(
+    task: com.app.summa.data.model.Task?, // Assuming Task is available
+    onPrimaryAction: () -> Unit,
+    onProfileClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (task == null) {
+        BrutalistCard(modifier = modifier, containerColor = MaterialTheme.colorScheme.surfaceVariant) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Semua Beres! 🎉", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                BrutalTextButton(text = "RENCANA BESOK", onClick = onPrimaryAction)
+            }
+        }
+        return
+    }
+
+    BrutalistCard(modifier = modifier, containerColor = MaterialTheme.colorScheme.primaryContainer) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
+            ) {
+                BrutalistTag(label = "NEXT ACTION", color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text(
+                     task.scheduledTime ?: "Now",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                task.title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                BrutalTextButton(
+                    text = "MULAI",
+                    onClick = onPrimaryAction,
+                    modifier = Modifier.weight(1f).background(MaterialTheme.colorScheme.surface, RoundedCornerShape(4.dp)).brutalBorder(radius=4.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun BrutalistHabitsSection(
+    habits: List<com.app.summa.data.model.HabitItem>,
+    onHabitClick: (com.app.summa.data.model.HabitItem) -> Unit
+) {
+    if (habits.isNotEmpty()) {
+        Text("KEBIASAAN (PRIORITAS)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, modifier = Modifier.padding(bottom=8.dp))
+        Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+            habits.take(3).forEach { habit ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().brutalBorder(strokeWidth = 2.dp).padding(12.dp).androidx.compose.foundation.clickable{ onHabitClick(habit) },
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(habit.icon, style = MaterialTheme.typography.titleLarge)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(habit.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                    if (habit.targetCount > 0 && habit.currentCount >= habit.targetCount) {
+                        Icon(androidx.compose.material.icons.Icons.Filled.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
+                    } else {
+                        Text("${habit.currentCount}/${habit.targetCount}", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BrutalistQuickAccessRow(
+    netWorth: String,
+    onMoneyClick: () -> Unit,
+    onNotesClick: () -> Unit,
+    onReflectionClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().height(100.dp),
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
+    ) {
+        // Money
+        BrutalistCard(
+            modifier = Modifier.weight(1f).fillMaxHeight().androidx.compose.foundation.clickable{ onMoneyClick() },
+            containerColor = com.app.summa.ui.theme.DeepTeal,
+            contentColor = Color.White
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(androidx.compose.material.icons.Icons.Filled.AccountBalanceWallet, null)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(netWorth, fontWeight = FontWeight.Bold)
+            }
+        }
+        // Notes
+        BrutalistCard(
+            modifier = Modifier.weight(1f).fillMaxHeight().androidx.compose.foundation.clickable{ onNotesClick() }
+        ) {
+             Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(androidx.compose.material.icons.Icons.Filled.Book, null)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Notes", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+fun BrutalistActionSection(
+    onStartSession: () -> Unit,
+    onEditHabits: () -> Unit,
+    onHistoryClick: () -> Unit
+) {
+    // Quick Actions
+    Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly) {
+        BrutalIconAction(androidx.compose.material.icons.Outlined.PlayCircleOutline, "Fokus", onStartSession)
+        BrutalIconAction(androidx.compose.material.icons.Filled.CheckCircle, "Habits", onEditHabits)
+        BrutalIconAction(androidx.compose.material.icons.Filled.RateReview, "Refleksi", onHistoryClick)
+    }
+}
+
+@Composable
+fun BrutalistModeDialog(
+    currentMode: String,
+    onDismiss: () -> Unit,
+    onModeSelected: (String) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Pilih Mode", fontWeight = FontWeight.Black) },
+        text = {
+            Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                listOf("Normal", "Fokus", "Pagi", "Malam").forEach { mode ->
+                    val isSelected = currentMode == mode
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .brutalBorder(strokeWidth = if(isSelected) 3.dp else 1.dp, color = if(isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                            .background(if(isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+                            .androidx.compose.foundation.clickable { onModeSelected(mode) }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            mode.uppercase(),
+                            fontWeight = FontWeight.Bold,
+                            color = if(isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { BrutalTextButton("Tutup", onDismiss) },
+        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.brutalBorder()
+    )
+}
 
 @Composable
 fun BrutalTextButton(

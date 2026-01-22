@@ -1,6 +1,7 @@
 package com.app.summa.ui.screens
 
 import com.app.summa.ui.components.*
+import androidx.compose.foundation.clickable
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -75,12 +76,12 @@ fun KnowledgeBaseScreen(
                 singleLine = true
             )
 
-            Surface(
+            BrutalistCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surface
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 // Brutal segmented tabs container
                 Row(

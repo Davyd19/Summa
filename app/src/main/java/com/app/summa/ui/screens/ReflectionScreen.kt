@@ -384,3 +384,55 @@ fun CompactIdentityVoteCard(identity: Identity, onVote: (Identity, Int, String) 
         }
     }
 }
+
+// Manual Vote
+@Composable
+fun RitualStepThree(identities: List<Identity>, onVote: (Identity, Int, String) -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("⚖️", style = MaterialTheme.typography.displayLarge)
+        Spacer(Modifier.height(16.dp))
+        BrutalistHeader(title = "VOTE MANUAL", subtitle = "Tambahkan poin untuk identitas lain?")
+
+        Spacer(Modifier.height(32.dp))
+
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(identities) { identity ->
+                CompactIdentityVoteCard(identity, onVote)
+            }
+        }
+    }
+}
+
+// Reflection Journal
+@Composable
+fun RitualStepFour(reflectionText: String, onTextChange: (String) -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("📝", style = MaterialTheme.typography.displayLarge)
+        Spacer(Modifier.height(16.dp))
+        BrutalistHeader(title = "CATATAN", subtitle = "Satu kalimat untuk hari ini.")
+
+        Spacer(Modifier.height(32.dp))
+
+        OutlinedTextField(
+            value = reflectionText,
+            onValueChange = onTextChange,
+            modifier = Modifier.fillMaxWidth().height(200.dp),
+            placeholder = { Text("Hari ini saya belajar bahwa...") },
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            )
+        )
+    }
+}

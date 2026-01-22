@@ -715,7 +715,7 @@ fun BrutalistEvidenceItem(note: KnowledgeNote) {
 }
 
 @Composable
-fun EmptyIdentityState() {
+fun EmptyIdentityBox() {
     BrutalistCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -736,56 +736,4 @@ fun EmptyIdentityState() {
 
 // ... (IdentityDetailSheet & AddIdentityDialog need updates too but for now linking usages)
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AddIdentityDialog(
-    onDismiss: () -> Unit,
-    onAdd: (String, String) -> Unit
-) {
-    var name by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("IDENTITAS BARU", fontWeight = FontWeight.Black) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(
-                    "Siapa yang ingin Anda jadi?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    fontWeight = FontWeight.Bold
-                )
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("NAMA IDENTITAS") },
-                    placeholder = { Text("Contoh: Musisi, Orang Sehat") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("DESKRIPSI/MANTRA") },
-                    placeholder = { Text("Contoh: Saya menciptakan musik setiap hari") },
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { if (name.isNotBlank()) onAdd(name, description) },
-                shape = RoundedCornerShape(4.dp),
-                modifier = Modifier.brutalBorder()
-            ) {
-                Text("TAMBAH", fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("BATAL", fontWeight = FontWeight.Bold) }
-        }
-    )
-}

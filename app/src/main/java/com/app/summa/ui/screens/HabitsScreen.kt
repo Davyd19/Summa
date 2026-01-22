@@ -772,11 +772,7 @@ fun ModernHabitDetailScreen(
             }
 
             // --- TAMPILKAN KARTU KONTRIBUSI IDENTITAS (JIKA ADA) ---
-            if (relatedIdentity != null) {
-                item {
-                    IdentityContributionCard(identity = relatedIdentity)
-                }
-            }
+
 
             item {
                 Row(
