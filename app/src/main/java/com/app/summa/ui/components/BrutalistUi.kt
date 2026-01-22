@@ -67,7 +67,7 @@ fun BrutalistCard(
 
 @Composable
 fun BrutalistTag(
-    label: String,
+    text: String,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onBackground
 ) {
@@ -78,7 +78,7 @@ fun BrutalistTag(
         color = Color.Transparent
     ) {
         Text(
-            text = label,
+            text = text,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
@@ -443,11 +443,11 @@ fun BrutalistHabitsSection(
 ) {
     if (habits.isNotEmpty()) {
         Text("KEBIASAAN (PRIORITAS)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, modifier = Modifier.padding(bottom=8.dp))
-        Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             habits.take(3).forEach { habit ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().brutalBorder(strokeWidth = 2.dp).padding(12.dp).androidx.compose.foundation.clickable{ onHabitClick(habit) },
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth().brutalBorder(strokeWidth = 2.dp).padding(12.dp).clickable{ onHabitClick(habit) },
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -456,7 +456,7 @@ fun BrutalistHabitsSection(
                         Text(habit.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
                     if (habit.targetCount > 0 && habit.currentCount >= habit.targetCount) {
-                        Icon(androidx.compose.material.icons.Icons.Filled.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Filled.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
                     } else {
                         Text("${habit.currentCount}/${habit.targetCount}", fontWeight = FontWeight.Bold)
                     }
@@ -475,34 +475,34 @@ fun BrutalistQuickAccessRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().height(100.dp),
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Money
         BrutalistCard(
-            modifier = Modifier.weight(1f).fillMaxHeight().androidx.compose.foundation.clickable{ onMoneyClick() },
+            modifier = Modifier.weight(1f).fillMaxHeight().clickable{ onMoneyClick() },
             containerColor = com.app.summa.ui.theme.DeepTeal,
             contentColor = Color.White
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+                verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(androidx.compose.material.icons.Icons.Filled.AccountBalanceWallet, null)
+                Icon(Icons.Filled.AccountBalanceWallet, null)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(netWorth, fontWeight = FontWeight.Bold)
             }
         }
         // Notes
         BrutalistCard(
-            modifier = Modifier.weight(1f).fillMaxHeight().androidx.compose.foundation.clickable{ onNotesClick() }
+            modifier = Modifier.weight(1f).fillMaxHeight().clickable{ onNotesClick() }
         ) {
              Column(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+                verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(androidx.compose.material.icons.Icons.Filled.Book, null)
+                Icon(Icons.Filled.Book, null)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text("Notes", fontWeight = FontWeight.Bold)
             }
@@ -517,10 +517,10 @@ fun BrutalistActionSection(
     onHistoryClick: () -> Unit
 ) {
     // Quick Actions
-    Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly) {
-        BrutalIconAction(androidx.compose.material.icons.Outlined.PlayCircleOutline, "Fokus", onStartSession)
-        BrutalIconAction(androidx.compose.material.icons.Filled.CheckCircle, "Habits", onEditHabits)
-        BrutalIconAction(androidx.compose.material.icons.Filled.RateReview, "Refleksi", onHistoryClick)
+    Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+        BrutalIconAction(Icons.Outlined.PlayCircleOutline, "Fokus", onStartSession)
+        BrutalIconAction(Icons.Filled.CheckCircle, "Habits", onEditHabits)
+        BrutalIconAction(Icons.Filled.RateReview, "Refleksi", onHistoryClick)
     }
 }
 
@@ -534,7 +534,7 @@ fun BrutalistModeDialog(
         onDismissRequest = onDismiss,
         title = { Text("Pilih Mode", fontWeight = FontWeight.Black) },
         text = {
-            Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Normal", "Fokus", "Pagi", "Malam").forEach { mode ->
                     val isSelected = currentMode == mode
                     Row(
@@ -542,7 +542,7 @@ fun BrutalistModeDialog(
                             .fillMaxWidth()
                             .brutalBorder(strokeWidth = if(isSelected) 3.dp else 1.dp, color = if(isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
                             .background(if(isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                            .androidx.compose.foundation.clickable { onModeSelected(mode) }
+                            .clickable { onModeSelected(mode) }
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

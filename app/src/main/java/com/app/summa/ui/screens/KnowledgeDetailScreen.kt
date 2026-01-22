@@ -186,7 +186,7 @@ fun KnowledgeDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     textStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
-                    colors = brutalTextFieldColors().copy(
+                    colors = OutlinedTextFieldDefaults.colors(
                         unfocusedBorderColor = Color.Transparent,
                         focusedBorderColor = Color.Transparent
                     )
@@ -300,7 +300,6 @@ fun KnowledgeDetailScreen(
                         }
                         items(searchResults) { note ->
                             BrutalistCard(
-                                onClick = { viewModel.addLink(note); showLinkDialog = false },
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                 modifier = Modifier.fillMaxWidth().clickable { viewModel.addLink(note); showLinkDialog = false }
                             ) {

@@ -27,7 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.summa.data.model.KnowledgeNote
-import com.app.summa.ui.components.BrutalCard
+import com.app.summa.ui.components.BrutalistCard
 import com.app.summa.ui.components.BrutalTopAppBar
 import com.app.summa.ui.components.brutalBorder
 import com.app.summa.ui.components.brutalTextFieldColors
