@@ -121,7 +121,6 @@ fun PlannerScreen(
             onCancel = { selectedTask = null }
         )
     } else {
-    } else {
         Column(
             modifier = Modifier
                 .fillMaxSize()

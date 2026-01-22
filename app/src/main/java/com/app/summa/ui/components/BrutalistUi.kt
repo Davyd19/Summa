@@ -1335,6 +1335,8 @@ fun BrutalIconAction(
         modifier = Modifier.brutalBorder(strokeWidth = 2.dp)
     ) {
         Icon(icon, contentDescription = contentDescription)
+    }
+}
 // === NEW BRUTALIST COMPONENTS FOR OVERHAUL ===
 
 @Composable

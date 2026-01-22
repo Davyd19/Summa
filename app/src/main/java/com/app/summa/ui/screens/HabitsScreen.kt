@@ -72,7 +72,6 @@ fun HabitsScreen(
             onCancel = { focusedHabit = null }
         )
     } else {
-    } else {
         Column(
             modifier = Modifier
                 .fillMaxSize()
