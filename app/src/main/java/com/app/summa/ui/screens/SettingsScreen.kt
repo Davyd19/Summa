@@ -264,7 +264,7 @@ fun SettingsCard(
             Surface(
                 shape = RoundedCornerShape(4.dp),
                 color = color.copy(alpha = 0.1f),
-                modifier = Modifier.size(48.dp).brutalBorder(radius=4.dp, strokeWidth=1.dp, color=color)
+                modifier = Modifier.size(48.dp).brutalBorder(cornerRadius =4.dp, strokeWidth=1.dp, color=color)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(icon, contentDescription = null, tint = color)

@@ -212,7 +212,7 @@ fun IdentityDetailSheet(
             Box(
                 modifier = Modifier
                     .size(100.dp)
-                    .brutalBorder(radius = 100.dp, strokeWidth = 3.dp)
+                    .brutalBorder(cornerRadius = 100.dp, strokeWidth = 3.dp)
                     .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
@@ -481,7 +481,7 @@ fun ProfileHeader(totalLevel: Int) {
             Box(
                 modifier = Modifier
                     .size(100.dp)
-                    .brutalBorder(radius = 100.dp, strokeWidth = 3.dp)
+                    .brutalBorder(cornerRadius = 100.dp, strokeWidth = 3.dp)
                     .background(
                         Brush.linearGradient(
                             colors = listOf(DeepTeal, TealLight)
@@ -503,7 +503,7 @@ fun ProfileHeader(totalLevel: Int) {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .offset(y = 12.dp)
-                    .brutalBorder(radius = 4.dp),
+                    .brutalBorder(cornerRadius = 4.dp),
                 shadowElevation = 0.dp
             ) {
                 Text(
@@ -530,7 +530,7 @@ fun RadarChart(identities: List<Identity>, modifier: Modifier = Modifier) {
 
     Canvas(modifier = modifier) {
         val center = Offset(size.width / 2, size.height / 2)
-        val radius = size.width / 2 * 0.8f
+        val cornerRadius = size.width / 2 * 0.8f
         val stepAngle = 360f / values.size
 
         for (i in 1..4) {
@@ -553,7 +553,7 @@ fun RadarChart(identities: List<Identity>, modifier: Modifier = Modifier) {
             val x = center.x + r * cos(angle).toFloat()
             val y = center.y + r * sin(angle).toFloat()
             if (index == 0) dataPath.moveTo(x, y) else dataPath.lineTo(x, y)
-            drawCircle(color = primaryColor, radius = 6.dp.toPx(), center = Offset(x, y)) // Bigger dots
+            drawCircle(color = primaryColor, cornerRadius = 6.dp.toPx(), center = Offset(x, y)) // Bigger dots
         }
         dataPath.close()
         drawPath(path = dataPath, color = primaryColor.copy(alpha = 0.3f), style = Fill)
@@ -645,7 +645,7 @@ fun BrutalistEvidenceItem(note: KnowledgeNote) {
             Box(
                 modifier = Modifier
                     .size(12.dp)
-                    .brutalBorder(radius=12.dp, strokeWidth=1.dp)
+                    .brutalBorder(cornerRadius =12.dp, strokeWidth=1.dp)
                     .background(GoldAccent, CircleShape)
             )
             Box(
@@ -682,7 +682,7 @@ fun BrutalistEvidenceItem(note: KnowledgeNote) {
                     Surface(
                         color = GoldAccent,
                         shape = RoundedCornerShape(4.dp),
-                        modifier = Modifier.brutalBorder(radius=4.dp, strokeWidth=1.dp)
+                        modifier = Modifier.brutalBorder(cornerRadius =4.dp, strokeWidth=1.dp)
                     ) {
                         Text(
                             "+XP",

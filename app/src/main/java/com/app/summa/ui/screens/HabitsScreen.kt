@@ -82,7 +82,7 @@ fun HabitsScreen(
                             onClick = { showAddSheet = true },
                             modifier = Modifier
                                 .padding(end = 10.dp)
-                                .brutalBorder(strokeWidth = 2.dp, radius = 6.dp)
+                                .brutalBorder(strokeWidth = 2.dp, cornerRadius = 6.dp)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(22.dp))
                         }
@@ -216,7 +216,7 @@ fun ModernHabitDetailScreen(
         ) {
             item {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
-                    Box(modifier = Modifier.size(100.dp).brutalBorder(radius = 100.dp).background(MaterialTheme.colorScheme.primaryContainer.copy(alpha=0.5f), CircleShape), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size(100.dp).brutalBorder(cornerRadius = 100.dp).background(MaterialTheme.colorScheme.primaryContainer.copy(alpha=0.5f), CircleShape), contentAlignment = Alignment.Center) {
                         Text(habit.icon, style = MaterialTheme.typography.displayLarge)
                     }
                 }
@@ -275,7 +275,7 @@ fun BrutalistIdentityContributionCard(
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.size(52.dp).brutalBorder(strokeWidth = 2.dp, radius = 50.dp)
+                modifier = Modifier.size(52.dp).brutalBorder(strokeWidth = 2.dp, cornerRadius = 50.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
@@ -340,7 +340,7 @@ fun BrutalistEmojiStatCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Box(modifier = Modifier.size(48.dp).brutalBorder(radius = 50.dp).background(color.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size(48.dp).brutalBorder(cornerRadius = 50.dp).background(color.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
                         Text(icon, style = MaterialTheme.typography.headlineMedium)
                     }
                     Column {
@@ -363,7 +363,7 @@ fun BrutalistEmojiStatCard(
                     verticalAlignment = Alignment.Top
                 ) {
                     Box(
-                        modifier = Modifier.size(40.dp).brutalBorder(radius = 50.dp).background(color.copy(alpha = 0.15f), CircleShape),
+                        modifier = Modifier.size(40.dp).brutalBorder(cornerRadius = 50.dp).background(color.copy(alpha = 0.15f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(icon, style = MaterialTheme.typography.titleMedium)
@@ -424,7 +424,7 @@ fun EmptyHabitState(
             modifier = Modifier
                 .size(120.dp)
                 .scale(scale)
-                .brutalBorder(radius=100.dp)
+                .brutalBorder(cornerRadius =100.dp)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
@@ -510,7 +510,7 @@ fun BrutalistHabitItem(
          // Header: Icon + Streaks
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    modifier = Modifier.size(60.dp).brutalBorder(radius=50.dp).background(
+                    modifier = Modifier.size(60.dp).brutalBorder(cornerRadius =50.dp).background(
                         Brush.linearGradient(
                             colors = when {
                                 isOverAchieved -> listOf(GoldAccent.copy(alpha = 0.3f), GoldDark.copy(alpha = 0.2f))
@@ -540,7 +540,7 @@ fun BrutalistHabitItem(
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onDecrement()
                         },
-                        modifier = Modifier.size(48.dp).brutalBorder(radius=50.dp).background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
+                        modifier = Modifier.size(48.dp).brutalBorder(cornerRadius =50.dp).background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
                         enabled = habit.currentCount > 0
                     ) { Icon(Icons.Default.Remove, contentDescription = "Kurangi", modifier = Modifier.size(24.dp)) }
 
@@ -568,7 +568,7 @@ fun BrutalistHabitItem(
                         containerColor = when { isOverAchieved -> GoldAccent; isComplete -> SuccessGreen; else -> MaterialTheme.colorScheme.primary },
                         elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp)
                     ) { 
-                        Box(modifier = Modifier.fillMaxSize().brutalBorder(radius=16.dp, color=MaterialTheme.colorScheme.onPrimary).padding(2.dp)) {
+                        Box(modifier = Modifier.fillMaxSize().brutalBorder(cornerRadius =16.dp, color=MaterialTheme.colorScheme.onPrimary).padding(2.dp)) {
                             // Border trick setup
                         }
                         Icon(Icons.Default.Add, contentDescription = "Tambah", modifier = Modifier.size(24.dp), tint = Color.White) 
@@ -580,7 +580,7 @@ fun BrutalistHabitItem(
                     onClick = onFocusClick,
                     modifier = Modifier
                         .size(48.dp)
-                        .brutalBorder(radius=50.dp)
+                        .brutalBorder(cornerRadius =50.dp)
                         .background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape)
                 ) {
                     Icon(
@@ -610,7 +610,7 @@ fun BrutalistStreakBadge(
     Surface(
         shape = RoundedCornerShape(4.dp),
         color = color.copy(alpha = 0.15f),
-        modifier = Modifier.brutalBorder(strokeWidth=1.dp, color=color, radius=4.dp)
+        modifier = Modifier.brutalBorder(strokeWidth=1.dp, color=color, cornerRadius =4.dp)
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

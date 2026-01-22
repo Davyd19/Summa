@@ -55,7 +55,7 @@ fun BrutalistCard(
                 clip = false
             )
             .offset(x = 0.dp, y = 0.dp)
-            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp),
+            .brutalBorder(strokeWidth = 2.dp, cornercornerRadius = 8.dp),
         shape = RoundedCornerShape(8.dp),
         color = containerColor,
         contentColor = contentColor
@@ -110,7 +110,7 @@ fun BrutalistMetricCard(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .size(40.dp)
-                    .brutalBorder(strokeWidth = 2.dp, cornerRadius = 20.dp),
+                    .brutalBorder(strokeWidth = 2.dp, cornercornerRadius = 20.dp),
                 shape = CircleShape,
                 color = backgroundColor,
                 contentColor = contentColor
@@ -180,7 +180,7 @@ fun BrutalistLargeButton(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp),
+            .brutalBorder(strokeWidth = 2.dp, cornercornerRadius = 8.dp),
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surface
     ) {
@@ -447,7 +447,7 @@ fun BrutalistDailyGoalCard(
                 Box(
                     modifier = Modifier
                         .size(56.dp)
-                        .brutalBorder(radius = 50.dp)
+                        .brutalBorder(cornerRadius = 50.dp)
                         .background(MaterialTheme.colorScheme.primaryContainer, androidx.compose.foundation.shape.CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
@@ -545,7 +545,7 @@ fun BrutalistNextActionCard(
                 BrutalTextButton(
                     text = "MULAI",
                     onClick = onPrimaryAction,
-                    modifier = Modifier.weight(1f).background(MaterialTheme.colorScheme.surface, RoundedCornerShape(4.dp)).brutalBorder(radius=4.dp)
+                    modifier = Modifier.weight(1f).background(MaterialTheme.colorScheme.surface, RoundedCornerShape(4.dp)).brutalBorder(cornerRadius =4.dp)
                 )
             }
         }

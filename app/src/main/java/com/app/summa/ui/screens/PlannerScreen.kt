@@ -131,7 +131,7 @@ fun PlannerScreen(
                                 if (currentMode == "Fokus") {
                                     Spacer(Modifier.width(8.dp))
                                     Surface(
-                                        modifier = Modifier.brutalBorder(strokeWidth = 2.dp, radius = 6.dp),
+                                        modifier = Modifier.brutalBorder(strokeWidth = 2.dp, cornerRadius = 6.dp),
                                         color = MaterialTheme.colorScheme.surface,
                                         shape = RoundedCornerShape(6.dp)
                                     ) {
@@ -172,8 +172,7 @@ fun PlannerScreen(
                 // View Mode Switcher
                 BrutalistCard(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentPadding = PaddingValues(4.dp)
+                    containerColor = MaterialTheme.colorScheme.surface
                 ) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         listOf("day" to "Harian", "week" to "Mingguan", "month" to "Bulanan").forEach { (mode, label) ->
@@ -181,7 +180,7 @@ fun PlannerScreen(
                                 selected = viewMode == mode,
                                 onClick = { viewMode = mode },
                                 label = { Text(label, fontWeight = FontWeight.Bold) },
-                                modifier = Modifier.weight(1f).brutalBorder(strokeWidth = 2.dp, radius = 6.dp),
+                                modifier = Modifier.weight(1f).brutalBorder(strokeWidth = 2.dp, cornerRadius = 6.dp),
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primary,
                                     selectedLabelColor = Color.White

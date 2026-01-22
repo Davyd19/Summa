@@ -185,7 +185,7 @@ fun BrutalistNetWorthCard(
                 modifier = Modifier
                     .size(120.dp)
                     .offset(x = 240.dp, y = (-20).dp)
-                    .brutalBorder(radius = 100.dp, strokeWidth = 1.dp)
+                    .brutalBorder(cornerRadius = 100.dp, strokeWidth = 1.dp)
                     .background(Color.White.copy(alpha = 0.08f), CircleShape)
             )
 
@@ -339,7 +339,7 @@ fun BrutalistAccountCard(account: Account) {
                 modifier = Modifier
                     .size(100.dp)
                     .offset(x = 180.dp, y = (-20).dp)
-                    .brutalBorder(radius=100.dp, strokeWidth=1.dp)
+                    .brutalBorder(cornerRadius =100.dp, strokeWidth=1.dp)
                     .background(Color.White.copy(alpha = 0.1f), CircleShape)
             )
 
@@ -372,7 +372,7 @@ fun BrutalistAccountCard(account: Account) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
                             color = GoldAccent.copy(alpha = 0.3f),
-                            modifier = Modifier.brutalBorder(strokeWidth = 1.dp, radius = 4.dp)
+                            modifier = Modifier.brutalBorder(strokeWidth = 1.dp, cornerRadius = 4.dp)
                         ) {
                             Text(
                                 "💎",
@@ -409,7 +409,7 @@ fun BrutalistTransactionItem(transaction: Transaction) {
              Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .brutalBorder(radius=100.dp, strokeWidth=2.dp, color=color)
+                    .brutalBorder(cornerRadius =100.dp, strokeWidth=2.dp, color=color)
                     .background(color.copy(alpha = 0.1f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {

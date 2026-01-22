@@ -129,7 +129,7 @@ fun FocusSetupScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
-                .brutalBorder(radius=4.dp),
+                .brutalBorder(cornerRadius =4.dp),
             shape = RoundedCornerShape(4.dp)
         ) {
             Icon(Icons.Default.PlayArrow, null)
@@ -238,7 +238,7 @@ fun FocusRunningScreen(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(220.dp)
-                .brutalBorder(radius=220.dp, strokeWidth=4.dp, color=DeepTeal)
+                .brutalBorder(cornerRadius =220.dp, strokeWidth=4.dp, color=DeepTeal)
                 .border(4.dp, DeepTeal.copy(alpha = 0.2f), CircleShape)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -270,7 +270,7 @@ fun FocusRunningScreen(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(100.dp)
-                    .brutalBorder(strokeWidth = 3.dp, radius = 8.dp)
+                    .brutalBorder(strokeWidth = 3.dp, cornerRadius = 8.dp)
                     .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
                     // PERBAIKAN: Klik juga bisa memindahkan klip (Aksesibilitas)
                     .clickable(
@@ -364,7 +364,7 @@ fun FocusRunningScreen(
                 modifier = Modifier
                     .size(100.dp)
                     .background(SuccessGreen.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                    .brutalBorder(radius=8.dp, strokeWidth=2.dp, color=SuccessGreen)
+                    .brutalBorder(cornerRadius =8.dp, strokeWidth=2.dp, color=SuccessGreen)
                     .semantics { contentDescription = "Target pengumpulan klip" }
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

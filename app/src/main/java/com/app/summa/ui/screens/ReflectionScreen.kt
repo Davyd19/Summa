@@ -221,7 +221,7 @@ fun RitualStepOne(summary: DailySummary?) {
             Box(
                 modifier = Modifier
                     .size(120.dp)
-                    .brutalBorder(radius = 100.dp, strokeWidth = 4.dp, color = if (isGreatDay) GoldAccent else MaterialTheme.colorScheme.outline)
+                    .brutalBorder(cornerRadius = 100.dp, strokeWidth = 4.dp, color = if (isGreatDay) GoldAccent else MaterialTheme.colorScheme.outline)
                     .background(MaterialTheme.colorScheme.surface, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
@@ -294,7 +294,7 @@ fun BrutalistVoteCard(suggestion: VoteSuggestion, onVote: (Identity, Int, String
                     onClick = { isVisible = false },
                     colors = ButtonDefaults.buttonColors(containerColor = GoldAccent),
                     shape = RoundedCornerShape(4.dp),
-                    modifier = Modifier.brutalBorder(radius=4.dp)
+                    modifier = Modifier.brutalBorder(cornerRadius =4.dp)
                 ) {
                     Text("+${suggestion.points} XP", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
@@ -374,7 +374,7 @@ fun CompactIdentityVoteCard(identity: Identity, onVote: (Identity, Int, String) 
                             expanded = false
                             note = ""
                         },
-                        modifier = Modifier.fillMaxWidth().brutalBorder(radius=4.dp),
+                        modifier = Modifier.fillMaxWidth().brutalBorder(cornerRadius =4.dp),
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text("BERI SUARA (+10 XP)", fontWeight = FontWeight.Bold)

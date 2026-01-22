@@ -195,7 +195,7 @@ fun EnhancedNoteList(
             Box(
                 modifier = Modifier
                     .size(120.dp)
-                    .brutalBorder(radius=120.dp, strokeWidth=1.dp)
+                    .brutalBorder(cornerRadius =120.dp, strokeWidth=1.dp)
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
@@ -292,7 +292,7 @@ fun EnhancedNoteCard(
                     Surface(
                         shape = RoundedCornerShape(4.dp),
                         color = PurpleAccent.copy(alpha = 0.15f),
-                        modifier = Modifier.brutalBorder(radius=4.dp, strokeWidth=1.dp)
+                        modifier = Modifier.brutalBorder(cornerRadius =4.dp, strokeWidth=1.dp)
                     ) {
                         Icon(
                             Icons.Default.Inventory,
@@ -308,7 +308,7 @@ fun EnhancedNoteCard(
                     Box(
                         modifier = Modifier
                             .size(40.dp)
-                            .brutalBorder(strokeWidth = 2.dp, radius = 40.dp)
+                            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 40.dp)
                             .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
                             .clickable { onPromote(note) },
                         contentAlignment = Alignment.Center
