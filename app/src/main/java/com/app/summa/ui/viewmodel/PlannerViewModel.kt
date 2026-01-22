@@ -123,8 +123,16 @@ class PlannerViewModel @Inject constructor(
     }
 
     // Alias agar sesuai dengan PlannerScreen.kt
-    fun addTask(title: String, description: String, time: String, isCommitment: Boolean, twoMinuteAction: String, identityId: Long?) {
-        saveTask(0L, title, description, time, isCommitment, identityId, twoMinuteAction)
+    fun addTask(
+        title: String, 
+        description: String, 
+        scheduledTime: String, 
+        isCommitment: Boolean, 
+        isTwoMinutes: Boolean, 
+        relatedIdentityId: Long?
+    ) {
+        val twoMinuteActionStr = if (isTwoMinutes) "EXECUTE_NOW" else ""
+        saveTask(0L, title, description, scheduledTime, isCommitment, relatedIdentityId, twoMinuteActionStr)
     }
 
     fun toggleTaskCompletion(task: Task) {
