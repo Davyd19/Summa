@@ -223,7 +223,16 @@ fun PlannerScreen(
                  Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             } else {
                 Box(modifier = Modifier.weight(1f)) {
-                     when (viewMode) {
+                AnimatedContent(
+                    targetState = viewMode,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(400, delayMillis = 100)) + 
+                        slideInHorizontally(initialOffsetX = { 20 }, animationSpec = tween(400)) with
+                        fadeOut(animationSpec = tween(200))
+                    },
+                    label = "ViewModeAnimation"
+                ) { targetViewMode ->
+                    when (targetViewMode) {
                         "day" -> InteractiveDailyView(
                             tasks = filteredTasksForDay,
                             identities = uiState.identities,
@@ -245,6 +254,7 @@ fun PlannerScreen(
                             dailyTasks = filteredTasksForDay
                         )
                     }
+                }
                 }
             }
         }

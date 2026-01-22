@@ -318,7 +318,8 @@ fun NavigationGraph(
                     navController.navigate(Screen.HabitDetail.createRoute(habit.id))
                 },
                 onNavigateToAddTask = { navController.navigate(Screen.AddTask.route) },
-                onNavigateToFocus = { navController.navigate(Screen.FocusMode.route) } // Passed callback
+                onNavigateToFocus = { navController.navigate(Screen.FocusMode.route) }, // Passed callback
+                onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction.route) }
             )
         }
 
