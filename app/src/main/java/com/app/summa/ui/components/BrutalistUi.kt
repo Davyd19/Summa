@@ -29,13 +29,15 @@ import kotlin.math.roundToInt
 
 @Composable
 fun Modifier.brutalBorder(
-    strokeWidth: Dp = 3.dp,
-    color: Color = MaterialTheme.colorScheme.onBackground,
-    radius: Dp = 6.dp
-): Modifier = this.border(
-    width = strokeWidth,
-    color = color,
-    shape = RoundedCornerShape(radius)
+    strokeWidth: Dp = 2.dp,
+    color: Color = Color.Black,
+    cornerRadius: Dp = 8.dp
+) = this.then(
+    border(
+        width = strokeWidth,
+        color = color,
+        shape = RoundedCornerShape(cornerRadius)
+    )
 )
 
 @Composable
@@ -43,23 +45,23 @@ fun BrutalistCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
-    borderColor: Color = MaterialTheme.colorScheme.onBackground,
-    contentPadding: PaddingValues = PaddingValues(16.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(
         modifier = modifier
-            .brutalBorder(color = borderColor)
             .shadow(
                 elevation = 0.dp,
-                spotColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f)
-            ),
+                shape = RoundedCornerShape(8.dp),
+                clip = false
+            )
+            .offset(x = 0.dp, y = 0.dp)
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp),
+        shape = RoundedCornerShape(8.dp),
         color = containerColor,
-        contentColor = contentColor,
-        shape = RoundedCornerShape(8.dp)
+        contentColor = contentColor
     ) {
         Column(
-            modifier = Modifier.padding(contentPadding),
+            modifier = Modifier.padding(16.dp),
             content = content
         )
     }
@@ -69,21 +71,135 @@ fun BrutalistCard(
 fun BrutalistTag(
     text: String,
     modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.onBackground
+    color: Color = MaterialTheme.colorScheme.primary
 ) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(4.dp),
-        border = BorderStroke(2.dp, color),
+        border = BorderStroke(1.5.dp, color),
         color = Color.Transparent
     ) {
         Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelLarge,
+            text = text.uppercase(),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = color
         )
+    }
+}
+
+// New metric components
+@Composable
+fun BrutalistMetricCard(
+    value: String,
+    label: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    backgroundColor: Color = MaterialTheme.colorScheme.surface,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface
+) {
+    BrutalistCard(
+        modifier = modifier,
+        containerColor = backgroundColor,
+        contentColor = contentColor
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Icon badge in top-right corner
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(40.dp)
+                    .brutalBorder(strokeWidth = 2.dp, cornerRadius = 20.dp),
+                shape = CircleShape,
+                color = backgroundColor,
+                contentColor = contentColor
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+            
+            Column {
+                Text(
+                    text = label.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.displayMedium,
+                    fontWeight = FontWeight.Black
+                )
+                Text(
+                    text = "Sisa",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun BrutalistDateDisplay(
+    day: String,
+    month: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.Start
+    ) {
+        Text(
+            text = day,
+            style = MaterialTheme.typography.displayLarge,
+            fontWeight = FontWeight.Black,
+            lineHeight = MaterialTheme.typography.displayLarge.fontSize * 0.8
+        )
+        Text(
+            text = month.uppercase(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+fun BrutalistLargeButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector = Icons.Default.ArrowForward
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = text.uppercase(),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Black
+            )
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }
 
