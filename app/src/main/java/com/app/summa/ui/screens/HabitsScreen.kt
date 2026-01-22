@@ -405,70 +405,76 @@ fun EmptyHabitState(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        val infiniteTransition = rememberInfiniteTransition(label = "empty")
-        val scale by infiniteTransition.animateFloat(
-            initialValue = 1f,
-            targetValue = 1.05f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(2000, easing = EaseInOut),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "scale"
-        )
-
+        // Brutalist Icon Box - No animation, strong borders
         Box(
             modifier = Modifier
-                .size(120.dp)
-                .scale(scale)
-                .brutalBorder(cornerRadius =100.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape),
+                .size(140.dp)
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 8.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 "🌱",
-                style = MaterialTheme.typography.displayLarge
+                style = MaterialTheme.typography.displayLarge,
+                fontSize = 64.sp
             )
         }
 
         Spacer(Modifier.height(32.dp))
 
         Text(
-            "Belum Ada Kebiasaan",
+            "BELUM ADA KEBIASAAN",
             style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center
         )
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
 
         Text(
-            "Setiap langkah besar dimulai dari kebiasaan kecil. Tentukan identitas yang ingin Anda bangun hari ini.",
+            "Setiap langkah besar dimulai dari kebiasaan kecil.\nMulai bangun identitas Anda hari ini.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            fontWeight = FontWeight.Medium
         )
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(40.dp))
 
-        Button(
+        // Brutalist Button
+        Surface(
             onClick = onAddClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
-                .brutalBorder(),
+                .height(60.dp)
+                .brutalBorder(strokeWidth = 3.dp, cornerRadius = 8.dp),
             shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
+            color = MaterialTheme.colorScheme.primary
         ) {
-            Icon(Icons.Default.Add, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Buat Kebiasaan Pertama", style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    "BUAT KEBIASAAN PERTAMA",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black,
+                    color = Color.White
+                )
+            }
         }
     }
 }

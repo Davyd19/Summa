@@ -107,7 +107,7 @@ fun MoneyScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(paddingValues),
-                    contentPadding = PaddingValues(bottom = 100.dp, top = 16.dp),
+                    contentPadding = PaddingValues(bottom = 110.dp, top = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     item { BrutalistNetWorthCard(totalNetWorth = uiState.totalNetWorth, modifier = Modifier.padding(horizontal = 16.dp)) }

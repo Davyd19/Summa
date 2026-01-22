@@ -47,7 +47,7 @@ fun DashboardScreen(
     // No Scaffold needed - parent handles navigation
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 90.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 110.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
             // Header: Date + Greeting
@@ -209,14 +209,39 @@ fun DashboardScreen(
                 }
             }
 
-            // Bottom Action Button - Full Width
+            // Catat Cepat Section
             item {
-                BrutalistLargeButton(
-                    text = "Catat Cepat",
-                    onClick = onNavigateToPlanner,
-                    icon = Icons.Default.Add,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                BrutalistCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = MaterialTheme.colorScheme.surface
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNavigateToNotes() },
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "CATAT CEPAT",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        IconButton(
+                            onClick = { onNavigateToNotes() },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .brutalBorder(strokeWidth = 2.dp, cornerRadius = 6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Catat Cepat",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
 

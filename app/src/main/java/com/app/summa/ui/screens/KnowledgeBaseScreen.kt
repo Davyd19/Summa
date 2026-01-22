@@ -188,42 +188,42 @@ fun EnhancedNoteList(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(40.dp),
+                .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            // Brutalist Icon Box - Strong borders, no gradient
             Box(
                 modifier = Modifier
-                    .size(120.dp)
-                    .brutalBorder(cornerRadius =120.dp, strokeWidth=1.dp)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primaryContainer,
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                            )
-                        ), CircleShape
-                    ),
+                    .size(140.dp)
+                    .brutalBorder(strokeWidth = 3.dp, cornerRadius = 8.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     emptyIcon,
-                    style = MaterialTheme.typography.displayLarge
+                    style = MaterialTheme.typography.displayLarge,
+                    fontSize = 64.sp
                 )
             }
-            Spacer(Modifier.height(24.dp))
+            
+            Spacer(Modifier.height(32.dp))
+            
             Text(
-                emptyTitle,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Black
+                emptyTitle.uppercase(),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                textAlign = TextAlign.Center
             )
-            Spacer(Modifier.height(8.dp))
+            
+            Spacer(Modifier.height(16.dp))
+            
             Text(
                 emptyText,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                fontWeight = FontWeight.Bold
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Medium
             )
         }
     } else {

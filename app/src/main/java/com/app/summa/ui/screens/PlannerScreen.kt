@@ -169,24 +169,38 @@ fun PlannerScreen(
             }
         ) { paddingValues ->
             Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                // View Mode Switcher
+                // View Mode Switcher - Brutalist Style
                 BrutalistCard(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                     containerColor = MaterialTheme.colorScheme.surface
                 ) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        listOf("day" to "Harian", "week" to "Mingguan", "month" to "Bulanan").forEach { (mode, label) ->
-                            FilterChip(
-                                selected = viewMode == mode,
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf("day" to "HARIAN", "week" to "MINGGUAN", "month" to "BULANAN").forEach { (mode, label) ->
+                            Surface(
                                 onClick = { viewMode = mode },
-                                label = { Text(label, fontWeight = FontWeight.Bold) },
-                                modifier = Modifier.weight(1f).brutalBorder(strokeWidth = 2.dp, cornerRadius = 6.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                    selectedLabelColor = Color.White
-                                ),
-                                border = null
-                            )
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (viewMode == mode) MaterialTheme.colorScheme.primary else Color.Transparent
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .padding(vertical = 12.dp)
+                                        .brutalBorder(strokeWidth = 2.dp, cornerRadius = 6.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        label,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Black,
+                                        color = if (viewMode == mode) Color.White else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -288,7 +302,7 @@ fun InteractiveDailyView(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             repeat(24) { hour ->
                 Box(
@@ -311,7 +325,7 @@ fun InteractiveDailyView(
                     )
                 }
             }
-            Spacer(Modifier.height(100.dp))
+            Spacer(Modifier.height(80.dp))
         }
 
         if (draggingTask != null) {
@@ -574,7 +588,7 @@ fun BrutalistWeeklyView(
         Spacer(Modifier.height(16.dp))
         Divider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 2.dp)
 
-        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(contentPadding = PaddingValues(16.dp, bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (dailyTasks.isEmpty()) {
                 item { Box(modifier = Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) { Text(if(currentMode == "Fokus") "No Commitments" else "No Tasks", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) } }
             } else {
