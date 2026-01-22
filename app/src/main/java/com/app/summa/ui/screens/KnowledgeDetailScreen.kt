@@ -127,21 +127,23 @@ fun KnowledgeDetailScreen(
                 actions = {
                     BrutalIconAction(
                         icon = Icons.Default.DataArray,
-                        contentDescription = "Insert Link"
-                    ) {
-                        val currentText = contentState.text
-                        val selection = contentState.selection
-                        val newText = StringBuilder(currentText)
-                            .insert(selection.max, "]]")
-                            .insert(selection.min, "[[")
-                            .toString()
-                        val newCursorPos = selection.min + 2
-                        contentState = TextFieldValue(text = newText, selection = TextRange(newCursorPos))
-                    }
+                        contentDescription = "Insert Link",
+                        onClick = {
+                            val currentText = contentState.text
+                            val selection = contentState.selection
+                            val newText = StringBuilder(currentText)
+                                .insert(selection.max, "]]")
+                                .insert(selection.min, "[[")
+                                .toString()
+                            val newCursorPos = selection.min + 2
+                            contentState = TextFieldValue(text = newText, selection = TextRange(newCursorPos))
+                        }
+                    )
                     BrutalIconAction(
                         icon = Icons.Default.Link,
-                        contentDescription = "Cari Link"
-                    ) { showLinkDialog = true }
+                        contentDescription = "Cari Link",
+                        onClick = { showLinkDialog = true }
+                    )
 
                     BrutalTextButton(
                         text = "SIMPAN",
