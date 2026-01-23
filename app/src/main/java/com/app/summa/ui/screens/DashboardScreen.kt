@@ -73,34 +73,50 @@ fun DashboardScreen(
             ) {
                 BrutalistHeaderBadge(text = "SUMMA OS v1.0")
 
-                // MODE TOGGLE
                 Row(
-                    modifier = Modifier
-                        .brutalBorder(strokeWidth = 2.dp, cornerRadius = 24.dp)
-                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val modes = listOf("Normal", "Fokus")
-                    modes.forEach { mode ->
-                        val isSelected = currentMode == mode
-                        Box(
-                            modifier = Modifier
-                                .clickable { onModeSelected(mode) }
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                    RoundedCornerShape(20.dp)
+                    // MODE TOGGLE
+                    Row(
+                        modifier = Modifier
+                            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 24.dp)
+                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        val modes = listOf("Normal", "Fokus")
+                        modes.forEach { mode ->
+                            val isSelected = currentMode == mode
+                            Box(
+                                modifier = Modifier
+                                    .clickable { onModeSelected(mode) }
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                        RoundedCornerShape(20.dp)
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = mode.uppercase(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
                                 )
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = mode.uppercase(),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Black,
-                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
-                            )
+                            }
                         }
+                    }
+
+                    // SETTINGS BUTTON (Moved here)
+                    IconButton(
+                        onClick = onNavigateToSettings,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp)
+                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                    ) {
+                        Icon(Icons.Default.Settings, "Pengaturan", modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -171,12 +187,9 @@ fun DashboardScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        // Removed Settings Icon from here
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = onNavigateToSettings, modifier = Modifier.size(24.dp)) {
-                                Icon(Icons.Default.Settings, "Pengaturan", modifier = Modifier.size(18.dp))
-                            }
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("SYSTEM_STATUS", fontWeight = FontWeight.Bold)
+                             Text("SYSTEM_STATUS", fontWeight = FontWeight.Bold)
                         }
                         Text("${(uiState.todayProgress * 100).toInt()}%", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
