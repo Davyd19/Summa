@@ -37,6 +37,9 @@ interface AccountDao {
     @Query("SELECT * FROM transactions ORDER BY timestamp DESC LIMIT 20")
     fun getRecentTransactions(): Flow<List<Transaction>>
 
+    @Query("SELECT * FROM transactions WHERE timestamp >= :timestamp")
+    fun getTransactionsAfter(timestamp: Long): Flow<List<Transaction>>
+
     @Query("SELECT * FROM accounts WHERE id = :id")
     suspend fun getAccountById(id: Long): Account?
 

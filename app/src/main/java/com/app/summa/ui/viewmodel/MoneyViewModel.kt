@@ -17,6 +17,7 @@ data class MoneyUiState(
     val accounts: List<Account> = emptyList(),
     val totalNetWorth: Double = 0.0,
     val recentTransactions: List<Transaction> = emptyList(),
+    val monthlyGrowth: Double = 0.0,
     val isLoading: Boolean = true,
     val error: String? = null,
     val showRewardAnimation: Boolean = false
@@ -37,16 +38,47 @@ class MoneyViewModel @Inject constructor(
     }
 
     private fun loadMoneyData() {
+        // Calculate start of month timestamp
+        val startOfMonth = java.time.LocalDate.now().withDayOfMonth(1)
+            .atStartOfDay(java.time.ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+
         viewModelScope.launch {
             combine(
                 accountRepository.getAllAccounts(),
                 accountRepository.getTotalNetWorth(),
-                accountRepository.getRecentTransactions()
-            ) { accounts, netWorth, transactions ->
+                accountRepository.getRecentTransactions(),
+                accountRepository.getTransactionsAfter(startOfMonth)
+            ) { accounts, netWorth, recentTransactions, monthlyTransactions ->
+                val currentNetWorth = netWorth ?: 0.0
+                
+                // Calculate Net Flow for this month (Income - Expense)
+                val income = monthlyTransactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+                val expense = monthlyTransactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount } // Expense stored as negative usually? Check logic.
+                // In DAO/Repo: insertTransaction logic for balance update: balance + amount.
+                // But typically expense is negative number in DB or logic handles it.
+                // In insertTransaction: amount = -amount for Expense.
+                // So sumOf { it.amount } accounts for signs correctly.
+                
+                val netFlow = income + expense // (Income + (-Expense))
+                
+                // Growth = NetFlow / (StartBalance). StartBalance = Current - NetFlow
+                val startBalance = currentNetWorth - netFlow
+                
+                val growthPercentage = if (startBalance != 0.0) {
+                    (netFlow / startBalance) * 100
+                } else if (netFlow > 0) {
+                    100.0 // Infinite growth from 0
+                } else {
+                    0.0
+                }
+
                 MoneyUiState(
                     accounts = accounts,
-                    totalNetWorth = netWorth ?: 0.0,
-                    recentTransactions = transactions,
+                    totalNetWorth = currentNetWorth,
+                    recentTransactions = recentTransactions,
+                    monthlyGrowth = growthPercentage,
                     isLoading = false
                 )
             }.catch { e ->

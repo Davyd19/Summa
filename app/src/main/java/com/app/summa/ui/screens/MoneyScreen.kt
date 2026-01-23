@@ -115,7 +115,7 @@ fun MoneyScreen(
                              BrutalistHeaderBadge("FINANCE_CORE")
                         }
                     }
-                    item { BrutalistNetWorthCard(totalNetWorth = uiState.totalNetWorth, modifier = Modifier.padding(horizontal = 16.dp)) }
+                    item { BrutalistNetWorthCard(totalNetWorth = uiState.totalNetWorth, monthlyGrowth = uiState.monthlyGrowth, modifier = Modifier.padding(horizontal = 16.dp)) }
                     item {
                         Row(
                             Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -179,6 +179,7 @@ fun MoneyScreen(
 @Composable
 fun BrutalistNetWorthCard(
     totalNetWorth: Double,
+    monthlyGrowth: Double,
     modifier: Modifier = Modifier
 ) {
     val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
@@ -245,7 +246,7 @@ fun BrutalistNetWorthCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        "+5.2% bulan ini",
+                        "${if(monthlyGrowth >= 0) "+" else ""}${String.format("%.1f", monthlyGrowth)}% bulan ini",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White.copy(alpha = 0.85f)

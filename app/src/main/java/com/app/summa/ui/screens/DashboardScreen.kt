@@ -113,8 +113,8 @@ fun DashboardScreen(
                         onClick = onNavigateToSettings,
                         modifier = Modifier
                             .size(32.dp)
-                            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp)
-                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 32.dp) // Circular
+                            .background(MaterialTheme.colorScheme.surface, CircleShape)
                     ) {
                         Icon(Icons.Default.Settings, "Pengaturan", modifier = Modifier.size(18.dp))
                     }
@@ -377,15 +377,21 @@ fun DashboardScreen(
         item {
             Text("AKSES CEPAT", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
             Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = onNavigateToAddTransaction,
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth().height(56.dp).brutalBorder(),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface)
+            BrutalistCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .clickable(onClick = onNavigateToAddTransaction),
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
-                Icon(Icons.Default.AttachMoney, null, tint = MaterialTheme.colorScheme.onSurface)
-                Spacer(Modifier.width(8.dp))
-                Text("CATAT TRANSAKSI", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.AttachMoney, null, tint = MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.width(8.dp))
+                    Text("CATAT TRANSAKSI", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                }
             }
         }
 

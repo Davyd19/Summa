@@ -12,6 +12,7 @@ interface AccountRepository {
     fun getAllAccounts(): Flow<List<Account>>
     fun getTotalNetWorth(): Flow<Double?>
     fun getRecentTransactions(): Flow<List<Transaction>>
+    fun getTransactionsAfter(timestamp: Long): Flow<List<Transaction>>
     suspend fun insertAccount(account: Account): Long
     suspend fun updateAccount(account: Account)
     fun getAccountTransactions(accountId: Long): Flow<List<Transaction>>
@@ -33,6 +34,10 @@ class AccountRepositoryImpl @Inject constructor(
 
     override fun getRecentTransactions(): Flow<List<Transaction>> {
         return accountDao.getRecentTransactions()
+    }
+
+    override fun getTransactionsAfter(timestamp: Long): Flow<List<Transaction>> {
+        return accountDao.getTransactionsAfter(timestamp)
     }
 
     override suspend fun insertAccount(account: Account): Long {
