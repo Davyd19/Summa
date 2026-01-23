@@ -112,11 +112,11 @@ fun DashboardScreen(
                     IconButton(
                         onClick = onNavigateToSettings,
                         modifier = Modifier
-                            .size(32.dp)
-                            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 32.dp) // Circular
+                            .size(36.dp) // Match height of neighbor roughly (24+padding)
+                            .brutalBorder(strokeWidth = 2.dp, cornerRadius = 36.dp) // Circular
                             .background(MaterialTheme.colorScheme.surface, CircleShape)
                     ) {
-                        Icon(Icons.Default.Settings, "Pengaturan", modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Settings, "Pengaturan", modifier = Modifier.size(20.dp))
                     }
                 }
             }
@@ -380,17 +380,24 @@ fun DashboardScreen(
             BrutalistCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-                    .clickable(onClick = onNavigateToAddTransaction),
+                    .height(56.dp),
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
-                Row(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable(onClick = onNavigateToAddTransaction)
+                        .padding(horizontal = 16.dp), // Check if padding should be here or on parent
+                    contentAlignment = Alignment.CenterStart
                 ) {
-                    Icon(Icons.Default.AttachMoney, null, tint = MaterialTheme.colorScheme.onSurface)
-                    Spacer(Modifier.width(8.dp))
-                    Text("CATAT TRANSAKSI", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.AttachMoney, null, tint = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.width(8.dp))
+                        Text("CATAT TRANSAKSI", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    }
                 }
             }
         }
