@@ -45,7 +45,6 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-@Composable
 fun MoneyScreen(
     viewModel: MoneyViewModel = hiltViewModel(),
     onNavigateToAddTransaction: () -> Unit,

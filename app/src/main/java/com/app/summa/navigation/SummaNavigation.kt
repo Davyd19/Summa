@@ -1,441 +1,414 @@
-package com.app.summa.navigation
+package com.app.summa.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.NavHostController
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
-import com.app.summa.ui.screens.*
-import com.app.summa.ui.components.MorningBriefingDialog
-import com.app.summa.ui.components.LevelUpDialog // Import Komponen Baru
-import com.app.summa.ui.viewmodel.MainViewModel
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import java.net.URLEncoder
-
-sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
-    object Dashboard : Screen("dashboard", "Dasbor", Icons.Default.Home)
-    object Planner : Screen("planner?noteTitle={noteTitle}&noteContent={noteContent}", "Planner", Icons.Default.CalendarToday)
-    object Habits : Screen("habits", "Habits", Icons.Default.CheckCircle)
-    object Money : Screen("money", "Money", Icons.Default.AccountBalanceWallet)
-    object Knowledge : Screen("knowledge", "Pustaka", Icons.Default.Book)
-    object Reflections : Screen("reflections", "Refleksi", Icons.Default.RateReview)
-
-    object IdentityProfile : Screen("identity_profile", "Profil", Icons.Default.Person)
-    object HabitDetail : Screen("habit_detail/{habitId}", "Detail Kebiasaan", Icons.Default.Edit) {
-        fun createRoute(habitId: Long) = "habit_detail/$habitId"
-    }
-
-    object AddHabit : Screen("add_habit", "Tambah Kebiasaan", Icons.Default.Add)
-    object AddAccount : Screen("add_account", "Tambah Akun", Icons.Default.Add)
-    object AddTransaction : Screen("add_transaction", "Tambah Transaksi", Icons.Default.Add)
-    object AddTask : Screen("add_task", "Tambah Tugas", Icons.Default.Add)
-    object FocusMode : Screen("focus_mode", "Fokus", Icons.Default.Timer)
-}
-
-// Validation for tab animation order
-fun getTabIndex(route: String?): Int {
-    if (route == null) return -1
-    val baseRoute = route.substringBefore("?")
-    return when (baseRoute) {
-        Screen.Dashboard.route -> 0
-        Screen.Planner.route -> 1
-        Screen.Habits.route -> 2
-        Screen.Knowledge.route -> 3
-        Screen.Money.route -> 4
-        Screen.Reflections.route -> 5
-        else -> -1
-    }
-}
-
-object KnowledgeDetailRoute {
-    const val route = "knowledge_detail/{noteId}"
-    fun createRoute(noteId: Long) = "knowledge_detail/$noteId"
-}
-
-fun NavHostController.navigateToTab(route: String) {
-    navigate(route) {
-        popUpTo(graph.findStartDestination().id) {
-            saveState = true
-        }
-        launchSingleTop = true
-        restoreState = true
-    }
-}
+import com.app.summa.ui.components.*
+import com.app.summa.ui.theme.BrutalBlack
+import com.app.summa.ui.theme.BrutalBlue
+import com.app.summa.ui.theme.BrutalWhite
+import com.app.summa.ui.theme.SuccessGreen
+import com.app.summa.ui.viewmodel.DashboardViewModel
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.*
 
 @Composable
-fun SummaApp() {
-    val navController = rememberNavController()
-    var showFab by remember { mutableStateOf(false) }
-
-    val mainViewModel: MainViewModel = hiltViewModel()
-    val mainUiState by mainViewModel.uiState.collectAsState()
-
-    // --- DIALOG GLOBAL (SYSTEM EVENTS) ---
-
-    // 1. Level Up Celebration (Prioritas Visual Tinggi)
-    if (mainUiState.levelUpEvent != null) {
-        LevelUpDialog(
-            event = mainUiState.levelUpEvent!!,
-            onDismiss = { mainViewModel.dismissLevelUp() }
-        )
-    }
-
-    // 2. Morning Briefing (Laporan Harian)
-    if (mainUiState.morningBriefing != null) {
-        MorningBriefingDialog(
-            data = mainUiState.morningBriefing!!,
-            onDismiss = { mainViewModel.dismissBriefing() }
-        )
-    }
-    // -------------------------------------
-
-    Scaffold(
-        bottomBar = {
-            BottomNavigationBar(
-                navController = navController,
-                currentMode = mainUiState.currentMode
-            )
-        },
-        floatingActionButton = {
-            if (showFab) {
-                ExtendedFloatingActionButton(
-                    onClick = {
-                        navController.navigate(KnowledgeDetailRoute.createRoute(0L))
-                    },
-                    icon = { Icon(Icons.Default.Add, contentDescription = "Add") },
-                    text = { Text("Catat Cepat") },
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            }
-        },
-        floatingActionButtonPosition = FabPosition.Center
-    ) { paddingValues ->
-        NavigationGraph(
-            navController = navController,
-            modifier = Modifier.padding(paddingValues),
-            onFabVisibilityChange = { showFab = it },
-            currentMode = mainUiState.currentMode,
-            onModeSelected = { mainViewModel.setMode(it) }
-        )
-    }
-}
-
-@Composable
-fun BottomNavigationBar(
-    navController: NavHostController,
-    currentMode: String
+fun DashboardScreen(
+    viewModel: DashboardViewModel = hiltViewModel(),
+    currentMode: String,
+    onModeSelected: (String) -> Unit,
+    onNavigateToPlanner: () -> Unit = {},
+    onNavigateToHabitDetail: (com.app.summa.data.model.HabitItem) -> Unit = {},
+    onNavigateToMoney: () -> Unit = {},
+    onNavigateToNotes: () -> Unit = {},
+    onNavigateToReflections: () -> Unit = {},
+    onNavigateToIdentityProfile: () -> Unit = {},
+    onNavigateToSettings: () -> Unit,
+    onNavigateToHabits: () -> Unit = {},
+    onNavigateToAddTask: () -> Unit = {},
+    onNavigateToFocus: () -> Unit = {},
+    onNavigateToAddTransaction: () -> Unit = {}
 ) {
-    val baseItems = listOf(
-        Screen.Dashboard,
-        Screen.Planner,
-        Screen.Habits,
-        Screen.Knowledge,
-        Screen.Money,
-        Screen.Reflections
-    )
+    val uiState by viewModel.uiState.collectAsState()
+    val today = remember { LocalDate.now() }
+    val dayLabel = today.dayOfMonth.toString()
+    val monthLabel = today.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).uppercase()
+    val dayName = today.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH).uppercase()
 
-    val finalItems = when (currentMode) {
-        "Fokus" -> listOf(Screen.Dashboard, Screen.Planner, Screen.Knowledge)
-        "Pagi" -> listOf(Screen.Dashboard, Screen.Habits, Screen.Reflections)
-        else -> baseItems
-    }
+    var showTransactionSheet by remember { mutableStateOf(false) }
 
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-
-    Surface(
+    // Main Container
+    LazyColumn(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp) // Increased height to prevent cutoff
-            .brutalBorder()
-            .padding(bottom = 16.dp), // Lift content up from system nav bar
-        color = MaterialTheme.colorScheme.surface
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(0.dp)
-        ) {
-            finalItems.forEach { screen ->
-                val screenBaseRoute = screen.route.substringBefore("?")
-                val currentBaseRoute = currentRoute?.substringBefore("?")
-                val isSelected = currentBaseRoute == screenBaseRoute
 
-                val onItemClick = {
-                    val targetRoute = screen.route.substringBefore("?")
-                    if (isSelected) {
-                        navController.popBackStack(targetRoute, false)
-                    } else {
-                        navController.navigate(targetRoute) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                val isDetailScreen = currentRoute?.let { route ->
-                                    route.contains("detail") ||
-                                            route.contains("profile") ||
-                                            route.contains("settings")
-                                } == true
+        // 1. TOP CONTROL BAR
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BrutalistHeaderBadge(text = "SUMMA OS v1.0")
 
-                                saveState = !isDetailScreen
+                // MODE TOGGLE
+                Row(
+                    modifier = Modifier
+                        .brutalBorder(strokeWidth = 2.dp, cornerRadius = 24.dp)
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val modes = listOf("Normal", "Fokus")
+                    modes.forEach { mode ->
+                        val isSelected = currentMode == mode
+                        Box(
+                            modifier = Modifier
+                                .clickable { onModeSelected(mode) }
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    RoundedCornerShape(20.dp)
+                                )
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = mode.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Black,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. GIANT HEADER
+        item {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = monthLabel,
+                            style = MaterialTheme.typography.displayLarge,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 64.sp,
+                            lineHeight = 64.sp
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = dayLabel,
+                            style = MaterialTheme.typography.displayLarge,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 64.sp,
+                            lineHeight = 64.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = dayName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    BrutalistDigitalClock()
+                }
+            }
+        }
+
+        // 3. DIVIDER
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(MaterialTheme.colorScheme.onBackground)
+            )
+        }
+
+        // 4. SYSTEM STATUS CARD
+        item {
+            BrutalistCard(
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = onNavigateToSettings, modifier = Modifier.size(24.dp)) {
+                                Icon(Icons.Default.Settings, "Pengaturan", modifier = Modifier.size(18.dp))
                             }
-                            launchSingleTop = true
-                            restoreState = true
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("SYSTEM_STATUS", fontWeight = FontWeight.Bold)
+                        }
+                        Text("${(uiState.todayProgress * 100).toInt()}%", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // BLOCK PROGRESS BAR
+                    // Assume 10 blocks max for visual balance
+                    val maxBlocks = 10
+                    val currentBlocks = (uiState.todayProgress * maxBlocks).toInt()
+                    BrutalistBlockProgressBar(current = currentBlocks, max = maxBlocks)
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("DAILY_QUOTA", style = MaterialTheme.typography.labelSmall, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                        Text("${uiState.completedHabits}/${uiState.todayHabits.size} TASKS", style = MaterialTheme.typography.labelSmall, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                    }
+                }
+            }
+        }
+
+        // 5. GRID LAYOUT
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // ROW 1
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // SUMMA POINTS CARD (Green)
+                    BrutalistCard(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f),
+                        containerColor = MaterialTheme.colorScheme.primary, // Using primary (Teal/Green) like original
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(16.dp),
+                            verticalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Summa Points", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.White)
+
+                            Text(
+                                text = "${uiState.summaPoints}",
+                                style = MaterialTheme.typography.displayMedium,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White
+                            )
+
+                            LinearProgressIndicator(
+                                progress = (uiState.summaPoints % 1000) / 1000f,
+                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                color = Color.White,
+                                trackColor = Color.White.copy(alpha = 0.3f)
+                            )
+                        }
+                    }
+
+                    // FOCUS CLIP / SESSION CARD (Blue)
+                    BrutalistCard(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .clickable { onNavigateToFocus() }, // Navigate to Focus Mode
+                        containerColor = BrutalBlue,
+                        contentColor = BrutalWhite
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Icon(Icons.Default.Timer, null, modifier = Modifier.size(32.dp))
+
+                            Column {
+                                Text("KLIP FOKUS", style = MaterialTheme.typography.labelSmall, color = BrutalWhite.copy(alpha = 0.7f), fontWeight = FontWeight.Bold)
+                                Text("${uiState.totalPaperclips}", style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Black)
+                            }
                         }
                     }
                 }
 
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(
-                            color = if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.surface
-                        )
-                        .brutalBorder(
-                            color = MaterialTheme.colorScheme.onBackground,
-                            strokeWidth = 2.dp
-                        )
-                        .clickable { onItemClick() }
-                        .padding(vertical = 8.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        screen.icon,
-                        contentDescription = screen.title,
-                        tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = screen.title.uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onBackground
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun Modifier.brutalBorder(
-    strokeWidth: Dp = 3.dp,
-    color: Color = MaterialTheme.colorScheme.onBackground
-): Modifier = this.border(
-    width = strokeWidth,
-    color = color,
-    shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)
-)
-
-@Composable
-fun NavigationGraph(
-    navController: NavHostController,
-    modifier: Modifier = Modifier,
-    onFabVisibilityChange: (Boolean) -> Unit,
-    currentMode: String,
-    onModeSelected: (String) -> Unit
-) {
-    NavHost(
-        navController = navController,
-        startDestination = Screen.Dashboard.route,
-        modifier = modifier,
-        enterTransition = {
-            val fromIndex = getTabIndex(initialState.destination.route)
-            val toIndex = getTabIndex(targetState.destination.route)
-            
-            if (fromIndex != -1 && toIndex != -1) {
-                // Tab navigation
-                if (toIndex > fromIndex) {
-                    // Moving Right: Slide in from Right
-                    slideInHorizontally(initialOffsetX = { 1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
-                } else {
-                    // Moving Left: Slide in from Left
-                    slideInHorizontally(initialOffsetX = { -1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
-                }
-            } else {
-                 // Push/Pop navigation (Default)
-                 slideInHorizontally(initialOffsetX = { 1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
-            }
-        },
-        exitTransition = {
-            val fromIndex = getTabIndex(initialState.destination.route)
-            val toIndex = getTabIndex(targetState.destination.route)
-            
-            if (fromIndex != -1 && toIndex != -1) {
-                 if (toIndex > fromIndex) {
-                    // Moving Right: Old slides out to Left
-                    slideOutHorizontally(targetOffsetX = { -1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
-                 } else {
-                    // Moving Left: Old slides out to Right
-                    slideOutHorizontally(targetOffsetX = { 1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
-                 }
-            } else {
-                // Default Push Exit
-                slideOutHorizontally(targetOffsetX = { -1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
-            }
-        },
-        popEnterTransition = {
-            // Back navigation usually slides in from left
-            slideInHorizontally(initialOffsetX = { -1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
-        },
-        popExitTransition = {
-            // Back navigation old slides out to right
-            slideOutHorizontally(targetOffsetX = { 1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
-        }
-    ) {
-        composable(Screen.Dashboard.route) {
-            LaunchedEffect(Unit) { onFabVisibilityChange(true) }
-            DashboardScreen(
-                currentMode = currentMode,
-                onModeSelected = onModeSelected,
-                onNavigateToPlanner = { navController.navigateToTab("planner") },
-                onNavigateToMoney = { navController.navigateToTab(Screen.Money.route) },
-                onNavigateToNotes = { navController.navigateToTab(Screen.Knowledge.route) },
-                onNavigateToReflections = { navController.navigateToTab(Screen.Reflections.route) },
-                onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) },
-                onNavigateToSettings = { navController.navigate("settings") },
-                onNavigateToHabits = { navController.navigateToTab(Screen.Habits.route) },
-                onNavigateToHabitDetail = { habit ->
-                    navController.navigate(Screen.HabitDetail.createRoute(habit.id))
-                },
-                onNavigateToAddTask = { navController.navigate(Screen.AddTask.route) },
-                onNavigateToFocus = { navController.navigate(Screen.FocusMode.route) }, // Passed callback
-                onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction.route) }
-            )
-        }
-
-        composable(
-            route = Screen.Planner.route,
-            arguments = listOf(
-                navArgument("noteTitle") { type = NavType.StringType; nullable = true },
-                navArgument("noteContent") { type = NavType.StringType; nullable = true }
-            )
-        ) {
-            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-            PlannerScreen(
-                currentMode = currentMode,
-                onNavigateToAddTask = { navController.navigate(Screen.AddTask.route) }
-            )
-        }
-
-        composable(route = Screen.Habits.route) {
-            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-            HabitsScreen(
-                onNavigateToDetail = { habitId ->
-                    navController.navigate(Screen.HabitDetail.createRoute(habitId))
-                },
-                onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) },
-                onNavigateToAddHabit = { navController.navigate(Screen.AddHabit.route) }
-            )
-        }
-
-        composable(
-            route = Screen.HabitDetail.route,
-            arguments = listOf(navArgument("habitId") { type = NavType.LongType })
-        ) {
-            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-            HabitDetailScreenDestination(
-                onBack = { navController.popBackStack() },
-                onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) }
-            )
-        }
-
-        composable(Screen.AddHabit.route) {
-            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-            AddHabitScreen(
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(Screen.AddTransaction.route) {
-             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-             AddTransactionScreen(
-                 onBack = { navController.popBackStack() }
-             )
-        }
-
-        composable(Screen.AddAccount.route) {
-             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-             AddAccountScreen(
-                 onBack = { navController.popBackStack() }
-             )
-        }
-
-        composable(Screen.AddTask.route) {
-             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-             AddTaskScreen(
-                 onBack = { navController.popBackStack() }
-             )
-        }
-
-        composable(Screen.FocusMode.route) {
-             UniversalFocusModeScreen(
-                 onBack = { navController.popBackStack() }
-             )
-        }
-
-        composable(Screen.Money.route) {
-            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-            MoneyScreen(
-                onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction.route) },
-                onNavigateToAddAccount = { navController.navigate(Screen.AddAccount.route) }
-            )
-        }
-        composable(Screen.Knowledge.route) {
-            LaunchedEffect(Unit) { onFabVisibilityChange(true) }
-            KnowledgeBaseScreen(
-                onNoteClick = { noteId -> navController.navigate(KnowledgeDetailRoute.createRoute(noteId)) },
-                onAddNoteClick = { navController.navigate(KnowledgeDetailRoute.createRoute(0L)) }
-            )
-        }
-        composable(Screen.Reflections.route) {
-            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-            ReflectionScreen(onBack = { navController.popBackStack() })
-        }
-        composable(Screen.IdentityProfile.route) {
-            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-            IdentityProfileScreen(onBack = { navController.popBackStack() })
-        }
-        composable("settings") {
-            SettingsScreen(onNavigateBack = { navController.popBackStack() })
-        }
-        composable(
-            route = KnowledgeDetailRoute.route,
-            arguments = listOf(navArgument("noteId") { type = NavType.LongType })
-        ) {
-            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
-            KnowledgeDetailScreen(
-                onBack = { navController.popBackStack() },
-                onConvertToTask = { title, content ->
-                    val encodedTitle = URLEncoder.encode(title, "UTF-8")
-                    val encodedContent = URLEncoder.encode(content, "UTF-8")
-                    navController.popBackStack()
-                    navController.navigate("planner?noteTitle=$encodedTitle&noteContent=$encodedContent") {
-                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
+                // ROW 2
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // START DAY / ADD TASK CARD
+                    BrutalistCard(
+                        modifier = Modifier
+                            .weight(2f) // Wide card
+                            .height(100.dp)
+                            .clickable { onNavigateToAddTask() },
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.surface, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary)
+                                }
+                                Spacer(Modifier.width(16.dp))
+                                Column {
+                                    Text("Mulai Hari", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("Tambah tugas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                                }
+                            }
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, null)
+                        }
                     }
                 }
-            )
+            }
+        }
+
+        // 6. HABITS WIDGET (RESTORATION)
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("KEBIASAAN HARI INI", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Text(
+                        "${uiState.completedHabits}/${uiState.todayHabits.size}",
+                        modifier = Modifier.padding(horizontal=8.dp, vertical=2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+
+            if (uiState.todayHabits.isEmpty()) {
+                BrutalistCard(modifier = Modifier.fillMaxWidth().height(100.dp)) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Belum ada kebiasaan terjadwal", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    uiState.todayHabits.forEach { habit ->
+                        // Simple Brutalist Habit Item row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .brutalBorder(strokeWidth = 2.dp, cornerRadius = 8.dp)
+                                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                                .clickable { onNavigateToHabits() } // Or navigate to toggle
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(habit.icon, style = MaterialTheme.typography.titleMedium)
+                                Spacer(Modifier.width(12.dp))
+                                Text(habit.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("${habit.currentCount}/${habit.targetCount}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.width(8.dp))
+                                // Checkbox visualization
+                                Box(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .border(2.dp, if(habit.currentCount >= habit.targetCount) SuccessGreen else MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+                                        .background(if(habit.currentCount >= habit.targetCount) SuccessGreen else Color.Transparent, RoundedCornerShape(4.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if(habit.currentCount >= habit.targetCount) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 7. QUICK ACTIONS
+        item {
+            Text("AKSES CEPAT", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = onNavigateToAddTransaction,
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth().height(56.dp).brutalBorder(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Icon(Icons.Default.AttachMoney, null, tint = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.width(8.dp))
+                Text("CATAT TRANSAKSI", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            }
+        }
+
+        // 6. SYSTEM FOOTER
+        item {
+            BrutalistCard(
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Star, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        val level = (uiState.summaPoints / 1000) + 1
+                        Text("LEVEL $level", fontWeight=FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val statusText = if (uiState.todayProgress >= 0.8f) "OPTIMAL" else if (uiState.todayProgress >= 0.5f) "NORMAL" else "LOW POWER"
+                        val statusColor = if (uiState.todayProgress >= 0.8f) SuccessGreen else if (uiState.todayProgress >= 0.5f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+
+                        Text("STATUS: $statusText", fontWeight=FontWeight.Bold, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, color=statusColor)
+                        Spacer(Modifier.width(8.dp))
+                        Box(Modifier.size(8.dp).background(statusColor, CircleShape))
+                    }
+                }
+            }
+        }
+
+        // Spacer for Bottom Nav
+        item {
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }
