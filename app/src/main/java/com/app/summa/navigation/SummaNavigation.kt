@@ -1,286 +1,439 @@
 package com.app.summa.navigation
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import com.app.summa.ui.screens.*
-import com.app.summa.ui.viewmodel.KnowledgeViewModel
+import com.app.summa.ui.components.MorningBriefingDialog
+import com.app.summa.ui.components.LevelUpDialog // Import Komponen Baru
 import com.app.summa.ui.viewmodel.MainViewModel
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.hilt.navigation.compose.hiltViewModel
 import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 
-object Routes {
-    const val Dashboard = "dashboard"
-    const val Planner = "planner"
-    const val Habits = "habits"
-    const val AddHabit = "add_habit"
-    const val HabitDetail = "habit_detail/{habitId}"
-    const val Money = "money"
-    const val AddTransaction = "add_transaction"
-    const val AddAccount = "add_account"
-    const val Notes = "notes"
-    const val NoteDetail = "knowledge_detail/{noteId}"
-    const val Reflections = "reflections"
-    const val IdentityProfile = "identity_profile"
-    const val Settings = "settings"
-    const val AddTask = "add_task"
-    const val Focus = "focus"
+sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
+    object Dashboard : Screen("dashboard", "Dasbor", Icons.Default.Home)
+    object Planner : Screen("planner?noteTitle={noteTitle}&noteContent={noteContent}", "Planner", Icons.Default.CalendarToday)
+    object Habits : Screen("habits", "Habits", Icons.Default.CheckCircle)
+    object Money : Screen("money", "Money", Icons.Default.AccountBalanceWallet)
+    object Knowledge : Screen("knowledge", "Pustaka", Icons.Default.Book)
+    object Reflections : Screen("reflections", "Refleksi", Icons.Default.RateReview)
+
+    object IdentityProfile : Screen("identity_profile", "Profil", Icons.Default.Person)
+    object HabitDetail : Screen("habit_detail/{habitId}", "Detail Kebiasaan", Icons.Default.Edit) {
+        fun createRoute(habitId: Long) = "habit_detail/$habitId"
+    }
+
+    object AddHabit : Screen("add_habit", "Tambah Kebiasaan", Icons.Default.Add)
+    object AddAccount : Screen("add_account", "Tambah Akun", Icons.Default.Add)
+    object AddTransaction : Screen("add_transaction", "Tambah Transaksi", Icons.Default.Add)
+    object AddTask : Screen("add_task", "Tambah Tugas", Icons.Default.Add)
+    object FocusMode : Screen("focus_mode", "Fokus", Icons.Default.Timer)
+}
+
+// Validation for tab animation order
+fun getTabIndex(route: String?): Int {
+    if (route == null) return -1
+    val baseRoute = route.substringBefore("?")
+    return when (baseRoute) {
+        Screen.Dashboard.route -> 0
+        Screen.Planner.route -> 1
+        Screen.Habits.route -> 2
+        Screen.Knowledge.route -> 3
+        Screen.Money.route -> 4
+        Screen.Reflections.route -> 5
+        else -> -1
+    }
+}
+
+object KnowledgeDetailRoute {
+    const val route = "knowledge_detail/{noteId}"
+    fun createRoute(noteId: Long) = "knowledge_detail/$noteId"
+}
+
+fun NavHostController.navigateToTab(route: String) {
+    navigate(route) {
+        popUpTo(graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
+    }
 }
 
 @Composable
 fun SummaApp() {
     val navController = rememberNavController()
-    val mainViewModel: MainViewModel = hiltViewModel()
-    val uiState by mainViewModel.uiState.collectAsState()
-    
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    var showFab by remember { mutableStateOf(false) }
 
-    // Screen routes that should show the bottom bar
-    val bottomBarRoutes = listOf(
-        Routes.Dashboard,
-        "${Routes.Planner}?noteTitle={noteTitle}&noteContent={noteContent}", // Validating precise route might be tricky, checking simplified one
-        Routes.Planner,
-        Routes.Habits,
-        Routes.Money,
-        Routes.Notes,
-        Routes.Reflections
-    )
-    
-    // Simplified checker
-    val showBottomBar = currentRoute in listOf(
-        Routes.Dashboard,
-        Routes.Habits,
-        Routes.Money,
-        Routes.Notes,
-        Routes.Reflections
-    ) || (currentRoute?.startsWith(Routes.Planner) == true)
+    val mainViewModel: MainViewModel = hiltViewModel()
+    val mainUiState by mainViewModel.uiState.collectAsState()
+
+    // --- DIALOG GLOBAL (SYSTEM EVENTS) ---
+
+    // 1. Level Up Celebration (Prioritas Visual Tinggi)
+    if (mainUiState.levelUpEvent != null) {
+        LevelUpDialog(
+            event = mainUiState.levelUpEvent!!,
+            onDismiss = { mainViewModel.dismissLevelUp() }
+        )
+    }
+
+    // 2. Morning Briefing (Laporan Harian)
+    if (mainUiState.morningBriefing != null) {
+        MorningBriefingDialog(
+            data = mainUiState.morningBriefing!!,
+            onDismiss = { mainViewModel.dismissBriefing() }
+        )
+    }
+    // -------------------------------------
 
     Scaffold(
         bottomBar = {
-            if (showBottomBar) {
-                BrutalBottomNav(
-                    currentRoute = currentRoute,
-                    onNavigate = { route ->
-                        navController.navigate(route) {
-                            // Pop up to the start destination of the graph to
-                            // avoid building up a large stack of destinations
-                            // on the back stack as users select items
-                            popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
+            BottomNavigationBar(
+                navController = navController,
+                currentMode = mainUiState.currentMode
+            )
+        },
+        floatingActionButton = {
+            if (showFab) {
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        navController.navigate(KnowledgeDetailRoute.createRoute(0L))
+                    },
+                    icon = { Icon(Icons.Default.Add, contentDescription = "Add") },
+                    text = { Text("Catat Cepat") },
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
+        floatingActionButtonPosition = FabPosition.Center
+    ) { paddingValues ->
+        NavigationGraph(
+            navController = navController,
+            modifier = Modifier.padding(paddingValues),
+            onFabVisibilityChange = { showFab = it },
+            currentMode = mainUiState.currentMode,
+            onModeSelected = { mainViewModel.setMode(it) }
+        )
+    }
+}
+
+@Composable
+fun BottomNavigationBar(
+    navController: NavHostController,
+    currentMode: String
+) {
+    val baseItems = listOf(
+        Screen.Dashboard,
+        Screen.Planner,
+        Screen.Habits,
+        Screen.Knowledge,
+        Screen.Money,
+        Screen.Reflections
+    )
+
+    val finalItems = when (currentMode) {
+        "Fokus" -> listOf(Screen.Dashboard, Screen.Planner, Screen.Knowledge)
+        "Pagi" -> listOf(Screen.Dashboard, Screen.Habits, Screen.Reflections)
+        else -> baseItems
+    }
+
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp) // Increased height to prevent cutoff
+            .brutalBorder()
+            .padding(bottom = 16.dp), // Lift content up from system nav bar
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            finalItems.forEach { screen ->
+                val screenBaseRoute = screen.route.substringBefore("?")
+                val currentBaseRoute = currentRoute?.substringBefore("?")
+                val isSelected = currentBaseRoute == screenBaseRoute
+
+                val onItemClick = {
+                    val targetRoute = screen.route.substringBefore("?")
+                    if (isSelected) {
+                        navController.popBackStack(targetRoute, false)
+                    } else {
+                        navController.navigate(targetRoute) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                val isDetailScreen = currentRoute?.let { route ->
+                                    route.contains("detail") ||
+                                            route.contains("profile") ||
+                                            route.contains("settings")
+                                } == true
+
+                                saveState = !isDetailScreen
                             }
-                            // Avoid multiple copies of the same destination when
-                            // reselecting the same item
                             launchSingleTop = true
-                            // Restore state when reselecting a previously selected item
                             restoreState = true
                         }
                     }
-                )
-            }
-        }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Routes.Dashboard,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable(Routes.Dashboard) {
-                DashboardScreen(
-                    currentMode = uiState.currentMode,
-                    onModeSelected = { mainViewModel.setMode(it) },
-                    onNavigateToPlanner = { navController.navigate(Routes.Planner) },
-                    onNavigateToHabitDetail = { habit -> navController.navigate("habit_detail/${habit.id}") },
-                    onNavigateToMoney = { navController.navigate(Routes.Money) },
-                    onNavigateToNotes = { navController.navigate(Routes.Notes) },
-                    onNavigateToReflections = { navController.navigate(Routes.Reflections) },
-                    onNavigateToIdentityProfile = { navController.navigate(Routes.IdentityProfile) },
-                    onNavigateToSettings = { navController.navigate(Routes.Settings) },
-                    onNavigateToHabits = { navController.navigate(Routes.Habits) },
-                    onNavigateToAddTask = { navController.navigate(Routes.AddTask) },
-                    onNavigateToFocus = { navController.navigate(Routes.Focus) },
-                    onNavigateToAddTransaction = { navController.navigate(Routes.AddTransaction) }
-                )
-            }
-
-            // Consolidated Planner Route
-            composable(
-                route = "${Routes.Planner}?noteTitle={noteTitle}&noteContent={noteContent}",
-                arguments = listOf(
-                    navArgument("noteTitle") { nullable = true; defaultValue = null },
-                    navArgument("noteContent") { nullable = true; defaultValue = null }
-                )
-            ) { backStackEntry ->
-                val noteTitle = backStackEntry.arguments?.getString("noteTitle")
-                val noteContent = backStackEntry.arguments?.getString("noteContent")
-                 PlannerScreen(
-                    currentMode = uiState.currentMode,
-                    noteTitle = noteTitle,
-                    noteContent = noteContent,
-                    onNavigateToAddTask = { navController.navigate(Routes.AddTask) }
-                )
-            }
-
-            composable(Routes.Habits) {
-                HabitsScreen(
-                    onNavigateToDetail = { id -> navController.navigate("habit_detail/$id") },
-                    onNavigateToIdentityProfile = { navController.navigate(Routes.IdentityProfile) },
-                    onNavigateToAddHabit = { navController.navigate(Routes.AddHabit) }
-                )
-            }
-
-            composable(Routes.AddHabit) {
-                AddHabitScreen(
-                    onBack = { navController.popBackStack() }
-                )
-            }
-
-            composable(
-                route = Routes.HabitDetail,
-                arguments = listOf(navArgument("habitId") { type = NavType.LongType })
-            ) {
-                HabitDetailScreenDestination(
-                    onBack = { navController.popBackStack() },
-                    onNavigateToIdentityProfile = { navController.navigate(Routes.IdentityProfile) }
-                )
-            }
-
-            composable(Routes.Money) {
-                MoneyScreen(
-                    onNavigateToAddTransaction = { navController.navigate(Routes.AddTransaction) },
-                    onNavigateToAddAccount = { navController.navigate(Routes.AddAccount) }
-                )
-            }
-
-            composable(Routes.AddTransaction) {
-                AddTransactionScreen(
-                    onBack = { navController.popBackStack() }
-                )
-            }
-
-            composable(Routes.AddAccount) {
-               AddAccountScreen(
-                   onBack = { navController.popBackStack() }
-               )
-            }
-
-            composable(Routes.Notes) {
-                KnowledgeBaseScreen(
-                    onNoteClick = { id -> navController.navigate("knowledge_detail/$id") },
-                    onAddNoteClick = { navController.navigate("knowledge_detail/-1") }
-                )
-            }
-
-            composable(
-                route = Routes.NoteDetail,
-                arguments = listOf(navArgument("noteId") { type = NavType.LongType })
-            ) { backStackEntry ->
-                val noteId = backStackEntry.arguments?.getLong("noteId") ?: -1L
-                val viewModel: KnowledgeViewModel = hiltViewModel()
-                LaunchedEffect(noteId) {
-                    // If ID is -1, load 0L which signals new note in VM
-                    viewModel.loadNoteDetail(if(noteId == -1L) 0L else noteId)
                 }
-                KnowledgeDetailScreen(
-                    viewModel = viewModel,
-                    onBack = { navController.popBackStack() },
-                    onConvertToTask = { title, content ->
-                        val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8.toString())
-                        val encodedContent = URLEncoder.encode(content, StandardCharsets.UTF_8.toString())
-                        navController.navigate("planner?noteTitle=$encodedTitle&noteContent=$encodedContent")
-                    }
-                )
-            }
 
-            composable(Routes.Reflections) {
-                ReflectionScreen(
-                    onBack = { navController.popBackStack() } 
-                )
-            }
-
-            composable(Routes.IdentityProfile) {
-                IdentityProfileScreen(
-                    onBack = { navController.popBackStack() } 
-                )
-            }
-
-            composable(Routes.Settings) {
-                SettingsScreen(
-                    onNavigateBack = { navController.popBackStack() } 
-                )
-            }
-
-            composable(Routes.AddTask) {
-                AddTaskScreen(
-                    onBack = { navController.popBackStack() }
-                )
-            }
-
-            composable(Routes.Focus) {
-                UniversalFocusModeScreen(
-                    onBack = { navController.popBackStack() }
-                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(
+                            color = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surface
+                        )
+                        .brutalBorder(
+                            color = MaterialTheme.colorScheme.onBackground,
+                            strokeWidth = 2.dp
+                        )
+                        .clickable { onItemClick() }
+                        .padding(vertical = 8.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        screen.icon,
+                        contentDescription = screen.title,
+                        tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = screen.title.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onBackground
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun BrutalBottomNav(
-    currentRoute: String?,
-    onNavigate: (String) -> Unit
-) {
-    val items = listOf(
-        Triple(Routes.Dashboard, "Home", androidx.compose.material.icons.Icons.Default.Home),
-        Triple(Routes.Planner, "Planner", androidx.compose.material.icons.Icons.Default.CalendarToday),
-        Triple(Routes.Habits, "Habits", androidx.compose.material.icons.Icons.Default.CheckCircle),
-        Triple(Routes.Money, "Money", androidx.compose.material.icons.Icons.Default.AccountBalanceWallet),
-        Triple(Routes.Notes, "Pustaka", androidx.compose.material.icons.Icons.Default.Book),
-        Triple(Routes.Reflections, "Refleksi", androidx.compose.material.icons.Icons.Default.RateReview)
-    )
+private fun Modifier.brutalBorder(
+    strokeWidth: Dp = 3.dp,
+    color: Color = MaterialTheme.colorScheme.onBackground
+): Modifier = this.border(
+    width = strokeWidth,
+    color = color,
+    shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)
+)
 
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.border(
-            width = 2.dp,
-            color = MaterialTheme.colorScheme.outline
-        )
-    ) {
-        items.forEach { (route, title, icon) ->
-            // Logic for planner matching (handles arguments)
-            val selected = if (route == Routes.Planner) {
-                currentRoute?.startsWith(Routes.Planner) == true
+@Composable
+fun NavigationGraph(
+    navController: NavHostController,
+    modifier: Modifier = Modifier,
+    onFabVisibilityChange: (Boolean) -> Unit,
+    currentMode: String,
+    onModeSelected: (String) -> Unit
+) {
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Dashboard.route,
+        modifier = modifier,
+        enterTransition = {
+            val fromIndex = getTabIndex(initialState.destination.route)
+            val toIndex = getTabIndex(targetState.destination.route)
+
+            if (fromIndex != -1 && toIndex != -1) {
+                // Tab navigation
+                if (toIndex > fromIndex) {
+                    // Moving Right: Slide in from Right
+                    slideInHorizontally(initialOffsetX = { 1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
+                } else {
+                    // Moving Left: Slide in from Left
+                    slideInHorizontally(initialOffsetX = { -1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
+                }
             } else {
-                currentRoute == route
+                // Push/Pop navigation (Default)
+                slideInHorizontally(initialOffsetX = { 1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
             }
-            
-            NavigationBarItem(
-                selected = selected,
-                onClick = { onNavigate(route) },
-                icon = { Icon(icon, contentDescription = title) },
-                label = { Text(title, style = MaterialTheme.typography.labelSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) },
-                colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        },
+        exitTransition = {
+            val fromIndex = getTabIndex(initialState.destination.route)
+            val toIndex = getTabIndex(targetState.destination.route)
+
+            if (fromIndex != -1 && toIndex != -1) {
+                if (toIndex > fromIndex) {
+                    // Moving Right: Old slides out to Left
+                    slideOutHorizontally(targetOffsetX = { -1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+                } else {
+                    // Moving Left: Old slides out to Right
+                    slideOutHorizontally(targetOffsetX = { 1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+                }
+            } else {
+                // Default Push Exit
+                slideOutHorizontally(targetOffsetX = { -1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+            }
+        },
+        popEnterTransition = {
+            // Back navigation usually slides in from left
+            slideInHorizontally(initialOffsetX = { -1000 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
+        },
+        popExitTransition = {
+            // Back navigation old slides out to right
+            slideOutHorizontally(targetOffsetX = { 1000 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+        }
+    ) {
+        composable(Screen.Dashboard.route) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(true) }
+            DashboardScreen(
+                currentMode = currentMode,
+                onModeSelected = onModeSelected,
+                onNavigateToPlanner = { navController.navigateToTab("planner") },
+                onNavigateToMoney = { navController.navigateToTab(Screen.Money.route) },
+                onNavigateToNotes = { navController.navigateToTab(Screen.Knowledge.route) },
+                onNavigateToReflections = { navController.navigateToTab(Screen.Reflections.route) },
+                onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) },
+                onNavigateToSettings = { navController.navigate("settings") },
+                onNavigateToHabits = { navController.navigateToTab(Screen.Habits.route) },
+                onNavigateToHabitDetail = { habit ->
+                    navController.navigate(Screen.HabitDetail.createRoute(habit.id))
+                },
+                onNavigateToAddTask = { navController.navigate(Screen.AddTask.route) },
+                onNavigateToFocus = { navController.navigate(Screen.FocusMode.route) } // Passed callback
+            )
+        }
+
+        composable(
+            route = Screen.Planner.route,
+            arguments = listOf(
+                navArgument("noteTitle") { type = NavType.StringType; nullable = true },
+                navArgument("noteContent") { type = NavType.StringType; nullable = true }
+            )
+        ) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            PlannerScreen(
+                currentMode = currentMode,
+                onNavigateToAddTask = { navController.navigate(Screen.AddTask.route) }
+            )
+        }
+
+        composable(route = Screen.Habits.route) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            HabitsScreen(
+                onNavigateToDetail = { habitId ->
+                    navController.navigate(Screen.HabitDetail.createRoute(habitId))
+                },
+                onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) },
+                onNavigateToAddHabit = { navController.navigate(Screen.AddHabit.route) }
+            )
+        }
+
+        composable(
+            route = Screen.HabitDetail.route,
+            arguments = listOf(navArgument("habitId") { type = NavType.LongType })
+        ) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            HabitDetailScreenDestination(
+                onBack = { navController.popBackStack() },
+                onNavigateToIdentityProfile = { navController.navigate(Screen.IdentityProfile.route) }
+            )
+        }
+
+        composable(Screen.AddHabit.route) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            AddHabitScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.AddTransaction.route) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            AddTransactionScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.AddAccount.route) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            AddAccountScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.AddTask.route) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            AddTaskScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.FocusMode.route) {
+            UniversalFocusModeScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Money.route) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            MoneyScreen(
+                onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction.route) },
+                onNavigateToAddAccount = { navController.navigate(Screen.AddAccount.route) }
+            )
+        }
+        composable(Screen.Knowledge.route) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(true) }
+            KnowledgeBaseScreen(
+                onNoteClick = { noteId -> navController.navigate(KnowledgeDetailRoute.createRoute(noteId)) },
+                onAddNoteClick = { navController.navigate(KnowledgeDetailRoute.createRoute(0L)) }
+            )
+        }
+        composable(Screen.Reflections.route) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            ReflectionScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Screen.IdentityProfile.route) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            IdentityProfileScreen(onBack = { navController.popBackStack() })
+        }
+        composable("settings") {
+            SettingsScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(
+            route = KnowledgeDetailRoute.route,
+            arguments = listOf(navArgument("noteId") { type = NavType.LongType })
+        ) {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            KnowledgeDetailScreen(
+                onBack = { navController.popBackStack() },
+                onConvertToTask = { title, content ->
+                    val encodedTitle = URLEncoder.encode(title, "UTF-8")
+                    val encodedContent = URLEncoder.encode(content, "UTF-8")
+                    navController.popBackStack()
+                    navController.navigate("planner?noteTitle=$encodedTitle&noteContent=$encodedContent") {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
             )
         }
     }
