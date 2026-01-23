@@ -108,7 +108,7 @@ fun DashboardScreen(
                         }
                     }
 
-                    // SETTINGS BUTTON (Moved here)
+                    // SETTINGS BUTTON
                     IconButton(
                         onClick = onNavigateToSettings,
                         modifier = Modifier
@@ -187,9 +187,8 @@ fun DashboardScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Removed Settings Icon from here
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                             Text("SYSTEM_STATUS", fontWeight = FontWeight.Bold)
+                            Text("SYSTEM_STATUS", fontWeight = FontWeight.Bold)
                         }
                         Text("${(uiState.todayProgress * 100).toInt()}%", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
