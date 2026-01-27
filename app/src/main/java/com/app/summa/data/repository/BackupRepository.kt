@@ -12,6 +12,9 @@ interface BackupRepository {
     suspend fun createBackupJson(): String
     // Mengembalikan true jika sukses, false jika gagal/data korup
     suspend fun restoreBackupFromJson(jsonString: String): Boolean
+    
+    // Reset Total
+    suspend fun clearAllData()
 }
 
 class BackupRepositoryImpl @Inject constructor(
@@ -94,5 +97,12 @@ class BackupRepositoryImpl @Inject constructor(
             // Kita tangkap dan kembalikan false agar UI bisa memberi tahu user
             return@withContext false
         }
+    }
+            return@withContext false
+        }
+    }
+
+    override suspend fun clearAllData() = withContext(Dispatchers.IO) {
+        database.clearAllTables()
     }
 }

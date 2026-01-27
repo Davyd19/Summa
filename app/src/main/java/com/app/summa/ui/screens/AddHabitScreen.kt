@@ -38,7 +38,9 @@ fun AddHabitScreen(
     var target by remember { mutableStateOf("1") }
     var selectedIdentity by remember { mutableStateOf<Identity?>(null) }
     var cue by remember { mutableStateOf("") }
+    var cue by remember { mutableStateOf("") }
     var reminder by remember { mutableStateOf("") }
+    var twoMinuteRuleText by remember { mutableStateOf("") } // NEW: 2 Minute Rule Input
     
     // Dropdown state
     var identityExpanded by remember { mutableStateOf(false) }
@@ -145,6 +147,14 @@ fun AddHabitScreen(
                 placeholder = "Saatalarm berbunyi..."
             )
 
+            // NEW: 2 Minute Rule Input
+            BrutalistTextField(
+                value = twoMinuteRuleText,
+                onValueChange = { twoMinuteRuleText = it },
+                label = "ATURAN 2 MENIT",
+                placeholder = "Apa versi 2 menit dari kebiasaan ini?"
+            )
+
             // Target & Reminder Row
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -186,7 +196,7 @@ fun AddHabitScreen(
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = identityExpanded) },
                         modifier = Modifier
-                            .menuAnchor()
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable, true)
                             .fillMaxWidth()
                             .brutalBorder(cornerRadius = 8.dp),
                         shape = RoundedCornerShape(8.dp),

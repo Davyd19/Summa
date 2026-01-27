@@ -45,7 +45,9 @@ fun DashboardScreen(
     onNavigateToHabits: () -> Unit = {},
     onNavigateToAddTask: () -> Unit = {},
     onNavigateToFocus: () -> Unit = {},
-    onNavigateToAddTransaction: () -> Unit = {}
+    onNavigateToFocus: () -> Unit = {},
+    onNavigateToAddTransaction: () -> Unit = {},
+    onNavigateToAddIdentity: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val today = remember { LocalDate.now() }
@@ -380,14 +382,14 @@ fun DashboardScreen(
             BrutalistCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(56.dp)
+                    .clickable(onClick = onNavigateToAddTransaction), // Clickable moved to Card
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .clickable(onClick = onNavigateToAddTransaction)
-                        .padding(horizontal = 16.dp), // Check if padding should be here or on parent
+                        .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Row(
@@ -397,6 +399,33 @@ fun DashboardScreen(
                         Icon(Icons.Default.AttachMoney, null, tint = MaterialTheme.colorScheme.onSurface)
                         Spacer(Modifier.width(8.dp))
                         Text("CATAT TRANSAKSI", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
+            
+            Spacer(Modifier.height(12.dp))
+
+            // NEW: Add Identity Action
+            BrutalistCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .clickable(onClick = onNavigateToAddIdentity),
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                 Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.PersonAdd, null, tint = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.width(8.dp))
+                        Text("IDENTITAS BARU", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }

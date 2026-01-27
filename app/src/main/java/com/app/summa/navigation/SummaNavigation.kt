@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -52,9 +53,13 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 }
 
 // Validation for tab animation order
+// Validation for tab animation order
 fun getTabIndex(route: String?): Int {
     if (route == null) return -1
+    // Handle routes with arguments (e.g., "planner?noteTitle=...")
     val baseRoute = route.substringBefore("?")
+        .substringBefore("/") // Also handle "habit_detail/{id}" if it were a tab (it's not, but good practice)
+    
     return when (baseRoute) {
         Screen.Dashboard.route -> 0
         Screen.Planner.route -> 1
@@ -181,20 +186,27 @@ fun BottomNavigationBar(
 
                 val onItemClick = {
                     val targetRoute = screen.route.substringBefore("?")
+                    
                     if (isSelected) {
-                        navController.popBackStack(targetRoute, false)
-                    } else {
+                        // If already on this tab, pop to start destination (reset state)
                         navController.navigate(targetRoute) {
                             popUpTo(navController.graph.findStartDestination().id) {
-                                val isDetailScreen = currentRoute?.let { route ->
-                                    route.contains("detail") ||
-                                            route.contains("profile") ||
-                                            route.contains("settings")
-                                } == true
-
-                                saveState = !isDetailScreen
+                                inclusive = false 
                             }
                             launchSingleTop = true
+                        }
+                    } else {
+                        navController.navigate(targetRoute) {
+                            // Pop up to the start destination of the graph to
+                            // avoid building up a large stack of destinations
+                            // on the back stack as users select items
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            // Avoid multiple copies of the same destination when
+                            // reselecting the same item
+                            launchSingleTop = true
+                            // Restore state when reselecting a previously selected item
                             restoreState = true
                         }
                     }
@@ -307,7 +319,7 @@ fun NavigationGraph(
             DashboardScreen(
                 currentMode = currentMode,
                 onModeSelected = onModeSelected,
-                onNavigateToPlanner = { navController.navigateToTab("planner") },
+                onNavigateToPlanner = { navController.navigateToTab(Screen.Planner.route) },
                 onNavigateToMoney = { navController.navigateToTab(Screen.Money.route) },
                 onNavigateToNotes = { navController.navigateToTab(Screen.Knowledge.route) },
                 onNavigateToReflections = { navController.navigateToTab(Screen.Reflections.route) },
@@ -318,7 +330,9 @@ fun NavigationGraph(
                     navController.navigate(Screen.HabitDetail.createRoute(habit.id))
                 },
                 onNavigateToAddTask = { navController.navigate(Screen.AddTask.route) },
-                onNavigateToFocus = { navController.navigate(Screen.FocusMode.route) } // Passed callback
+                onNavigateToFocus = { navController.navigate(Screen.FocusMode.route) },
+                onNavigateToAddTransaction = { navController.navigate(Screen.AddTransaction.route) },
+                onNavigateToAddIdentity = { navController.navigate("add_identity") }
             )
         }
 
@@ -413,6 +427,10 @@ fun NavigationGraph(
         composable(Screen.IdentityProfile.route) {
             LaunchedEffect(Unit) { onFabVisibilityChange(false) }
             IdentityProfileScreen(onBack = { navController.popBackStack() })
+        }
+        composable("add_identity") {
+            LaunchedEffect(Unit) { onFabVisibilityChange(false) }
+            AddIdentityScreen(onBack = { navController.popBackStack() })
         }
         composable("settings") {
             SettingsScreen(onNavigateBack = { navController.popBackStack() })

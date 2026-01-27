@@ -45,8 +45,7 @@ fun AddTaskScreen(
     var description by remember { mutableStateOf("") }
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     var selectedTime by remember { mutableStateOf<LocalTime?>(null) }
-    var isCommitment by remember { mutableStateOf(false) }
-    var twoMinuteRule by remember { mutableStateOf(false) }
+    var isCommitment by remember { mutableStateOf(false) } // Removed twoMinuteRule
     var selectedIdentity by remember { mutableStateOf<Identity?>(null) }
     
     var showDatePicker by remember { mutableStateOf(false) }
@@ -92,7 +91,7 @@ fun AddTaskScreen(
                                 description = description,
                                 scheduledTime = selectedTime?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "",
                                 isCommitment = isCommitment,
-                                isTwoMinutes = twoMinuteRule,
+                                isTwoMinutes = false, // Removed rule from UI
                                 relatedIdentityId = selectedIdentity?.id
                             )
                             // Jika tanggal yang dipilih bukan hari ini, kita mungkin perlu handle di ViewModel agar selectDate berubah
@@ -217,27 +216,7 @@ fun AddTaskScreen(
                 )
             }
             
-            // 2-Minute Rule Switch (Only if no time set or distinct logic wanted, keeping generic for now)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                 Column(modifier = Modifier.weight(1f)) {
-                    Text("ATURAN 2 MENIT", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Text(
-                        "Bisa selesai < 2 menit? Kerjakan sekarang!",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f)
-                    )
-                }
-                Checkbox(
-                    checked = twoMinuteRule,
-                    onCheckedChange = { twoMinuteRule = it }
-                )
-            }
+            // 2-Minute Rule Switch Removed per request
 
             BrutalistTextField(
                 value = description,
@@ -267,7 +246,7 @@ fun AddTaskScreen(
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = identityExpanded) },
                         modifier = Modifier
-                            .menuAnchor()
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable, true) // Fix for Material 3 1.2.0+
                             .fillMaxWidth()
                             .brutalBorder(cornerRadius = 8.dp),
                         shape = RoundedCornerShape(8.dp),
