@@ -48,6 +48,9 @@ fun AddHabitScreen(
     // Dropdown state
     var identityExpanded by remember { mutableStateOf(false) }
 
+    // Emoji Picker state
+    var showEmojiPicker by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             BrutalTopAppBar(
@@ -102,7 +105,7 @@ fun AddHabitScreen(
                         .size(80.dp)
                         .brutalBorder(cornerRadius = 100.dp)
                         .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-                        .clickable { /* TODO: Emoji Picker */ },
+                        .clickable { showEmojiPicker = true },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(text = icon, fontSize = 32.sp)
@@ -241,6 +244,16 @@ fun AddHabitScreen(
                 )
             }
         }
+    }
+
+    if (showEmojiPicker) {
+        EmojiPickerSheet(
+            onDismissRequest = { showEmojiPicker = false },
+            onEmojiSelected = { selectedEmoji ->
+                icon = selectedEmoji
+                showEmojiPicker = false
+            }
+        )
     }
 }
 

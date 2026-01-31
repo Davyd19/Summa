@@ -23,7 +23,8 @@ data class FocusUiState(
     val targetClips: Int = 10,
     val selectedHabitId: Long? = null, // New: Linked Habit
     val availableHabits: List<com.app.summa.data.model.HabitItem> = emptyList(), // New: Dropdown data
-    val isClipMode: Boolean = false // New: Toggle for optional clips
+    val isClipMode: Boolean = false, // New: Toggle for optional clips
+    val focusTaskName: String? = null // New: Task Context
 )
 
 @HiltViewModel
@@ -80,6 +81,10 @@ class FocusViewModel @Inject constructor(
         }
     }
     
+    fun setFocusTask(name: String?) {
+        _uiState.update { it.copy(focusTaskName = name) }
+    }
+
     fun selectHabit(habitId: Long?) {
          _uiState.update { it.copy(selectedHabitId = habitId) }
     }
@@ -181,35 +186,18 @@ class FocusViewModel @Inject constructor(
             // 2. Update Habit if selected
             if (state.selectedHabitId != null) {
                 // Fetch current habit to get target
-                 val habit = habitRepository.getAllHabits().first().find { it.id == state.selectedHabitId }
-                 if (habit != null) {
-                     // Increment logic (simple +1 for now, or based on clips?)
-                     // Request says: "habit itu dalam hari itu langsung terhitung sudah di kerjakan"
-                     // So we might want to set it to target count? Or just +1?
-                     // "Langsung terhitung sudah dikerjakan" implies Completion.
-                     // Let's set it to Target if not reached? Or just increment.
-                     // Safest: Increment by 1 session equivalent.
-                     // But user said "Finish focus mode -> Habit done". 
-                     // Let's set count = targetCount to be sure it marks as done.
-                     
-    // Fix save logic
-    /*
-                     val currentLog = habitRepository.getLogsForDate(java.time.LocalDate.now()).first().find { it.habitId == habit.id }
-                     val current = currentLog?.count ?: 0
-                     if (current < habit.targetCount) {
-                         // Update logic
-                         // We need to call a repository method that accepts ID + Count, or update the Habit object?
-                         // Assuming repository has updateHabitCount(habit: Habit, newCount: Int)
-                         // But 'habit' here is HabitItem? No, 'habit' from find() is Habit entity.
-                         habitRepository.updateHabitCount(habit, habit.targetCount)
-                     }
-    */
-                // Simplified safe logic:
-                 val habitEntity = habitRepository.getAllHabits().first().find { it.id == state.selectedHabitId }
-                 if (habitEntity != null) {
-                      habitRepository.updateHabitCount(habitEntity, habitEntity.targetCount)
-                 }
-                 }
+                val habit = habitRepository.getAllHabits().first().find { it.id == state.selectedHabitId }
+                if (habit != null) {
+                    val todayLogs = habitRepository.getLogsForDate(java.time.LocalDate.now()).first()
+                    val currentLog = todayLogs.find { it.habitId == habit.id }
+                    val currentCount = currentLog?.count ?: 0
+
+                    // "Finish focus mode -> Habit done"
+                    // If not done -> Set to targetCount.
+                    // If already done (or matches target) -> Increment by 1 to reward extra effort.
+                    val newCount = if (currentCount < habit.targetCount) habit.targetCount else currentCount + 1
+                    habitRepository.updateHabitCount(habit, newCount)
+                }
             }
         }
     }

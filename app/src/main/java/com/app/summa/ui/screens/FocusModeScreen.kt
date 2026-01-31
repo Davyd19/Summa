@@ -39,15 +39,24 @@ import kotlin.math.roundToInt
 @Composable
 fun UniversalFocusModeScreen(
     onBack: () -> Unit,
+    initialTaskName: String? = null,
     viewModel: com.app.summa.ui.viewmodel.FocusViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var isSetupPhase by remember { mutableStateOf(true) }
 
+    LaunchedEffect(initialTaskName) {
+        if (initialTaskName != null) {
+            viewModel.reset()
+            viewModel.setFocusTask(initialTaskName)
+        }
+    }
+
     if (isSetupPhase) {
         FocusSetupScreen(
             availableHabits = uiState.availableHabits,
             selectedHabitId = uiState.selectedHabitId,
+            focusTaskName = uiState.focusTaskName,
             onHabitSelect = { viewModel.selectHabit(it) },
             onStart = { duration, isClipMode, clips -> 
                 viewModel.initializeSession(if(isClipMode) clips else duration, isClipMode)
@@ -76,6 +85,7 @@ fun UniversalFocusModeScreen(
 fun FocusSetupScreen(
     availableHabits: List<com.app.summa.data.model.HabitItem>,
     selectedHabitId: Long?,
+    focusTaskName: String? = null,
     onHabitSelect: (Long?) -> Unit,
     onStart: (Int, Boolean, Int) -> Unit, // Duration/Clips, IsClipMode, ClipCount
     onCancel: () -> Unit
@@ -96,6 +106,10 @@ fun FocusSetupScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text("SETUP FOKUS", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+        if (focusTaskName != null) {
+            Spacer(Modifier.height(8.dp))
+            Text("Focusing on: $focusTaskName", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+        }
         Spacer(Modifier.height(32.dp))
 
         // 1. Habit Selector
@@ -192,6 +206,11 @@ fun FocusRunningScreen(
              Icon(Icons.Default.Close, "Batal", modifier = Modifier.clickable { onCancel() })
              Text(if(uiState.isClipMode) "REPETISI" else "FOKUS", fontWeight = FontWeight.Bold)
              Text("SELESAI", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.clickable { onComplete() })
+         }
+
+         if (uiState.focusTaskName != null) {
+             Spacer(Modifier.height(16.dp))
+             Text(uiState.focusTaskName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
          }
          
          Spacer(Modifier.height(48.dp))

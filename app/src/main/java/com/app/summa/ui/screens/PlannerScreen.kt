@@ -114,25 +114,10 @@ fun PlannerScreen(
     }
 
     if (selectedTask != null) {
-        // Planner integrated focus mode not fully supported with new signature yet in this flow
-        // For now, redirect to global Focus Mode or show a simplified setup?
-        // New Focus Mode requires ViewModel. 
-        // Best approach: Navigate to global Focus Mode with arguments? Or adapt UniversalFocusModeScreen to take simpler props?
-        // Current UniversalFocusModeScreen takes (onBack, viewModel).
-        // Reuse internal logic or navigate?
-        // Let's modify UniversalFocusModeScreen to be less coupled if needed, OR instantiate ViewModel.
-        // EASIEST FIX: Just show "Not Implemented" or remove inline focus for now and tell user to use Dashboard > Focus.
-        // OR: Use hiltViewModel() but we are inside PlannerScreen.
-        
-        // Actually, let's just remove the inline focus mode from Planner for now as the Global Focus Mode is the new standard.
-        // Or better: Navigate to Focus Screen?
-        /*
         UniversalFocusModeScreen(
-            onBack = { selectedTask = null }
+            onBack = { selectedTask = null },
+            initialTaskName = selectedTask?.title
         )
-        */
-        // Removing inline focus logic to fix build error. Detailed task focus can be future work.
-        selectedTask = null 
     } else {
         Column(
             modifier = Modifier

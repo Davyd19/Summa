@@ -67,7 +67,8 @@ class TaskRepositoryImpl @Inject constructor(
 
             // PERBAIKAN 1: Ambil semua tugas aktif dulu, lalu filter tanggal dengan LocalDate di memori
             // Mengandalkan string comparison di SQL bisa berisiko jika format tanggal tercampur
-            val activeTasks = taskDao.getAllTasksSync().filter { !it.isCompleted } // Pastikan ada method ini atau gunakan getActiveTasks().first()
+            // OPTIMISASI: Gunakan getActiveTasksSync untuk memfilter di SQL level, menghemat memori
+            val activeTasks = taskDao.getActiveTasksSync()
 
             val overdueTasks = activeTasks.filter { task ->
                 try {
@@ -89,9 +90,10 @@ class TaskRepositoryImpl @Inject constructor(
             }
 
             // 1. Proses Rollover Aspirasi (Tanpa Penalti)
-            overdueAspirations.forEach { task ->
-                // Geser tanggal ke hari ini
-                taskDao.updateTask(task.copy(scheduledDate = todayString))
+            if (overdueAspirations.isNotEmpty()) {
+                overdueAspirations.map { it.id }.chunked(500).forEach { batchIds ->
+                    taskDao.updateTasksScheduledDate(batchIds, todayString)
+                }
             }
 
             // 2. Proses Hukuman Komitmen (Penalti XP)
@@ -108,8 +110,13 @@ class TaskRepositoryImpl @Inject constructor(
                         note = "Terlewat komitmen: ${task.title}"
                     )
                 }
-                // Tetap geser tugas agar "menghantui" pengguna (Nagging)
-                taskDao.updateTask(task.copy(scheduledDate = todayString))
+            }
+
+            // Tetap geser tugas agar "menghantui" pengguna (Nagging)
+            if (overdueCommitments.isNotEmpty()) {
+                overdueCommitments.map { it.id }.chunked(500).forEach { batchIds ->
+                    taskDao.updateTasksScheduledDate(batchIds, todayString)
+                }
             }
 
             // 3. Kembalikan Hasil Laporan
