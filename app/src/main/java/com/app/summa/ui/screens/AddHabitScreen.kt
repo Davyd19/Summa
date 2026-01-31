@@ -17,6 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -136,14 +140,16 @@ fun AddHabitScreen(
                 value = name,
                 onValueChange = { name = it },
                 label = "NAMA KEBIASAAN",
-                placeholder = "Contoh: Lari Pagi 5km"
+                placeholder = "Contoh: Lari Pagi 5km",
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
             )
 
             BrutalistTextField(
                 value = cue,
                 onValueChange = { cue = it },
                 label = "PEMICU (CUE)",
-                placeholder = "Saatalarm berbunyi..."
+                placeholder = "Saatalarm berbunyi...",
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
             )
 
             // NEW: 2 Minute Rule Input
@@ -151,7 +157,8 @@ fun AddHabitScreen(
                 value = twoMinuteRuleText,
                 onValueChange = { twoMinuteRuleText = it },
                 label = "ATURAN 2 MENIT",
-                placeholder = "Apa versi 2 menit dari kebiasaan ini?"
+                placeholder = "Apa versi 2 menit dari kebiasaan ini?",
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
             )
 
             // Target & Reminder Row
@@ -163,7 +170,8 @@ fun AddHabitScreen(
                     onValueChange = { if (it.all { char -> char.isDigit() }) target = it },
                     label = "TARGET HARIAN",
                     placeholder = "1",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
                 )
                 
                  BrutalistTextField(
@@ -171,7 +179,8 @@ fun AddHabitScreen(
                     onValueChange = { reminder = it },
                     label = "PENGINGAT (JAM)",
                     placeholder = "06:00",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
                 )
             }
 
@@ -242,7 +251,9 @@ fun BrutalistTextField(
     label: String,
     placeholder: String = "",
     modifier: Modifier = Modifier,
-    singleLine: Boolean = true
+    singleLine: Boolean = true,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
     Column(
         modifier = modifier,
@@ -264,7 +275,9 @@ fun BrutalistTextField(
             shape = RoundedCornerShape(8.dp),
             colors = brutalTextFieldColors(),
             singleLine = singleLine,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+            textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            keyboardOptions = keyboardOptions,
+            keyboardActions = keyboardActions
         )
     }
 }
