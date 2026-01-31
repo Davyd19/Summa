@@ -83,5 +83,21 @@ class TaskRepositoryTest {
 
         // Ensure individual task updates are NOT called
         coVerify(exactly = 0) { taskDao.updateTask(any()) }
+    private val repository = TaskRepositoryImpl(taskDao, identityRepository, notificationScheduler)
+
+    @Test
+    fun verifyDailyWrapUpUsesOptimizedQuery() = runTest {
+        // Setup
+        val tasks = listOf<Task>()
+        coEvery { taskDao.getActiveTasksSync() } returns tasks
+
+        // Act
+        repository.processDailyWrapUp()
+
+        // Assert
+        // Verify that we use the optimized query (WHERE isCompleted = 0)
+        // instead of fetching all tasks and filtering in memory.
+        coVerify(exactly = 1) { taskDao.getActiveTasksSync() }
+        coVerify(exactly = 0) { taskDao.getAllTasksSync() }
     }
 }

@@ -12,6 +12,9 @@ interface TaskDao {
     @Query("SELECT * FROM tasks")
     fun getAllTasksSync(): List<Task> // Untuk Backup
 
+    @Query("SELECT * FROM tasks WHERE isCompleted = 0")
+    fun getActiveTasksSync(): List<Task>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertTasks(tasks: List<Task>) // Untuk Restore
 

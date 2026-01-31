@@ -95,6 +95,9 @@ fun KnowledgeGraphView(
 
     // 2. LOOP SIMULASI FISIKA (OPTIMASI PERFORMANCE)
     LaunchedEffect(Unit) {
+        // Pre-calculate index map untuk lookup O(1)
+        val nodeIndices = graphNodes.withIndex().associate { it.value.id to it.index }
+
         while (isActive) {
             // OPTIMASI: Jika sistem "dingin" dan tidak ada interaksi, stop loop (Hemat Baterai)
             if (simulationAlpha < 0.05f && draggedNodeId == null) {
@@ -158,10 +161,10 @@ fun KnowledgeGraphView(
 
             // Hitung Attraction (Tarik-menarik Link)
             links.forEach { link ->
-                val sIdx = graphNodes.indexOfFirst { it.id == link.sourceNoteId }
-                val tIdx = graphNodes.indexOfFirst { it.id == link.targetNoteId }
+                val sIdx = nodeIndices[link.sourceNoteId]
+                val tIdx = nodeIndices[link.targetNoteId]
 
-                if (sIdx != -1 && tIdx != -1) {
+                if (sIdx != null && tIdx != null) {
                     val n1 = graphNodes[sIdx]
                     val n2 = graphNodes[tIdx]
 
