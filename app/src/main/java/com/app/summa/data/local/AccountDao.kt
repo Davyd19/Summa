@@ -58,6 +58,14 @@ interface AccountDao {
     @Insert
     suspend fun insertTransaction(transaction: Transaction): Long
 
+    @androidx.room.Transaction
+    suspend fun insertTransactionWithBalanceUpdate(transaction: Transaction): Long {
+        val account = getAccountById(transaction.accountId) ?: return 0L
+        val newBalance = account.balance + transaction.amount
+        updateAccountBalance(account.id, newBalance, System.currentTimeMillis())
+        return insertTransaction(transaction)
+    }
+
     // PERBAIKAN 2: Gunakan @androidx.room.Transaction secara eksplisit
     // Ini mencegah konflik dengan class model 'Transaction'
     @androidx.room.Transaction
