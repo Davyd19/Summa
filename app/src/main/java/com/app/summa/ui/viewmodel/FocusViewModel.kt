@@ -23,7 +23,8 @@ data class FocusUiState(
     val targetClips: Int = 10,
     val selectedHabitId: Long? = null, // New: Linked Habit
     val availableHabits: List<com.app.summa.data.model.HabitItem> = emptyList(), // New: Dropdown data
-    val isClipMode: Boolean = false // New: Toggle for optional clips
+    val isClipMode: Boolean = false, // New: Toggle for optional clips
+    val focusTaskName: String? = null // New: Task Context
 )
 
 @HiltViewModel
@@ -79,6 +80,10 @@ class FocusViewModel @Inject constructor(
         }
     }
     
+    fun setFocusTask(name: String?) {
+        _uiState.update { it.copy(focusTaskName = name) }
+    }
+
     fun selectHabit(habitId: Long?) {
          _uiState.update { it.copy(selectedHabitId = habitId) }
     }
