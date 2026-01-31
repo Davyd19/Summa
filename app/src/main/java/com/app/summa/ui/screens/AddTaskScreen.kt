@@ -237,7 +237,7 @@ fun AddTaskScreen(
                 
                 ExposedDropdownMenuBox(
                     expanded = identityExpanded,
-                    onExpandedChange = { identityExpanded = !identityExpanded },
+                    onExpandedChange = { identityExpanded = it },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(

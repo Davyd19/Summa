@@ -101,7 +101,7 @@ fun FocusSetupScreen(
         // 1. Habit Selector
         ExposedDropdownMenuBox(
             expanded = habitExpanded,
-            onExpandedChange = { habitExpanded = !habitExpanded },
+            onExpandedChange = { habitExpanded = it },
             modifier = Modifier.fillMaxWidth()
         ) {
             OutlinedTextField(
