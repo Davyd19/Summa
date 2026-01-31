@@ -67,7 +67,8 @@ class TaskRepositoryImpl @Inject constructor(
 
             // PERBAIKAN 1: Ambil semua tugas aktif dulu, lalu filter tanggal dengan LocalDate di memori
             // Mengandalkan string comparison di SQL bisa berisiko jika format tanggal tercampur
-            val activeTasks = taskDao.getAllTasksSync().filter { !it.isCompleted } // Pastikan ada method ini atau gunakan getActiveTasks().first()
+            // OPTIMISASI: Gunakan getActiveTasksSync untuk memfilter di SQL level, menghemat memori
+            val activeTasks = taskDao.getActiveTasksSync()
 
             val overdueTasks = activeTasks.filter { task ->
                 try {
