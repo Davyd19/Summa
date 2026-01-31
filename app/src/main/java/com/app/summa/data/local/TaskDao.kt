@@ -34,6 +34,9 @@ interface TaskDao {
     suspend fun getOverdueCommitmentTasks(today: String): List<Task>
     // -------------------------------------
 
+    @Query("UPDATE tasks SET scheduledDate = :date WHERE id IN (:taskIds)")
+    suspend fun updateTasksScheduledDate(taskIds: List<Long>, date: String)
+
     @Query("UPDATE tasks SET isCompleted = 1, completedAt = :completedAt WHERE id = :taskId")
     suspend fun completeTask(taskId: Long, completedAt: Long)
 
