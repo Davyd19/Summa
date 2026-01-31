@@ -40,7 +40,7 @@ class IdentityRepositoryImpl @Inject constructor(
     override fun getAllIdentities(): Flow<List<Identity>> = identityDao.getAllIdentities()
     override suspend fun insertIdentity(identity: Identity): Long = identityDao.insertIdentity(identity)
     override suspend fun updateIdentity(identity: Identity) = identityDao.updateIdentity(identity)
-    override suspend fun deleteIdentity(identity: Identity) { /* TODO */ }
+    override suspend fun deleteIdentity(identity: Identity) = identityDao.deleteIdentity(identity)
 
     override suspend fun addVoteToIdentity(identityId: Long, points: Int, note: String): Boolean {
         return withContext(Dispatchers.IO) {
