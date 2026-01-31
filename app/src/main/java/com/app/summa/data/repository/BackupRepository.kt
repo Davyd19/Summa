@@ -98,9 +98,6 @@ class BackupRepositoryImpl @Inject constructor(
             return@withContext false
         }
     }
-            return@withContext false
-        }
-    }
 
     override suspend fun clearAllData() = withContext(Dispatchers.IO) {
         database.clearAllTables()

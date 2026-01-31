@@ -246,7 +246,7 @@ fun AddTaskScreen(
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = identityExpanded) },
                         modifier = Modifier
-                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable, true) // Fix for Material 3 1.2.0+
+                            .menuAnchor()
                             .fillMaxWidth()
                             .brutalBorder(cornerRadius = 8.dp),
                         shape = RoundedCornerShape(8.dp),

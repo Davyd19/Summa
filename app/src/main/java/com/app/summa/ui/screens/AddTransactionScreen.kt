@@ -190,7 +190,7 @@ fun AddTransactionScreen(
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountExpanded) },
                         modifier = Modifier
-                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable, true)
+                            .menuAnchor()
                             .fillMaxWidth()
                             .brutalBorder(cornerRadius = 8.dp),
                         shape = RoundedCornerShape(8.dp),

@@ -38,7 +38,6 @@ fun AddHabitScreen(
     var target by remember { mutableStateOf("1") }
     var selectedIdentity by remember { mutableStateOf<Identity?>(null) }
     var cue by remember { mutableStateOf("") }
-    var cue by remember { mutableStateOf("") }
     var reminder by remember { mutableStateOf("") }
     var twoMinuteRuleText by remember { mutableStateOf("") } // NEW: 2 Minute Rule Input
     
@@ -196,7 +195,7 @@ fun AddHabitScreen(
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = identityExpanded) },
                         modifier = Modifier
-                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable, true)
+                            .menuAnchor()
                             .fillMaxWidth()
                             .brutalBorder(cornerRadius = 8.dp),
                         shape = RoundedCornerShape(8.dp),

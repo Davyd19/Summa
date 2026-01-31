@@ -45,7 +45,6 @@ fun DashboardScreen(
     onNavigateToHabits: () -> Unit = {},
     onNavigateToAddTask: () -> Unit = {},
     onNavigateToFocus: () -> Unit = {},
-    onNavigateToFocus: () -> Unit = {},
     onNavigateToAddTransaction: () -> Unit = {},
     onNavigateToAddIdentity: () -> Unit = {}
 ) {
