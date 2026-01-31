@@ -42,37 +42,62 @@ class DashboardViewModel @Inject constructor(
     private val _morningBriefing = MutableStateFlow<DailyWrapUpResult?>(null)
 
     // --- OPTIMASI FLOW: MENGGABUNGKAN SEMUA SUMBER DATA ---
-    // Menggunakan combine memastikan UI hanya recompose jika salah satu data berubah.
-    // Menggunakan stateIn dengan WhileSubscribed(5000) mencegah query berulang saat config change.
+    // Menggunakan combine berjenjang untuk menghindari unchecked cast dan limit argumen combine (max 5)
 
-    val uiState: StateFlow<DashboardUiState> = combine(
-        _currentMode,
+    private data class HabitData(
+        val logs: List<HabitLog>,
+        val habits: List<Habit>,
+        val tasks: List<Task>,
+        val identities: List<Identity>
+    )
+
+    private data class FinancialData(
+        val netWorth: Double,
+        val paperclips: Int,
+        val accounts: List<Account>
+    )
+
+    private data class UiStateData(
+        val mode: String,
+        val levelUp: LevelUpEvent?,
+        val briefing: DailyWrapUpResult?
+    )
+
+    private val habitDataFlow = combine(
         habitRepository.getLogsForDate(LocalDate.now()),
         habitRepository.getAllHabits(),
         taskRepository.getActiveTasks(),
-        identityRepository.getAllIdentities(),
+        identityRepository.getAllIdentities()
+    ) { logs, habits, tasks, identities ->
+        HabitData(logs, habits, tasks, identities)
+    }
+
+    private val financialDataFlow = combine(
         accountRepository.getTotalNetWorth(),
         focusRepository.getTotalPaperclips(),
+        accountRepository.getAllAccounts()
+    ) { netWorth, paperclips, accounts ->
+        FinancialData(netWorth ?: 0.0, paperclips, accounts)
+    }
+
+    private val uiStateFlow = combine(
+        _currentMode,
         _levelUpEvent,
-        _morningBriefing,
-        accountRepository.getAllAccounts() // Add accounts source
-    ) { inputs ->
-        // Destructuring array inputs agar rapi
-        val mode = inputs[0] as String
-        val todayLogs = inputs[1] as List<HabitLog>
-        val allHabits = inputs[2] as List<Habit>
-        val tasks = inputs[3] as List<Task>
-        val identities = inputs[4] as List<Identity>
-        val netWorth = inputs[5] as Double? ?: 0.0
-        val paperclips = inputs[6] as Int
-        val lvlEvent = inputs[7] as LevelUpEvent?
-        val briefing = inputs[8] as DailyWrapUpResult?
-        val accounts = inputs[9] as List<Account> // Get accounts
+        _morningBriefing
+    ) { mode, levelUp, briefing ->
+        UiStateData(mode, levelUp, briefing)
+    }
+
+    val uiState: StateFlow<DashboardUiState> = combine(
+        habitDataFlow,
+        financialDataFlow,
+        uiStateFlow
+    ) { habitData, financialData, uiState ->
 
         // 1. Hitung Progress Habit Hari Ini
         // Transform Habit Entity ke UI Model (HabitItem)
-        val todayHabitItems = allHabits.map { habit ->
-            val log = todayLogs.find { it.habitId == habit.id }
+        val todayHabitItems = habitData.habits.map { habit ->
+            val log = habitData.logs.find { it.habitId == habit.id }
             val currentCount = log?.count ?: 0
             HabitItem(
                 id = habit.id,
@@ -93,30 +118,30 @@ class DashboardViewModel @Inject constructor(
         val progress = if (totalTargets > 0) currentProgressSum.toFloat() / totalTargets else 0f
 
         // 2. Hitung Total Poin (Summa Points) dari Identitas
-        val totalPoints = identities.sumOf { it.progress }
-        val activeTasks = tasks.count { !it.isCompleted }
+        val totalPoints = habitData.identities.sumOf { it.progress }
+        val activeTasks = habitData.tasks.count { !it.isCompleted }
         val completedHabits = todayHabitItems.count { it.currentCount >= it.targetCount && it.targetCount > 0 }
 
         // 3. Tentukan Next Task (Tugas Prioritas)
-        val nextTask = tasks
+        val nextTask = habitData.tasks
             .filter { it.scheduledTime != null }
             .sortedBy { it.scheduledTime }
             .firstOrNull()
 
         DashboardUiState(
             greeting = getGreetingMessage(),
-            currentMode = mode,
+            currentMode = uiState.mode,
             summaPoints = totalPoints,
             todayProgress = progress,
             activeTasks = activeTasks,
             completedHabits = completedHabits,
-            totalPaperclips = paperclips,
-            totalNetWorth = netWorth,
+            totalPaperclips = financialData.paperclips,
+            totalNetWorth = financialData.netWorth,
             nextTask = nextTask,
             todayHabits = todayHabitItems,
-            levelUpEvent = lvlEvent,
-            morningBriefing = briefing,
-            accounts = accounts // Pass accounts
+            levelUpEvent = uiState.levelUp,
+            morningBriefing = uiState.briefing,
+            accounts = financialData.accounts
         )
     }.stateIn(
         scope = viewModelScope,

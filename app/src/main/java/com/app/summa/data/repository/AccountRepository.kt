@@ -55,15 +55,7 @@ class AccountRepositoryImpl @Inject constructor(
     // PERBAIKAN: Memperbaiki logika 'insertTransaction' agar mengembalikan Long
     override suspend fun insertTransaction(transaction: Transaction): Long {
         return withContext(Dispatchers.IO) {
-            val account = accountDao.getAccountById(transaction.accountId)
-            if (account == null) {
-                return@withContext 0L // Mengembalikan 0 jika akun tidak ditemukan
-            }
-
-            val newBalance = account.balance + transaction.amount // amount bisa positif/negatif
-            accountDao.updateAccountBalance(account.id, newBalance, System.currentTimeMillis())
-            // Ini akan menjadi nilai balik dari 'withContext'
-            accountDao.insertTransaction(transaction)
+            accountDao.insertTransactionWithBalanceUpdate(transaction)
         }
     }
 

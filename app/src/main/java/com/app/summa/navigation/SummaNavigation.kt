@@ -61,12 +61,12 @@ fun getTabIndex(route: String?): Int {
         .substringBefore("/") // Also handle "habit_detail/{id}" if it were a tab (it's not, but good practice)
     
     return when (baseRoute) {
-        Screen.Dashboard.route -> 0
-        Screen.Planner.route -> 1
-        Screen.Habits.route -> 2
-        Screen.Knowledge.route -> 3
-        Screen.Money.route -> 4
-        Screen.Reflections.route -> 5
+        Screen.Dashboard.route.substringBefore("?") -> 0
+        Screen.Planner.route.substringBefore("?") -> 1
+        Screen.Habits.route.substringBefore("?") -> 2
+        Screen.Knowledge.route.substringBefore("?") -> 3
+        Screen.Money.route.substringBefore("?") -> 4
+        Screen.Reflections.route.substringBefore("?") -> 5
         else -> -1
     }
 }
