@@ -30,7 +30,8 @@ data class FocusUiState(
 @HiltViewModel
 class FocusViewModel @Inject constructor(
     private val focusRepository: com.app.summa.data.repository.FocusRepository,
-    private val habitRepository: com.app.summa.data.repository.HabitRepository
+    private val habitRepository: com.app.summa.data.repository.HabitRepository,
+    private val timeProvider: com.app.summa.util.TimeProvider
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FocusUiState())
@@ -92,19 +93,19 @@ class FocusViewModel @Inject constructor(
         if (_uiState.value.isRunning) return
 
         // Set start time stamp logic
-        val currentTime = System.currentTimeMillis()
+        val currentTime = timeProvider.currentTimeMillis()
         
         // Timer Logic
         val currentRemaining = _uiState.value.timeRemaining
         
         // Logic timestamp untuk menghitung durasi yang berlalu
-        val sessionStart = if (_uiState.value.sessionStartTimeStamp == 0L) currentTime else _uiState.value.sessionStartTimeStamp
-        val lastUpdate = currentTime // Not strictly needed logic change but cleaner
+        // sessionStartTimeStamp acts as "Resume Time"
+        val sessionStart = currentTime
 
         _uiState.update {
             it.copy(
                 isRunning = true,
-                sessionStartTimeStamp = currentTime, // Reset reference to now
+                sessionStartTimeStamp = sessionStart,
                 startTime = if (it.startTime == 0L) currentTime else it.startTime
             )
         }
@@ -114,29 +115,25 @@ class FocusViewModel @Inject constructor(
                 // Update UI setiap 200ms agar responsif, tapi hitungan tetap akurat
                 delay(200)
 
-                val now = System.currentTimeMillis()
-                val deltaSeconds = (now - _uiState.value.sessionStartTimeStamp) / 1000
+                val now = timeProvider.currentTimeMillis()
                 
-                // Update timestamp reference to avoid drift if needed, but simple subtraction is better:
-                // New Time Remaining = Old Time Remaining - Delta
-                // But simplified: We track time passed since Resume.
-                
-                val newRemaining = currentRemaining - deltaSeconds.toInt()
-                
-                // If Timer reaches 0
-                if (newRemaining <= 0 && !_uiState.value.isClipMode) {
-                     _uiState.update { it.copy(timeRemaining = 0, isRunning = false) }
-                     break 
-                } else if (_uiState.value.isClipMode) {
+                if (_uiState.value.isClipMode) {
                      // In Clip Mode, we count UP
                      val elapsed = (now - _uiState.value.startTime) / 1000
                      _uiState.update { it.copy(timeRemaining = elapsed.toInt()) }
                 } else {
-                     _uiState.update { it.copy(timeRemaining = newRemaining, sessionStartTimeStamp = now) } // Hacky sync?
-                     // Better: Keep sessionStartTimeStamp as "Resume Time".
-                     // remaining = savedRemaining - (now - resumeTime)
-                     val actualRemaining = currentRemaining - ((now - _uiState.value.sessionStartTimeStamp) / 1000).toInt()
-                     _uiState.update { it.copy(timeRemaining = actualRemaining.coerceAtLeast(0)) }
+                     // In Timer Mode, we count DOWN
+                     // Calculate elapsed time since this session segment started (resumed)
+                     val elapsedSinceResume = (now - sessionStart) / 1000
+                     val newRemaining = currentRemaining - elapsedSinceResume.toInt()
+
+                     if (newRemaining <= 0) {
+                          _uiState.update { it.copy(timeRemaining = 0, isRunning = false) }
+                          break
+                     } else {
+                          // Update remaining time, but DO NOT update sessionStartTimeStamp
+                          _uiState.update { it.copy(timeRemaining = newRemaining) }
+                     }
                 }
             }
         }
@@ -180,9 +177,9 @@ class FocusViewModel @Inject constructor(
             val session = com.app.summa.data.model.FocusSession(
                 habitId = state.selectedHabitId ?: 0L, // 0 if generic
                 startTime = state.startTime,
-                endTime = System.currentTimeMillis(),
+                endTime = timeProvider.currentTimeMillis(),
                 paperclipsCollected = if(state.isClipMode) state.paperclipsMoved else 0,
-                createdAt = System.currentTimeMillis()
+                createdAt = timeProvider.currentTimeMillis()
             )
             focusRepository.saveSession(session)
             
