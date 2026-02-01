@@ -82,7 +82,8 @@ fun AddHabitScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                    text = "MULAI PROTOKOL"
+                    text = "MULAI PROTOKOL",
+                    enabled = name.isNotBlank()
                 )
             }
         }
@@ -265,6 +266,7 @@ fun BrutalistTextField(
     placeholder: String = "",
     modifier: Modifier = Modifier,
     singleLine: Boolean = true,
+    minLines: Int = 1,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
@@ -288,6 +290,7 @@ fun BrutalistTextField(
             shape = RoundedCornerShape(8.dp),
             colors = brutalTextFieldColors(),
             singleLine = singleLine,
+            minLines = minLines,
             textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions
@@ -301,7 +304,8 @@ fun BrutalButton(
     modifier: Modifier = Modifier,
     text: String,
     containerColor: Color = MaterialTheme.colorScheme.primary,
-    contentColor: Color = MaterialTheme.colorScheme.onPrimary
+    contentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    enabled: Boolean = true
 ) {
      Button(
         onClick = onClick,
@@ -310,7 +314,8 @@ fun BrutalButton(
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor
-        )
+        ),
+        enabled = enabled
     ) {
         Text(
             text = text,
