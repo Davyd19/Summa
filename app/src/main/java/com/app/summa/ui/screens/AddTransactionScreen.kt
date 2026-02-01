@@ -181,7 +181,7 @@ fun AddTransactionScreen(
                 
                 ExposedDropdownMenuBox(
                     expanded = accountExpanded,
-                    onExpandedChange = { accountExpanded = !accountExpanded },
+                    onExpandedChange = { accountExpanded = it },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(

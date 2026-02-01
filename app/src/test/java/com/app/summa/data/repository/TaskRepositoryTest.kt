@@ -83,7 +83,7 @@ class TaskRepositoryTest {
 
         // Ensure individual task updates are NOT called
         coVerify(exactly = 0) { taskDao.updateTask(any()) }
-    private val repository = TaskRepositoryImpl(taskDao, identityRepository, notificationScheduler)
+    }
 
     @Test
     fun verifyDailyWrapUpUsesOptimizedQuery() = runTest {
