@@ -19,6 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,6 +45,7 @@ fun AddTaskScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -103,7 +109,8 @@ fun AddTaskScreen(
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     text = "JADWALKAN",
                     containerColor = if (isCommitment) GoldAccent else MaterialTheme.colorScheme.primary,
-                    contentColor = if (isCommitment) Color.Black else MaterialTheme.colorScheme.onPrimary
+                    contentColor = if (isCommitment) Color.Black else MaterialTheme.colorScheme.onPrimary,
+                    enabled = title.isNotBlank()
                 )
             }
         }
@@ -121,7 +128,11 @@ fun AddTaskScreen(
                 value = title,
                 onValueChange = { title = it },
                 label = "JUDUL TUGAS",
-                placeholder = "Apa yang harus diselesaikan?"
+                placeholder = "Apa yang harus diselesaikan?",
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Next
+                )
             )
 
             // Date & Time Selectors
@@ -223,7 +234,15 @@ fun AddTaskScreen(
                 onValueChange = { description = it },
                 label = "CATATAN / DETIL",
                 placeholder = "Jelaskan langkah-langkahnya...",
-                singleLine = false
+                singleLine = false,
+                minLines = 3,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { focusManager.clearFocus() }
+                )
             )
             
             // Identity Dropdown
