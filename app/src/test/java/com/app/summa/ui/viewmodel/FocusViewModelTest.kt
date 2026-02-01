@@ -1,10 +1,15 @@
 package com.app.summa.ui.viewmodel
 
+import com.app.summa.data.model.Habit
+import com.app.summa.data.model.HabitLog
 import com.app.summa.data.repository.FocusRepository
 import com.app.summa.data.repository.HabitRepository
 import com.app.summa.util.TimeProvider
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -14,36 +19,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import com.app.summa.data.model.FocusSession
-import com.app.summa.data.model.Habit
-import com.app.summa.data.model.HabitLog
-import com.app.summa.data.repository.FocusRepository
-import com.app.summa.data.repository.HabitRepository
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.slot
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Before
-import org.junit.Test
 import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FocusViewModelTest {
 
     private lateinit var viewModel: FocusViewModel
-    private val focusRepository: FocusRepository = mockk()
-    private val habitRepository: HabitRepository = mockk()
+    private val focusRepository: FocusRepository = mockk(relaxed = true)
+    private val habitRepository: HabitRepository = mockk(relaxed = true)
     private val timeProvider: FakeTimeProvider = FakeTimeProvider()
 
     private val testDispatcher = StandardTestDispatcher()
@@ -53,11 +36,6 @@ class FocusViewModelTest {
         override fun currentTimeMillis(): Long = currentTime
     }
 
-    private val focusRepository: FocusRepository = mockk(relaxed = true)
-    private val habitRepository: HabitRepository = mockk(relaxed = true)
-
-    private val testDispatcher = StandardTestDispatcher()
-
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
@@ -66,11 +44,6 @@ class FocusViewModelTest {
         every { habitRepository.getLogsForDate(any()) } returns flowOf(emptyList())
 
         viewModel = FocusViewModel(focusRepository, habitRepository, timeProvider)
-        // Default mocks to avoid initialization errors
-        every { habitRepository.getAllHabits() } returns flowOf(emptyList())
-        every { habitRepository.getLogsForDate(any()) } returns flowOf(emptyList())
-
-        viewModel = FocusViewModel(focusRepository, habitRepository)
     }
 
     @After
@@ -97,6 +70,9 @@ class FocusViewModelTest {
 
         // After 1 second, time remaining should be 59
         assertEquals(59, viewModel.uiState.value.timeRemaining)
+    }
+
+    @Test
     fun `completeSession updates to target count if below`() = runTest {
         // Arrange
         val habitId = 1L
@@ -109,10 +85,11 @@ class FocusViewModelTest {
         every { habitRepository.getLogsForDate(any()) } returns flowOf(listOf(habitLog))
 
         // We need to re-init viewModel or update state to select the habit
-        viewModel.selectHabit(habitId)
+        val vm = FocusViewModel(focusRepository, habitRepository, timeProvider)
+        vm.selectHabit(habitId)
 
         // Act
-        viewModel.completeSession()
+        vm.completeSession()
         advanceUntilIdle()
 
         // Assert
@@ -135,10 +112,11 @@ class FocusViewModelTest {
         every { habitRepository.getAllHabits() } returns flowOf(listOf(habit))
         every { habitRepository.getLogsForDate(any()) } returns flowOf(listOf(habitLog))
 
-        viewModel.selectHabit(habitId)
+        val vm = FocusViewModel(focusRepository, habitRepository, timeProvider)
+        vm.selectHabit(habitId)
 
         // Act
-        viewModel.completeSession()
+        vm.completeSession()
         advanceUntilIdle()
 
         // Assert

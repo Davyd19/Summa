@@ -237,11 +237,11 @@ fun AddTaskScreen(
                 
                 ExposedDropdownMenuBox(
                     expanded = identityExpanded,
-                    onExpandedChange = { identityExpanded = !identityExpanded },
+                    onExpandedChange = { identityExpanded = it },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
-                        value = selectedIdentity?.name ?: "Pilih Identitas Terkait",
+                        value = selectedIdentity?.name ?: "Umum",
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = identityExpanded) },
@@ -259,7 +259,7 @@ fun AddTaskScreen(
                         onDismissRequest = { identityExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Tidak ada") },
+                            text = { Text("Umum") },
                             onClick = { 
                                 selectedIdentity = null
                                 identityExpanded = false 
