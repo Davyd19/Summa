@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.app.summa.ui.theme.BrutalBlack
@@ -225,6 +226,9 @@ fun BrutalistProgressBar(
 
     Row(
         modifier = modifier
+            .semantics {
+                progressBarRangeInfo = ProgressBarRangeInfo(clamped, 0f..1f)
+            }
             .fillMaxWidth()
             .height(52.dp)
             .brutalBorder()
@@ -460,7 +464,7 @@ fun BrutalistDailyGoalCard(
                 ) {
                     Icon(
                         imageVector = androidx.compose.material.icons.Icons.Filled.CheckCircle,
-                        contentDescription = null,
+                        contentDescription = "Target Tercapai",
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(28.dp)
                     )
@@ -582,7 +586,7 @@ fun BrutalistHabitsSection(
                         Text(habit.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
                     if (habit.targetCount > 0 && habit.currentCount >= habit.targetCount) {
-                        Icon(Icons.Filled.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Filled.CheckCircle, "Selesai", tint = MaterialTheme.colorScheme.primary)
                     } else {
                         Text("${habit.currentCount}/${habit.targetCount}", fontWeight = FontWeight.Bold)
                     }
@@ -803,7 +807,15 @@ fun BrutalistBlockProgressBar(
     activeColor: Color = MaterialTheme.colorScheme.primary
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .semantics {
+                progressBarRangeInfo = ProgressBarRangeInfo(
+                    current = current.toFloat(),
+                    range = 0f..max.toFloat(),
+                    steps = max
+                )
+            }
+            .fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         for (i in 1..max) {
