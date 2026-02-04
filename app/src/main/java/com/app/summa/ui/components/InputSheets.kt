@@ -3,6 +3,7 @@ package com.app.summa.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -23,6 +24,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -160,7 +162,11 @@ fun HabitInputSheet(
                             .size(48.dp)
                             .clip(CircleShape)
                             .background(if (icon == emoji) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { icon = emoji }
+                            .selectable(
+                                selected = (icon == emoji),
+                                onClick = { icon = emoji },
+                                role = Role.RadioButton
+                            )
                     ) {
                         Text(emoji, style = MaterialTheme.typography.headlineSmall)
                     }
@@ -534,7 +540,11 @@ fun TransactionInputSheet(
                             .background(if (isSelected)
                                 if (t == TransactionType.INCOME) SuccessGreen else ErrorRed
                             else Color.Transparent)
-                            .clickable { type = t },
+                            .selectable(
+                                selected = isSelected,
+                                onClick = { type = t },
+                                role = Role.RadioButton
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(

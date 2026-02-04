@@ -9,3 +9,7 @@
 ## 2026-02-02 - Custom Progress Bar Semantics
 **Learning:** Custom progress indicators built with `Box`/`Row` (like `BrutalistProgressBar`) have no native accessibility role, making them invisible to screen readers.
 **Action:** Apply `Modifier.semantics { progressBarRangeInfo = ProgressBarRangeInfo(...) }` to the parent container of custom progress components to announce values correctly.
+
+## 2026-02-03 - Accessible Selection in Custom Radio Groups
+**Learning:** Using `clickable` for mutually exclusive options (like icon pickers) in Compose fails to announce selection state or role to screen readers.
+**Action:** Replace `clickable` with `selectable` (with `selected` state and `Role.RadioButton`) for custom list items that represent a single choice.
