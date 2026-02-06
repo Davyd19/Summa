@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -667,7 +669,10 @@ fun BrutalistModeDialog(
         onDismissRequest = onDismiss,
         title = { Text("Pilih Mode", fontWeight = FontWeight.Black) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.selectableGroup(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 listOf("Normal", "Fokus", "Pagi", "Malam").forEach { mode ->
                     val isSelected = currentMode == mode
                     Row(
@@ -675,7 +680,11 @@ fun BrutalistModeDialog(
                             .fillMaxWidth()
                             .brutalBorder(strokeWidth = if(isSelected) 3.dp else 1.dp, color = if(isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
                             .background(if(isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                            .clickable { onModeSelected(mode) }
+                            .selectable(
+                                selected = isSelected,
+                                onClick = { onModeSelected(mode) },
+                                role = Role.RadioButton
+                            )
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
