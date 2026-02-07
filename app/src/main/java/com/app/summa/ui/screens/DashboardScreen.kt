@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -16,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -81,6 +84,7 @@ fun DashboardScreen(
                     // MODE TOGGLE
                     Row(
                         modifier = Modifier
+                            .selectableGroup()
                             .brutalBorder(strokeWidth = 2.dp, cornerRadius = 24.dp)
                             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
                             .padding(4.dp),
@@ -91,7 +95,11 @@ fun DashboardScreen(
                             val isSelected = currentMode == mode
                             Box(
                                 modifier = Modifier
-                                    .clickable { onModeSelected(mode) }
+                                    .selectable(
+                                        selected = isSelected,
+                                        onClick = { onModeSelected(mode) },
+                                        role = Role.RadioButton
+                                    )
                                     .background(
                                         if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                                         RoundedCornerShape(20.dp)
