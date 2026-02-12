@@ -7,6 +7,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -158,11 +161,22 @@ fun HabitInputSheet(
             )
             Spacer(Modifier.height(12.dp))
             Text("Pilih Ikon:", style = MaterialTheme.typography.labelMedium)
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp).selectableGroup()) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .selectableGroup()
+            ) {
                 items(emojis) { emoji ->
                     val isSelected = icon == emoji
-                    val backgroundColor by animateColorAsState(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant, label = "bgColor")
-                    val scale by animateFloatAsState(if (isSelected) 1.1f else 1f, label = "scale")
+                    val backgroundColor by animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                        label = "iconBackground"
+                    )
+                    val scale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.1f else 1f,
+                        label = "iconScale"
+                    )
 
                     Box(
                         contentAlignment = Alignment.Center,
@@ -542,11 +556,14 @@ fun TransactionInputSheet(
             ) {
                 TransactionType.values().filter { it != TransactionType.TRANSFER }.forEach { t ->
                     val isSelected = type == t
+                    val targetColor = if (isSelected) {
+                        if (t == TransactionType.INCOME) SuccessGreen else ErrorRed
+                    } else {
+                        Color.Transparent
+                    }
                     val backgroundColor by animateColorAsState(
-                        targetValue = if (isSelected)
-                            if (t == TransactionType.INCOME) SuccessGreen else ErrorRed
-                        else Color.Transparent,
-                        label = "bgColor"
+                        targetValue = targetColor,
+                        label = "transactionTypeBackground"
                     )
 
                     Box(

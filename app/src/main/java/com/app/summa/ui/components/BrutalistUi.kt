@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,6 +30,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.semantics.*
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.app.summa.ui.theme.BrutalBlack
@@ -576,7 +579,7 @@ fun BrutalistHabitsSection(
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             habits.take(3).forEach { habit ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().brutalBorder(strokeWidth = 2.dp).padding(12.dp).clickable{ onHabitClick(habit) },
+                    modifier = Modifier.fillMaxWidth().brutalBorder(strokeWidth = 2.dp).padding(12.dp).clickable(role = Role.Button) { onHabitClick(habit) },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -610,7 +613,7 @@ fun BrutalistQuickAccessRow(
     ) {
         // Money
         BrutalistCard(
-            modifier = Modifier.weight(1f).fillMaxHeight().clickable{ onMoneyClick() },
+            modifier = Modifier.weight(1f).fillMaxHeight().clickable(role = Role.Button) { onMoneyClick() },
             containerColor = com.app.summa.ui.theme.DeepTeal,
             contentColor = Color.White
         ) {
@@ -626,7 +629,7 @@ fun BrutalistQuickAccessRow(
         }
         // Notes
         BrutalistCard(
-            modifier = Modifier.weight(1f).fillMaxHeight().clickable{ onNotesClick() }
+            modifier = Modifier.weight(1f).fillMaxHeight().clickable(role = Role.Button) { onNotesClick() }
         ) {
              Column(
                 modifier = Modifier.fillMaxSize(),
@@ -667,7 +670,10 @@ fun BrutalistModeDialog(
         onDismissRequest = onDismiss,
         title = { Text("Pilih Mode", fontWeight = FontWeight.Black) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.selectableGroup(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 listOf("Normal", "Fokus", "Pagi", "Malam").forEach { mode ->
                     val isSelected = currentMode == mode
                     Row(
@@ -675,7 +681,11 @@ fun BrutalistModeDialog(
                             .fillMaxWidth()
                             .brutalBorder(strokeWidth = if(isSelected) 3.dp else 1.dp, color = if(isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
                             .background(if(isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                            .clickable { onModeSelected(mode) }
+                            .selectable(
+                                selected = isSelected,
+                                onClick = { onModeSelected(mode) },
+                                role = Role.RadioButton
+                            )
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
