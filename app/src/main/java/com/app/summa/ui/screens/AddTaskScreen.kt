@@ -32,6 +32,8 @@ import com.app.summa.data.model.Identity
 import com.app.summa.ui.components.*
 import com.app.summa.ui.theme.*
 import com.app.summa.ui.viewmodel.PlannerViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -46,8 +48,10 @@ fun AddTaskScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
     
     var title by remember { mutableStateOf("") }
+    var isSubmitting by remember { mutableStateOf(false) }
     var description by remember { mutableStateOf("") }
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     var selectedTime by remember { mutableStateOf<LocalTime?>(null) }
@@ -92,6 +96,7 @@ fun AddTaskScreen(
                  BrutalButton(
                     onClick = {
                         if (title.isNotBlank()) {
+                            isSubmitting = true
                             viewModel.addTask(
                                 title = title,
                                 description = description,
@@ -100,17 +105,18 @@ fun AddTaskScreen(
                                 isTwoMinutes = false, // Removed rule from UI
                                 relatedIdentityId = selectedIdentity?.id
                             )
-                            // Jika tanggal yang dipilih bukan hari ini, kita mungkin perlu handle di ViewModel agar selectDate berubah
-                            // Namun asumsi addTask di planner memasukkan ke DB, nanti PlannerScreen akan reload.
-                            // Untuk amannya, kita bisa minta VM selectDate juga jika perlu, tapi user expectation biasanya balik ke planner.
-                            onBack()
+                            scope.launch {
+                                delay(500)
+                                onBack()
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     text = "JADWALKAN",
                     containerColor = if (isCommitment) GoldAccent else MaterialTheme.colorScheme.primary,
                     contentColor = if (isCommitment) Color.Black else MaterialTheme.colorScheme.onPrimary,
-                    enabled = title.isNotBlank()
+                    enabled = title.isNotBlank(),
+                    isLoading = isSubmitting
                 )
             }
         }

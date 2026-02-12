@@ -1,9 +1,15 @@
 package com.app.summa.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -20,6 +26,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -154,16 +161,32 @@ fun HabitInputSheet(
             )
             Spacer(Modifier.height(12.dp))
             Text("Pilih Ikon:", style = MaterialTheme.typography.labelMedium)
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp)) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .selectableGroup()
+            ) {
                 items(emojis) { emoji ->
+                    val isSelected = icon == emoji
+                    val backgroundColor by animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                        label = "iconBackground"
+                    )
+                    val scale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.1f else 1f,
+                        label = "iconScale"
+                    )
+
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .size(48.dp)
+                            .scale(scale)
                             .clip(CircleShape)
-                            .background(if (icon == emoji) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
+                            .background(backgroundColor)
                             .selectable(
-                                selected = (icon == emoji),
+                                selected = isSelected,
                                 onClick = { icon = emoji },
                                 role = Role.RadioButton
                             )
@@ -527,19 +550,28 @@ fun TransactionInputSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
-                    .padding(4.dp),
+                    .padding(4.dp)
+                    .selectableGroup(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 TransactionType.values().filter { it != TransactionType.TRANSFER }.forEach { t ->
                     val isSelected = type == t
+                    val targetColor = if (isSelected) {
+                        if (t == TransactionType.INCOME) SuccessGreen else ErrorRed
+                    } else {
+                        Color.Transparent
+                    }
+                    val backgroundColor by animateColorAsState(
+                        targetValue = targetColor,
+                        label = "transactionTypeBackground"
+                    )
+
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .height(40.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected)
-                                if (t == TransactionType.INCOME) SuccessGreen else ErrorRed
-                            else Color.Transparent)
+                            .background(backgroundColor)
                             .selectable(
                                 selected = isSelected,
                                 onClick = { type = t },

@@ -14,6 +14,6 @@
 **Learning:** Using `clickable` for mutually exclusive options (like icon pickers) in Compose fails to announce selection state or role to screen readers.
 **Action:** Replace `clickable` with `selectable` (with `selected` state and `Role.RadioButton`) for custom list items that represent a single choice.
 
-## 2026-02-04 - Smooth Transitions for Toggle States
-**Learning:** Instant color changes in custom toggle buttons feel harsh and lack feedback. `animateColorAsState` provides a simple way to add delight without complex animation logic.
-**Action:** Wrap color states in `animateColorAsState` for interactive elements like custom radio buttons or toggles to improve perceived responsiveness.
+## 2026-02-04 - Selection Group Semantics
+**Learning:** Custom radio groups (e.g. icon pickers, transaction types) using `Row`/`LazyRow` with `selectable` items often miss the container-level `selectableGroup()` modifier, confusing screen readers about the grouping context.
+**Action:** Always apply `Modifier.selectableGroup()` to the parent container of mutually exclusive `selectable` items to ensure correct accessibility behavior.

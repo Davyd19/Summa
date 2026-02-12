@@ -85,6 +85,7 @@ fun DashboardScreen(
                     // MODE TOGGLE
                     Row(
                         modifier = Modifier
+                            .selectableGroup()
                             .brutalBorder(strokeWidth = 2.dp, cornerRadius = 24.dp)
                             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
                             .padding(4.dp)
