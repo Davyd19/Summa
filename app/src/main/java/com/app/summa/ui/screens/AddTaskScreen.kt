@@ -13,11 +13,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.text.KeyboardActions
@@ -138,14 +142,21 @@ fun AddTaskScreen(
             // Date & Time Selectors
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Date Selector
-                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("TANGGAL", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
                             .brutalBorder(cornerRadius = 8.dp)
-                            .clickable { showDatePicker = true },
+                            .clickable(
+                                role = Role.Button,
+                                onClickLabel = "Ubah Tanggal"
+                            ) { showDatePicker = true }
+                            .semantics {
+                                contentDescription =
+                                    "Tanggal terpilih: ${selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy"))}"
+                            },
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surface
                     ) {
@@ -154,7 +165,7 @@ fun AddTaskScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                             Text(
+                            Text(
                                 selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy")),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.SemiBold
@@ -162,35 +173,86 @@ fun AddTaskScreen(
                             Icon(Icons.Default.CalendarToday, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f))
                         }
                     }
-                 }
+                }
 
-                 // Time Selector
-                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Time Selector
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("JAM (OPSIONAL)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                     Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .brutalBorder(cornerRadius = 8.dp)
-                            .clickable { timePickerDialog.show() },
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surface
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+
+                    val timeSelectorModifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .brutalBorder(cornerRadius = 8.dp)
+
+                    if (selectedTime == null) {
+                        Surface(
+                            modifier = timeSelectorModifier
+                                .clickable(
+                                    role = Role.Button,
+                                    onClickLabel = "Atur Jam"
+                                ) { timePickerDialog.show() }
+                                .semantics {
+                                    contentDescription = "Belum ada jam, ketuk untuk atur"
+                                },
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface
                         ) {
-                             Text(
-                                selectedTime?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "--:--",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if(selectedTime != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha=0.4f)
-                            )
-                            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f))
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    "--:--",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha=0.4f)
+                                )
+                                Icon(Icons.Default.Schedule, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f))
+                            }
+                        }
+                    } else {
+                        Surface(
+                            modifier = timeSelectorModifier,
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .clickable(
+                                            role = Role.Button,
+                                            onClickLabel = "Ubah Jam"
+                                        ) { timePickerDialog.show() }
+                                        .padding(start = 12.dp)
+                                        .semantics {
+                                            contentDescription = "Jam terpilih: ${selectedTime!!.format(DateTimeFormatter.ofPattern("HH:mm"))}, ketuk untuk ubah"
+                                        },
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    Text(
+                                        selectedTime!!.format(DateTimeFormatter.ofPattern("HH:mm")),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                IconButton(onClick = { selectedTime = null }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Hapus Jam",
+                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f)
+                                    )
+                                }
+                            }
                         }
                     }
-                 }
+                }
             }
             
             HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.outlineVariant)
