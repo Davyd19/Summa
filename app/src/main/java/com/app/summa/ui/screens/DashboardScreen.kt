@@ -9,6 +9,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
@@ -87,12 +88,22 @@ fun DashboardScreen(
                             .selectableGroup()
                             .brutalBorder(strokeWidth = 2.dp, cornerRadius = 24.dp)
                             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
-                            .padding(4.dp),
+                            .padding(4.dp)
+                            .selectableGroup(),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         val modes = listOf("Normal", "Fokus")
                         modes.forEach { mode ->
                             val isSelected = currentMode == mode
+                            val animatedBackgroundColor by animateColorAsState(
+                                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                label = "modeBackground"
+                            )
+                            val animatedTextColor by animateColorAsState(
+                                targetValue = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                label = "modeText"
+                            )
+
                             Box(
                                 modifier = Modifier
                                     .selectable(
@@ -101,7 +112,7 @@ fun DashboardScreen(
                                         role = Role.RadioButton
                                     )
                                     .background(
-                                        if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                        animatedBackgroundColor,
                                         RoundedCornerShape(20.dp)
                                     )
                                     .padding(horizontal = 12.dp, vertical = 6.dp),
@@ -111,7 +122,7 @@ fun DashboardScreen(
                                     text = mode.uppercase(),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Black,
-                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                    color = animatedTextColor
                                 )
                             }
                         }
