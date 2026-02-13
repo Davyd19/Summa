@@ -17,3 +17,11 @@
 ## 2026-02-04 - Selection Group Semantics
 **Learning:** Custom radio groups (e.g. icon pickers, transaction types) using `Row`/`LazyRow` with `selectable` items often miss the container-level `selectableGroup()` modifier, confusing screen readers about the grouping context.
 **Action:** Always apply `Modifier.selectableGroup()` to the parent container of mutually exclusive `selectable` items to ensure correct accessibility behavior.
+
+## 2026-02-05 - Associating Error Messages in Compose TextFields
+**Learning:** Custom text fields using `OutlinedTextField` with separate `Text` labels often lack accessibility for error states; the `isError` flag visually highlights the border but screen readers do not automatically announce the associated error message text.
+**Action:** Use `Modifier.semantics { stateDescription = errorMessage }` (or `error(errorMessage)`) on the input field to ensure screen readers announce validation errors when the field is focused.
+
+## 2026-02-05 - Reducing Navigation Friction in List Items
+**Learning:** Complex list items (like stat cards or habit rows) with multiple text elements force screen reader users to swipe through each individual piece of data, slowing down navigation significantly.
+**Action:** Apply `Modifier.semantics(mergeDescendants = true) {}` to the parent container of data-dense components to group content into a single, efficient announcement.
