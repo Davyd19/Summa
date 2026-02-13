@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 
 @Composable
 fun BrutalistTextField(
@@ -54,7 +55,12 @@ fun BrutalistTextField(
             modifier = Modifier
                 .fillMaxWidth()
                 .brutalBorder(cornerRadius = 8.dp, color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline)
-                .semantics { contentDescription = label },
+                .semantics {
+                    contentDescription = label
+                    if (isError && errorMessage != null) {
+                        stateDescription = errorMessage
+                    }
+                },
             shape = RoundedCornerShape(8.dp),
             colors = brutalTextFieldColors(),
             singleLine = singleLine,
